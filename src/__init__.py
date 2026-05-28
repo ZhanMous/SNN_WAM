@@ -1,0 +1,1 @@
+"""SNN-WAM source package."""

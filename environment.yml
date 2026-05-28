@@ -1,0 +1,15 @@
+name: snnwam-libero
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pytest
+  - pyyaml
+  - numpy
+  - h5py
+  - tqdm
+  - pip:
+      - torch
+      - torchvision
+      - torchaudio

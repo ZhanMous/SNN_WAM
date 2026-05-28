@@ -28,6 +28,12 @@ results/runs/**/*.hdf5
 results/runs/**/*.h5
 results/runs/**/*.npz
 results/runs/**/*.npy
+results/smoke/*
+!results/smoke/.gitkeep
+results/inspections/*
+!results/inspections/.gitkeep
+!results/inspections/*_libero_demo_missing.json
+!results/inspections/*_libero_data_inspection_real.json
 results/figures/**/*.png
 results/figures/**/*.jpg
 results/figures/**/*.jpeg

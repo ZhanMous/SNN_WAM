@@ -14,11 +14,7 @@ MANIFEST_NAMES = {
     "Pipfile",
 }
 
-DISALLOWED_DEPENDENCIES = {
-    "torch",
-    "pytorch",
-    "numpy",
-    "libero",
+DISALLOWED_DEFAULT_ENV_DEPENDENCIES = {
     "maniskill",
     "openvla",
     "transformers",
@@ -41,7 +37,7 @@ def test_dependency_manifests_do_not_introduce_large_dependencies() -> None:
     violations = []
     for manifest in manifests:
         text = manifest.read_text(encoding="utf-8").lower()
-        for dependency in DISALLOWED_DEPENDENCIES:
+        for dependency in DISALLOWED_DEFAULT_ENV_DEPENDENCIES:
             if dependency in text:
                 violations.append(f"{manifest.relative_to(ROOT)}: {dependency}")
 
@@ -52,6 +48,12 @@ def test_project_contract_names_allowed_bootstrap_dependencies() -> None:
     contract = (ROOT / "docs" / "PROJECT_CONTRACT.md").read_text(encoding="utf-8")
     for dependency in ["Python stdlib", "Bash", "git", "pytest"]:
         assert dependency in contract
+
+
+def test_project_contract_names_g1_libero_environment_dependencies() -> None:
+    contract = (ROOT / "docs" / "PROJECT_CONTRACT.md").read_text(encoding="utf-8")
+    for phrase in ["PyTorch", "NumPy", "h5py", "PyYAML", "LIBERO"]:
+        assert phrase in contract
 
 
 def test_installer_archives_are_not_present_or_tracked() -> None:

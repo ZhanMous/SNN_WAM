@@ -1,0 +1,36 @@
+experiment:
+  name: libero_spatial_mlp_action_placeholder
+  seed: 0
+  tags:
+    - g3_placeholder
+    - action_only
+data:
+  suite: libero_spatial
+  dataset_root: env:LIBERO_DATASET_ROOT
+  history_len: 4
+  action_horizon: 4
+  future_horizon: 0
+  image_size: 128
+  split:
+    source: split.json
+    unit: trajectory
+    train: []
+    val: []
+    test: []
+model:
+  visual_encoder: stub
+  text_encoder: stub
+  temporal_adapter: mlp
+  hidden_dim: 256
+training:
+  batch_size: 32
+  epochs: 0
+  optimizer: adamw
+  lr: 0.0003
+  lambda_action: 1.0
+  lambda_future: 0.0
+  lambda_spike: 0.0
+  grad_clip_norm: null
+output:
+  output_dir: results/runs
+  save_best_by: val/action_mse

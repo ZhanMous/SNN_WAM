@@ -15,6 +15,26 @@
 
 `docs/PROJECT_CONTRACT.md` 和 `docs/EXPERIMENT_PROTOCOL.md` 是本仓库的 canonical 研究标准。`.agents/skills/` 可以提供工作流帮助，但不能替代本契约。
 
+### Gate Ladder
+
+项目按 G0-G9 gate 推进。每个 gate 的交付物必须在进入下一 gate 前落到仓库文档、测试或 `results/` 产物中。
+
+| Gate | 名称 | Codex 必须交付 |
+| --- | --- | --- |
+| G0 | Repo Gate | 目录、`AGENTS.md`、`README.md`、pytest、smoke 脚本 |
+| G1 | Environment Gate | torch/LIBERO import、版本记录、最小 demo 日志 |
+| G1.5 | LIBERO Bootstrap Gate | `LIBERO_REPO_ROOT`、官方下载脚本、数据根目录、真实 `.hdf5` demo 和 inspection report |
+| G2 | Dataset Gate | trajectory shape、window 对齐、无未来泄漏测试 |
+| G3 | Model Gate | MLP/GRU/SNN forward shape、参数量、latency smoke |
+| G4 | Training Gate | tiny-batch overfit、loss 下降、checkpoint 保存 |
+| G5 | Metric Gate | synthetic metric tests、action MSE、future cosine、spike rate |
+| G6 | Rollout Gate | fixed initial states、episode CSV、failure videos、success rate |
+| G7 | Robustness Gate | noise/delay/frame drop 曲线，固定 seeds |
+| G8 | Evidence Gate | `docs/RESULT_ARTIFACTS.md` 与真实文件一致 |
+| G9 | Claim Gate | 论文/汇报中的每句话都能指向证据 |
+
+G0 是 repo bootstrap gate。G1 之后允许引入阶段必要依赖，但必须先更新 Dependency Policy、环境记录和 smoke tests。G2 不能开始，直到 G1.5 已经检查过至少一个真实 LIBERO HDF5 demonstration 文件。
+
 ### Baseline Fairness
 
 任何 “SNN 优于 MLP/GRU” 或 “SNN 更鲁棒” 的 claim 必须满足：
@@ -55,18 +75,17 @@ ES/EGGROLL-style post-training 不是第一阶段必要条件。只有在满足�
 
 ## Dependency Policy
 
-当前 bootstrap 阶段只允许：
+G0 bootstrap 阶段只允许：
 
 - Python stdlib
 - Bash
 - git
 - pytest
 
-当前阶段不允许引入大型依赖，包括但不限于：
+G1 `snnwam-libero` environment baseline 允许 PyTorch、NumPy、h5py、PyYAML 和官方 LIBERO 安装流程，用于验证 torch/LIBERO import、版本记录和最小 demo 日志。
 
-- torch / pytorch
-- numpy
-- libero
+默认 `snnwam-libero` 环境不允许引入下列后续阶段依赖：
+
 - maniskill
 - openvla
 - transformers
