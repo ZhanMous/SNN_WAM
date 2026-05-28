@@ -15,6 +15,41 @@ from typing import Any, Mapping
 import torch
 from torch import nn
 
+# Pinned revision for facebook/dinov2-small (latest stable as of 2026-05-28)
+# This ensures reproducible latent extraction across runs.
+DEFAULT_DINOV2_REVISION = "ed25f3a31f01632728cabb09d1542f84ab7b0056"
+
+# Preprocessing ID for manifest metadata
+DINOV2_PREPROCESSING_ID = "AutoImageProcessor.from_pretrained"
+
+
+def validate_revision(revision: str | None, model_id: str) -> str:
+    """Validate and return a revision hash.
+
+    Args:
+        revision: Revision hash to validate, or None to use default.
+        model_id: HuggingFace model ID for error messages.
+
+    Returns:
+        Validated 40-character hex revision string.
+
+    Raises:
+        ValueError: If revision is invalid format.
+    """
+    if revision is None:
+        revision = DEFAULT_DINOV2_REVISION
+    if not isinstance(revision, str) or len(revision) != 40:
+        raise ValueError(
+            f"Invalid revision for {model_id}: {revision!r}. "
+            "Must be a 40-character hex string."
+        )
+    if not re.match(r"^[0-9a-f]{40}$", revision):
+        raise ValueError(
+            f"Invalid revision for {model_id}: {revision!r}. "
+            "Must be lowercase hex."
+        )
+    return revision
+
 
 class FrozenVisualEncoder(nn.Module, ABC):
     """Base interface for frozen image-to-latent encoders.
@@ -183,6 +218,9 @@ class DINOv2VisualEncoder(FrozenVisualEncoder):
 
     This encoder requires the transformers library and DINOv2 model weights.
     It is intended for offline latent extraction, not real-time training.
+
+    The revision is pinned to ensure reproducible latent extraction.
+    If revision=None, uses DEFAULT_DINOV2_REVISION.
     """
 
     def __init__(
@@ -193,6 +231,9 @@ class DINOv2VisualEncoder(FrozenVisualEncoder):
         latent_dim: int = 384,
         output_token: str = "cls",
     ) -> None:
+        # Validate and set revision before calling super().__init__
+        revision = validate_revision(revision, model_id)
+
         super().__init__(latent_dim=latent_dim, encoder_id=f"dinov2_{model_id.split('/')[-1]}")
         self.model_id = model_id
         self.revision = revision
@@ -259,6 +300,7 @@ class DINOv2VisualEncoder(FrozenVisualEncoder):
             "revision": self.revision,
             "output_token": self.output_token,
             "extraction_mode": "offline",
+            "preprocessing_id": DINOV2_PREPROCESSING_ID,
         })
         return metadata
 
@@ -333,6 +375,8 @@ def extract_time_index(value: Any) -> float:
 
 
 __all__ = [
+    "DEFAULT_DINOV2_REVISION",
+    "DINOV2_PREPROCESSING_ID",
     "FrozenVisualEncoder",
     "FrozenVisualEncoderAdapter",
     "RealVisualEncoderPlaceholder",
@@ -340,4 +384,5 @@ __all__ = [
     "build_frozen_visual_encoder",
     "encode_sequence",
     "extract_time_index",
+    "validate_revision",
 ]

@@ -2,15 +2,25 @@
 """Extract DINOv2 latents from LIBERO HDF5 demonstrations.
 
 This script extracts frozen DINOv2 ViT-S/14 latents from LIBERO demonstration
-files and stores them in HDF5 format with manifest and checksum for
-reproducible experiments.
+files and stores them in HDF5 format with rich metadata for reproducible
+experiments.
+
+Stored metadata per demo:
+- latents: [T, 384] float16 (CLS token embeddings)
+- actions: [T, A] float32
+- timesteps: [T] int32
+- episode_id: string attribute
+- task_id: string attribute
+- camera_name: string attribute
+- instruction: string attribute
+- proprio_state: [T, S] float32 (optional)
+- split: string attribute (to be filled by split assignment)
 
 Usage:
     python scripts/extract_dinov2_latents.py \
         --dataset-root $LIBERO_DATASET_ROOT \
         --suite libero_spatial \
         --output-dir latents/libero_spatial/dinov2_vits14 \
-        --model-id facebook/dinov2-small \
         --revision <pinned_commit_hash>
 """
 
@@ -29,6 +39,10 @@ import numpy as np
 import torch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Import constants from encoders module
+sys.path.insert(0, str(REPO_ROOT))
+from src.models.encoders import DEFAULT_DINOV2_REVISION, DINOV2_PREPROCESSING_ID
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,7 +75,7 @@ def parse_args() -> argparse.Namespace:
         "--revision",
         type=str,
         default=None,
-        help="Pinned commit hash for DINOv2 model.",
+        help="Pinned commit hash for DINOv2 model. Uses default if not specified.",
     )
     parser.add_argument(
         "--output-token",
@@ -88,7 +102,7 @@ def parse_args() -> argparse.Namespace:
         help="Maximum number of HDF5 files to process.",
     )
     parser.add_argument(
-        --dry-run,
+        "--dry-run",
         action="store_true",
         help="Print what would be done without extracting latents.",
     )
@@ -108,6 +122,53 @@ def find_hdf5_files(dataset_root: Path, suite: str) -> list[Path]:
     return hdf5_files
 
 
+def extract_episode_id(demo_path: str, hdf5_path: Path) -> str:
+    """Extract episode ID from demo path and source file."""
+    # demo_path is like "data/demo_0" or "demo_0"
+    demo_name = demo_path.split("/")[-1]
+    file_stem = hdf5_path.stem
+    return f"{file_stem}:{demo_name}"
+
+
+def extract_task_id(hdf5_path: Path, demo_group: h5py.Group) -> str:
+    """Extract task ID from HDF5 attrs or filename."""
+    # Try to get from attrs
+    for attr_name in ["task_id", "task_name", "problem_info"]:
+        if attr_name in demo_group.attrs:
+            value = demo_group.attrs[attr_name]
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
+            return str(value)
+
+    # Try parent group attrs
+    if "data" in demo_group.parent.attrs:
+        pass  # Skip, too nested
+
+    # Fall back to filename
+    return hdf5_path.stem
+
+
+def extract_instruction(demo_group: h5py.Group) -> str:
+    """Extract language instruction from demo attrs."""
+    for attr_name in ["language_instruction", "language", "instruction"]:
+        if attr_name in demo_group.attrs:
+            value = demo_group.attrs[attr_name]
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
+            return str(value)
+
+    # Try problem_info JSON
+    if "problem_info" in demo_group.attrs:
+        try:
+            info = json.loads(demo_group.attrs["problem_info"])
+            if isinstance(info, dict) and "language_instruction" in info:
+                return str(info["language_instruction"])
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    return ""
+
+
 def extract_latents_from_file(
     hdf5_path: Path,
     encoder: Any,
@@ -116,7 +177,7 @@ def extract_latents_from_file(
     batch_size: int,
     output_token: str,
 ) -> dict[str, Any]:
-    """Extract latents from a single HDF5 file."""
+    """Extract latents and rich metadata from a single HDF5 file."""
 
     with h5py.File(hdf5_path, "r") as f:
         # Find demo groups
@@ -154,17 +215,39 @@ def extract_latents_from_file(
                 print(f"  Warning: No image keys found in {demo_path}/obs")
                 continue
 
-            # Use first image key
+            # Use first image key as camera_name
             image_key = image_keys[0]
+            camera_name = image_key
             images = obs_group[image_key]
 
             if len(images.shape) < 3:
                 print(f"  Warning: Unexpected image shape {images.shape} in {demo_path}")
                 continue
 
+            # Extract episode metadata
+            episode_id = extract_episode_id(demo_path, hdf5_path)
+            task_id = extract_task_id(hdf5_path, demo_group)
+            instruction = extract_instruction(demo_group)
+
+            # Extract actions
+            actions = None
+            if "actions" in demo_group:
+                actions = np.array(demo_group["actions"], dtype=np.float32)
+
+            # Extract proprioceptive state
+            proprio_state = None
+            for state_key in ["states", "robot_states", "robot0_eef_pos"]:
+                if state_key in demo_group:
+                    proprio_state = np.array(demo_group[state_key], dtype=np.float32)
+                    break
+                if state_key in obs_group:
+                    proprio_state = np.array(obs_group[state_key], dtype=np.float32)
+                    break
+
             # Extract latents
             T = images.shape[0]
             latents = []
+            timesteps = np.arange(T, dtype=np.int32)
 
             for start_idx in range(0, T, batch_size):
                 end_idx = min(start_idx + batch_size, T)
@@ -198,11 +281,20 @@ def extract_latents_from_file(
                 latents.append(batch_latents.cpu().half())
 
             latents = torch.cat(latents, dim=0)
+
             results[demo_path] = {
+                "episode_id": episode_id,
+                "task_id": task_id,
+                "camera_name": camera_name,
+                "instruction": instruction,
                 "image_key": image_key,
                 "latents": latents.numpy(),
+                "actions": actions,
+                "timesteps": timesteps,
+                "proprio_state": proprio_state,
                 "shape": latents.shape,
                 "dtype": "float16",
+                "split": "",  # To be filled by split assignment
             }
 
         return results
@@ -218,10 +310,11 @@ def save_latents(
     hdf5_path: Path,
     results: dict[str, Any],
     model_id: str,
-    revision: str | None,
+    revision: str,
     output_token: str,
+    preprocessing_id: str,
 ) -> Path:
-    """Save extracted latents to HDF5 file with manifest and checksum."""
+    """Save extracted latents to HDF5 file with rich metadata."""
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -229,26 +322,22 @@ def save_latents(
     output_name = hdf5_path.stem + "_dinov2_vits14.hdf5"
     output_path = output_dir / output_name
 
-    manifest = {
-        "source_file": str(hdf5_path),
-        "model_id": model_id,
-        "revision": revision,
-        "output_token": output_token,
-        "latent_dim": 384,
-        "dtype": "float16",
-        "extraction_time": datetime.now(timezone.utc).isoformat(),
-        "demos": {},
-    }
+    # Collect unique episode and task IDs for manifest
+    episode_ids = []
+    task_ids = []
 
     with h5py.File(output_path, "w") as f:
         # Create metadata group
         meta_group = f.create_group("_metadata")
+        meta_group.attrs["encoder_id"] = "dinov2_vits14"
         meta_group.attrs["model_id"] = model_id
-        meta_group.attrs["revision"] = revision or "unknown"
+        meta_group.attrs["revision"] = revision
+        meta_group.attrs["preprocessing_id"] = preprocessing_id
         meta_group.attrs["output_token"] = output_token
         meta_group.attrs["latent_dim"] = 384
         meta_group.attrs["dtype"] = "float16"
         meta_group.attrs["source_file"] = str(hdf5_path)
+        meta_group.attrs["extraction_time"] = datetime.now(timezone.utc).isoformat()
 
         for demo_path, demo_data in results.items():
             # Create demo group
@@ -263,19 +352,79 @@ def save_latents(
                 compression_opts=4,
             )
 
-            # Save metadata
+            # Save timesteps
+            demo_group.create_dataset(
+                "timesteps",
+                data=demo_data["timesteps"],
+                dtype="int32",
+            )
+
+            # Save actions if available
+            if demo_data["actions"] is not None:
+                demo_group.create_dataset(
+                    "actions",
+                    data=demo_data["actions"],
+                    dtype="float32",
+                    compression="gzip",
+                    compression_opts=4,
+                )
+
+            # Save proprioceptive state if available
+            if demo_data["proprio_state"] is not None:
+                demo_group.create_dataset(
+                    "proprio_state",
+                    data=demo_data["proprio_state"],
+                    dtype="float32",
+                    compression="gzip",
+                    compression_opts=4,
+                )
+
+            # Save metadata as attributes
+            demo_group.attrs["episode_id"] = demo_data["episode_id"]
+            demo_group.attrs["task_id"] = demo_data["task_id"]
+            demo_group.attrs["camera_name"] = demo_data["camera_name"]
+            demo_group.attrs["instruction"] = demo_data["instruction"]
             demo_group.attrs["image_key"] = demo_data["image_key"]
             demo_group.attrs["shape"] = demo_data["shape"]
             demo_group.attrs["checksum"] = compute_checksum(demo_data["latents"])
+            demo_group.attrs["split"] = demo_data["split"]
 
-            # Update manifest
-            manifest["demos"][demo_path] = {
-                "image_key": demo_data["image_key"],
-                "shape": list(demo_data["shape"]),
-                "checksum": demo_group.attrs["checksum"],
-            }
+            # Track unique IDs
+            episode_ids.append(demo_data["episode_id"])
+            task_ids.append(demo_data["task_id"])
 
     # Save manifest
+    manifest = {
+        "encoder_id": "dinov2_vits14",
+        "model_id": model_id,
+        "revision": revision,
+        "preprocessing_id": preprocessing_id,
+        "output_token": output_token,
+        "latent_dim": 384,
+        "dtype": "float16",
+        "source_file": str(hdf5_path),
+        "output_file": str(output_path),
+        "extraction_time": datetime.now(timezone.utc).isoformat(),
+        "total_demos": len(results),
+        "unique_episode_ids": sorted(set(episode_ids)),
+        "unique_task_ids": sorted(set(task_ids)),
+        "demos": {},
+    }
+
+    for demo_path, demo_data in results.items():
+        manifest["demos"][demo_path] = {
+            "episode_id": demo_data["episode_id"],
+            "task_id": demo_data["task_id"],
+            "camera_name": demo_data["camera_name"],
+            "instruction": demo_data["instruction"],
+            "image_key": demo_data["image_key"],
+            "shape": list(demo_data["shape"]),
+            "checksum": compute_checksum(demo_data["latents"]),
+            "has_actions": demo_data["actions"] is not None,
+            "has_proprio_state": demo_data["proprio_state"] is not None,
+            "split": demo_data["split"],
+        }
+
     manifest_path = output_dir / f"{output_name}_manifest.json"
     with open(manifest_path, "w") as f:
         json.dump(manifest, f, indent=2)
@@ -286,11 +435,15 @@ def save_latents(
 def main() -> int:
     args = parse_args()
 
+    # Use default revision if not specified
+    revision = args.revision or DEFAULT_DINOV2_REVISION
+
     print(f"Dataset root: {args.dataset_root}")
     print(f"Suite: {args.suite}")
     print(f"Output directory: {args.output_dir}")
     print(f"Model ID: {args.model_id}")
-    print(f"Revision: {args.revision}")
+    print(f"Revision: {revision}")
+    print(f"Preprocessing ID: {DINOV2_PREPROCESSING_ID}")
     print(f"Output token: {args.output_token}")
     print(f"Device: {args.device}")
     print()
@@ -316,8 +469,8 @@ def main() -> int:
         print("ERROR: transformers library is required. Install with: pip install transformers")
         return 1
 
-    processor = AutoImageProcessor.from_pretrained(args.model_id, revision=args.revision)
-    encoder = AutoModel.from_pretrained(args.model_id, revision=args.revision)
+    processor = AutoImageProcessor.from_pretrained(args.model_id, revision=revision)
+    encoder = AutoModel.from_pretrained(args.model_id, revision=revision)
     encoder = encoder.to(args.device)
     encoder.eval()
 
@@ -341,8 +494,9 @@ def main() -> int:
                 hdf5_path,
                 results,
                 args.model_id,
-                args.revision,
+                revision,
                 args.output_token,
+                DINOV2_PREPROCESSING_ID,
             )
             total_demos += len(results)
             print(f"  Saved {len(results)} demos to {output_path}")

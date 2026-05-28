@@ -80,7 +80,7 @@ def test_train_offline_wam_gru_dry_run_writes_future_latent_metrics(
     tmp_path: Path,
 ) -> None:
     run_dir = run_training(
-        ROOT / "configs/libero_spatial_wam_gru.yaml",
+        ROOT / "configs/smoke/libero_spatial_wam_gru.yaml",
         dry_run=True,
         max_steps=1,
         output_dir=tmp_path / "runs",
@@ -111,7 +111,7 @@ def test_train_offline_wam_gru_no_future_dry_run_keeps_future_eval_metrics(
     tmp_path: Path,
 ) -> None:
     run_dir = run_training(
-        ROOT / "configs/libero_spatial_gru_no_future.yaml",
+        ROOT / "configs/smoke/libero_spatial_gru_no_future.yaml",
         dry_run=True,
         max_steps=1,
         output_dir=tmp_path / "runs",
@@ -140,7 +140,7 @@ def test_missing_libero_dataset_root_fails_with_clear_message(
 
     with pytest.raises(OSError, match="LIBERO_DATASET_ROOT is not set"):
         run_training(
-            ROOT / "configs/libero_spatial_action_only_smoke.yaml",
+            ROOT / "configs/smoke/libero_spatial_action_only_smoke.yaml",
             output_dir=tmp_path / "runs",
             run_id="missing_env",
             command=["python3", "src/train/train_offline.py"],

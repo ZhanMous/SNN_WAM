@@ -32,7 +32,8 @@ model:
   visual_encoder: dinov2_vits14
   visual_latent_dim: 384
   model_id: facebook/dinov2-small
-  revision: <pinned_commit_hash>
+  revision: ed25f3a31f01632728cabb09d1542f84ab7b0056
+  preprocessing_id: AutoImageProcessor.from_pretrained
   output_token: cls
   text_encoder: stub
   temporal_adapter: wam_gru

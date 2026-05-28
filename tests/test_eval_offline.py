@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_eval_offline_writes_eval_csv_and_reproducibility_files(tmp_path: Path) -> None:
     run_dir = run_training(
-        ROOT / "configs/libero_spatial_gru_no_future.yaml",
+        ROOT / "configs/smoke/libero_spatial_gru_no_future.yaml",
         dry_run=True,
         max_steps=1,
         output_dir=tmp_path / "runs",
