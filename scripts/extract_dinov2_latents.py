@@ -110,16 +110,31 @@ def parse_args() -> argparse.Namespace:
 
 
 def find_hdf5_files(dataset_root: Path, suite: str) -> list[Path]:
-    """Find all HDF5 files in the dataset root for the given suite."""
-    suite_dir = dataset_root / suite
-    if not suite_dir.exists():
-        raise FileNotFoundError(f"Suite directory not found: {suite_dir}")
+    """Find all HDF5 files in the dataset root for the given suite.
 
-    hdf5_files = sorted(suite_dir.glob("*.hdf5")) + sorted(suite_dir.glob("*.h5"))
-    if not hdf5_files:
-        raise FileNotFoundError(f"No HDF5 files found in {suite_dir}")
+    Checks multiple common LIBERO directory structures:
+    - dataset_root/suite/
+    - dataset_root/datasets/suite/
+    - dataset_root/suite_no_noops/
+    """
+    candidate_dirs = [
+        dataset_root / suite,
+        dataset_root / "datasets" / suite,
+        dataset_root / f"{suite}_no_noops",
+        dataset_root / "datasets" / f"{suite}_no_noops",
+    ]
 
-    return hdf5_files
+    for suite_dir in candidate_dirs:
+        if suite_dir.exists():
+            hdf5_files = sorted(suite_dir.glob("*.hdf5")) + sorted(suite_dir.glob("*.h5"))
+            if hdf5_files:
+                print(f"Found HDF5 files in: {suite_dir}")
+                return hdf5_files
+
+    raise FileNotFoundError(
+        f"No HDF5 files found for suite '{suite}' under {dataset_root}. "
+        f"Checked: {[str(d) for d in candidate_dirs]}"
+    )
 
 
 def extract_episode_id(demo_path: str, hdf5_path: Path) -> str:
