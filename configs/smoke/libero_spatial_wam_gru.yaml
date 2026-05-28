@@ -1,9 +1,9 @@
 experiment:
-  name: libero_spatial_wam_gru_placeholder
+  name: libero_spatial_wam_gru_future
   seed: 0
   tags:
-    - g3_placeholder
-    - future_latent_contract_only
+    - g4_ablation
+    - future_latent_smoke
 data:
   suite: libero_spatial
   dataset_root: env:LIBERO_DATASET_ROOT
@@ -18,7 +18,8 @@ data:
     val: []
     test: []
 model:
-  visual_encoder: stub
+  visual_encoder: smoke_time_index
+  visual_latent_dim: 8
   text_encoder: stub
   temporal_adapter: wam_gru
   hidden_dim: 256

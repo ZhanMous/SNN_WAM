@@ -23,13 +23,17 @@ REQUIRED_PATHS = [
     "docs/LOCAL_PATHS_TEMPLATE.md",
     "docs/RESULT_ARTIFACTS.md",
     "docs/CLAIMS_LEDGER.md",
+    "docs/WAM_GRU_ABLATION_REPORT_TEMPLATE.md",
     "configs/libero_spatial_mlp.yaml",
     "configs/libero_spatial_gru.yaml",
-    "configs/libero_spatial_wam_gru.yaml",
     "configs/libero_spatial_snn_lif.yaml",
+    "configs/smoke/libero_spatial_action_only_smoke.yaml",
+    "configs/smoke/libero_spatial_wam_gru.yaml",
+    "configs/smoke/libero_spatial_gru_no_future.yaml",
     "scripts/smoke_check.sh",
     "scripts/quality_gate.sh",
     "scripts/check_environment.py",
+    "scripts/check_result_artifacts.py",
     "scripts/smoke_libero_import.py",
     "scripts/smoke_libero_env_step.py",
     "scripts/inspect_libero_data.py",
@@ -42,6 +46,7 @@ REQUIRED_PATHS = [
     "src/utils/config.py",
     "src/utils/seed.py",
     "src/utils/experiment_io.py",
+    "src/train/eval_offline.py",
     ".agents/skills/snn-wam-project-guardrail/SKILL.md",
     "configs",
     "src",
@@ -256,7 +261,8 @@ def test_data_contract_documents_shapes_and_leakage_risks() -> None:
         "Future Leakage Risks",
         "`action_history` accidentally includes future target actions",
         "Do not assume real LIBERO action dimension",
-        "No model code",
+        "Current Implementation Boundary",
+        "no large visual",
     ]
     for phrase in required_phrases:
         assert phrase in data_contract
@@ -288,7 +294,7 @@ def test_libero_real_data_contract_blocks_dataset_until_observed() -> None:
         "Action alignment unknown",
         "blocked by G1.5",
         "Future leakage",
-        "Action-only training implementation may begin only if it follows",
+        "dry-run WAM training may run only as a smoke test",
         "G2 TrajectoryWindowDataset v1 may begin only after G1.5 has inspected at least one real LIBERO HDF5 demonstration file",
         "scripts/inspect_libero_demo.py",
     ]
@@ -329,6 +335,7 @@ def test_libero_smoke_scripts_are_executable_python() -> None:
         "inspect_libero_demo.py",
         "check_libero_action_alignment.py",
         "bootstrap_libero_check.py",
+        "check_result_artifacts.py",
     ]:
         script = ROOT / "scripts" / script_name
         assert script.read_text(encoding="utf-8").startswith("#!/usr/bin/env python3")
@@ -341,19 +348,21 @@ def test_libero_download_wrapper_is_executable_bash() -> None:
     assert script.stat().st_mode & 0o111
 
 
-def test_only_action_mlp_and_gru_model_training_code_is_present_for_model_gate() -> None:
+def test_only_phase1_offline_model_training_code_is_present_for_model_gate() -> None:
     allowed_src_files = {
         "src/.gitkeep",
         "src/__init__.py",
         "src/data/__init__.py",
         "src/data/split_normalization.py",
         "src/data/trajectory_window.py",
+        "src/models/encoders.py",
         "src/models/__init__.py",
         "src/models/heads.py",
         "src/models/registry.py",
         "src/models/temporal_gru.py",
         "src/models/temporal_mlp.py",
         "src/train/__init__.py",
+        "src/train/eval_offline.py",
         "src/train/metrics.py",
         "src/train/train_offline.py",
         "src/utils/__init__.py",

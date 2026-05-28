@@ -60,13 +60,19 @@ Mock mode is clearly labeled with `mode=mock`, `mock=True`, and source `syntheti
 
 Implemented module: `src/data/trajectory_window.py`.
 
-V1 is an in-memory deterministic windowing dataset for inspected LIBERO-style trajectories. It does not load all LIBERO files, train models, or implement SNN/GRU adapters. G2.5 split and normalization policies are defined in `docs/SPLIT_POLICY.md` and `docs/NORMALIZATION_POLICY.md`.
+V1 is an in-memory deterministic windowing dataset for inspected LIBERO-style
+trajectories. It does not load all LIBERO files or perform training; the
+offline trainer consumes this contract separately. G2.5 split and normalization
+policies are defined in `docs/SPLIT_POLICY.md` and
+`docs/NORMALIZATION_POLICY.md`.
 
 Raw trajectory inputs use time as the first axis:
 
 - `images`: `[T, H, W, C]`.
 - `actions`: `[T, action_dim]`.
 - `states`: optional `[T, state_dim]`.
+- `visual_latents`: optional `[T, latent_dim]`, produced by a frozen visual
+  encoder or deterministic smoke encoder.
 - `frame_refs`: optional `[T]`.
 - `language`: trajectory-level string.
 
@@ -78,11 +84,17 @@ For current time index `t`, one unbatched sample has:
 | `language` | string | input | trajectory-level instruction |
 | `action_history` | `[history_len, action_dim]` | input | under processed LIBERO semantics, exactly `actions[t-history_len+1:t+1]`; includes the last executed action that led to `image_t` |
 | `optional_state_t` | `[state_dim]` or `None` | input only when present | exactly `states[t]`; no future states |
+| `z_t` | `[latent_dim]` or `None` | input only when current latents are enabled | exactly `visual_latents[t]`; current frozen visual latent only |
 | `target_actions` | `[action_horizon, action_dim]` | target | starts after `image_t`: `actions[t+1:t+1+action_horizon]` |
+| `target_future_latents` | `[future_horizon, latent_dim]` | target only | starts after current observation: `visual_latents[t+1:t+1+future_horizon]` |
 | `target_future_images` | `[future_horizon, H, W, C]` | target only | starts after current observation: `images[t+1:t+1+future_horizon]` |
 | `target_future_frame_refs` | `[future_horizon]` | target reference only | starts at frame `t+1` |
 
-Batching is not implemented in v1. A future collate function would add batch axis `B`, for example `image_t: [B, H, W, C]`, `action_history: [B, history_len, action_dim]`, and `target_actions: [B, action_horizon, action_dim]`.
+The offline trainer collate function adds batch axis `B` for action and latent
+fields: `action_history: [B, history_len, action_dim]`,
+`target_actions: [B, action_horizon, action_dim]`, optional
+`z_t: [B, latent_dim]`, and optional
+`target_future_latents: [B, future_horizon, latent_dim]`.
 
 V1 performs no padding. Valid windows are restricted to time indices with enough prior actions, target actions, and future targets. Edge windows that would require padding are excluded rather than wrapped, repeated, or silently truncated.
 
@@ -97,7 +109,10 @@ Any later dataset implementation must preserve and test these shapes:
 - `action_history`: `[history_len, action_dim]`.
 - `state_t`: `[state_dim]` if used.
 - `target_actions`: `[action_horizon, action_dim]`.
-- `target_future_images`: `[future_horizon, H, W, C]` or future latents `[future_horizon, ...]`.
+- `z_t`: `[latent_dim]` when frozen current visual latents are enabled.
+- `target_future_images`: `[future_horizon, H, W, C]`.
+- `target_future_latents`: `[future_horizon, latent_dim]` when frozen latent
+  targets are enabled.
 - Optional masks: `[history_len]`, `[action_horizon]`, `[future_horizon]`.
 
 ## Time Indexing Convention
@@ -106,7 +121,10 @@ Observed raw arrays use time as axis `0`. Default causal convention for the futu
 
 - Inputs at index `t` may include image/observation at `t`, optional state at `t`, instruction, and already executed actions up to the transition into `t`: `actions[t-history_len+1:t+1]`.
 - Targets include future actions after `image_t`: `actions[t+1:t+1+action_horizon]`.
-- Future image or latent targets start after the current observation: `images[t+1:t+1+future_horizon]`.
+- Future image targets start after the current observation:
+  `images[t+1:t+1+future_horizon]`.
+- Current latent input is `z_t = visual_latents[t]`; future latent targets are
+  `visual_latents[t+1:t+1+future_horizon]`.
 - Padding must use masks. Do not silently wrap, repeat the last frame, or drop edge windows without documenting it.
 
 Action alignment is documented in `docs/LIBERO_ACTION_SEMANTICS.md`. The final G2.5 convention is `action_to_current_obs`: processed HDF5 `actions[t]` led to `obs[t]`, so policy targets after observing `obs[t]` start at `actions[t+1]`.
@@ -115,6 +133,8 @@ Action alignment is documented in `docs/LIBERO_ACTION_SEMANTICS.md`. The final G
 
 - `action_history` accidentally includes future target actions such as `action[t+1]`.
 - `target_future_images` starts at `t` instead of `t+1`.
+- `target_future_latents` starts at `t` instead of `t+1` or appears in
+  `input_keys`.
 - Future observations or states appear in model input.
 - Reward, success, done, or episode outcome fields enter model input.
 - Simulator `states` or `init_state` fields are used as model inputs instead of reset/evaluation metadata.
@@ -130,6 +150,11 @@ Action alignment is documented in `docs/LIBERO_ACTION_SEMANTICS.md`. The final G
 - Implement the real split-aware LIBERO loader that materializes `docs/SPLIT_POLICY.md`.
 - Confirm how `init_state` should be stored for closed-loop rollout evaluation.
 
-## Non-goal
+## Current Implementation Boundary
 
-No model code, no training, no SNN/GRU adapter, and no final split-aware LIBERO loader is added at this stage. `TrajectoryWindowDataset` v1 is only the causal in-memory windowing layer.
+`TrajectoryWindowDataset` supports optional frozen visual latents for current
+input `z_t` and future target `target_future_latents`. The committed trainer
+can exercise this path in dry-run WAM-GRU mode with the deterministic
+`smoke_time_index` encoder. Real LIBERO WAM training still requires
+precomputed frozen latents or a real frozen encoder adapter; no large visual
+backbone is fine-tuned in Phase 1.

@@ -41,6 +41,11 @@ REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
     "output": ("output_dir", "save_best_by"),
 }
 
+# Optional fields that, if present, must satisfy their own validation rules.
+OPTIONAL_SECTIONS: dict[str, tuple[str, ...]] = {
+    "reproducibility": ("require_clean_git",),
+}
+
 ALLOWED_TEMPORAL_ADAPTERS = {"mlp", "gru", "wam_gru", "snn_lif"}
 ALLOWED_OPTIMIZERS = {"adamw"}
 
@@ -77,6 +82,17 @@ def validate_config(config: Mapping[str, Any]) -> None:
         value = config.get(section)
         if not isinstance(value, Mapping):
             raise ConfigValidationError(f"missing required section: {section}")
+        missing = [field for field in fields if field not in value]
+        if missing:
+            raise ConfigValidationError(f"section {section} missing fields: {missing}")
+
+    # Validate optional sections if present.
+    for section, fields in OPTIONAL_SECTIONS.items():
+        value = config.get(section)
+        if value is None:
+            continue
+        if not isinstance(value, Mapping):
+            raise ConfigValidationError(f"optional section {section} must be a mapping")
         missing = [field for field in fields if field not in value]
         if missing:
             raise ConfigValidationError(f"section {section} missing fields: {missing}")
@@ -124,6 +140,14 @@ def validate_config(config: Mapping[str, Any]) -> None:
 
     _require_nonempty_string(output["output_dir"], "output.output_dir")
     _require_nonempty_string(output["save_best_by"], "output.save_best_by")
+
+    # Validate reproducibility section if present.
+    reproducibility = config.get("reproducibility")
+    if reproducibility is not None:
+        if not isinstance(reproducibility.get("require_clean_git"), bool):
+            raise ConfigValidationError(
+                "reproducibility.require_clean_git must be a boolean"
+            )
 
 
 def _validate_dataset_root(value: Any) -> None:

@@ -82,7 +82,7 @@ For SNN-WAM causal policy windows, use this explicit convention:
 - `action_history = actions[t-history_len+1:t+1]`
 - `target_actions = actions[t+1:t+1+action_horizon]`
 - `target_future_images = images[t+1:t+1+future_horizon]`
-- `target_future_latents = latents[t+1:t+1+future_horizon]` once implemented
+- `target_future_latents = latents[t+1:t+1+future_horizon]` when frozen latents are enabled
 
 This differs from a pre-action convention where `actions[t]` would be executed after observing `obs[t]`.
 

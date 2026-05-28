@@ -134,11 +134,13 @@ def mock_report() -> dict[str, Any]:
 def dataset_item_contract_preview() -> dict[str, str]:
     return {
         "image_t": "[H, W, C] raw image before any final dataset transform",
+        "z_t": "[latent_dim] current frozen visual latent when latent targets are enabled",
         "instruction": "string",
         "action_history": "[history_len, action_dim], actions before the current policy decision",
         "state_t": "[state_dim] if present and used",
         "target_actions": "[action_horizon, action_dim], future actions per documented action semantics",
         "target_future_images": "[future_horizon, H, W, C], images from t+1 onward",
+        "target_future_latents": "[future_horizon, latent_dim], frozen visual latent targets from t+1 onward",
     }
 
 

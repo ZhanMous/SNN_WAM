@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from src.models.registry import build_action_model, count_parameters
-from src.models.temporal_gru import TemporalGRUActionModel
+from src.models.temporal_gru import TemporalGRUActionModel, TemporalGRUWAMModel
 from src.train.metrics import action_mse
 
 
@@ -35,6 +35,36 @@ def test_temporal_gru_rejects_wrong_history_shape() -> None:
 
     with pytest.raises(ValueError, match="history_len"):
         model(torch.zeros(2, 5, 7))
+
+
+def test_temporal_gru_wam_model_forward_shapes() -> None:
+    model = TemporalGRUWAMModel(
+        history_len=4,
+        action_dim=7,
+        action_horizon=3,
+        latent_dim=8,
+        future_horizon=2,
+        hidden_dim=16,
+    )
+
+    outputs = model(torch.zeros(2, 4, 7), torch.zeros(2, 8))
+
+    assert tuple(outputs["pred_actions"].shape) == (2, 3, 7)
+    assert tuple(outputs["pred_future_latents"].shape) == (2, 2, 8)
+
+
+def test_temporal_gru_wam_rejects_wrong_latent_shape() -> None:
+    model = TemporalGRUWAMModel(
+        history_len=4,
+        action_dim=7,
+        action_horizon=3,
+        latent_dim=8,
+        future_horizon=2,
+        hidden_dim=16,
+    )
+
+    with pytest.raises(ValueError, match=r"\[B, Z\]"):
+        model(torch.zeros(2, 4, 7), torch.zeros(2, 2, 8))
 
 
 def test_registry_builds_mlp_and_gru_with_same_action_contract() -> None:

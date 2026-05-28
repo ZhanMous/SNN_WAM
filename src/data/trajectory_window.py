@@ -5,6 +5,7 @@ Raw trajectory arrays are expected to use time as the first axis:
 - images: `[T, H, W, C]`
 - actions: `[T, action_dim]`
 - optional states: `[T, state_dim]`
+- optional visual_latents: `[T, latent_dim]`
 - optional frame references: `[T]`
 
 Each returned sample is one unbatched time window. A downstream collate
@@ -38,6 +39,8 @@ class RawTrajectory:
         actions: Robot actions with shape `[T, action_dim]`.
         language: Language instruction string for the trajectory.
         states: Optional state/proprio array with shape `[T, state_dim]`.
+        visual_latents: Optional frozen visual latents with shape
+            `[T, latent_dim]`.
         frame_refs: Optional frame references with shape `[T]`, such as
             HDF5 dataset paths or integer frame ids.
         trajectory_id: Stable id used only for sample metadata.
@@ -48,6 +51,7 @@ class RawTrajectory:
     actions: Sequence[Any]
     language: str
     states: Sequence[Any] | None = None
+    visual_latents: Sequence[Any] | None = None
     frame_refs: Sequence[Any] | None = None
     trajectory_id: str = "trajectory_0"
     split: str = "unspecified"
@@ -71,6 +75,11 @@ class RawTrajectory:
             raise ValueError(
                 f"states length {len(self.states)} does not match images length {self.length}"
             )
+        if self.visual_latents is not None and len(self.visual_latents) != self.length:
+            raise ValueError(
+                "visual_latents length "
+                f"{len(self.visual_latents)} does not match images length {self.length}"
+            )
         if self.frame_refs is not None and len(self.frame_refs) != self.length:
             raise ValueError(
                 f"frame_refs length {len(self.frame_refs)} does not match images length {self.length}"
@@ -90,9 +99,14 @@ class TrajectoryWindowDataset:
       that led to `images[t]` and excludes future action targets.
     - `optional_state_t`: `[state_dim]` when states are present, otherwise
       `None`; this is exactly `states[t]`.
+    - `z_t`: `[latent_dim]` when `include_current_latent=True`; this is
+      exactly `visual_latents[t]` and is a causal current-observation input.
     - `target_actions`: `[action_horizon, action_dim]`, exactly
       `actions[t+1:t+1+action_horizon]`; action targets start after the
       current observation.
+    - `target_future_latents`: `[future_horizon, latent_dim]` when
+      `future_horizon > 0` and `include_future_latents=True`; these are
+      targets only and start at `visual_latents[t+1]`.
     - `target_future_images`: `[future_horizon, H, W, C]` when
       `future_horizon > 0` and `include_future_images=True`; these are targets
       only and start at `images[t+1]`.
@@ -112,6 +126,8 @@ class TrajectoryWindowDataset:
         history_len: int,
         action_horizon: int,
         future_horizon: int = 0,
+        include_current_latent: bool = False,
+        include_future_latents: bool = False,
         include_future_images: bool = False,
         include_future_frame_refs: bool = False,
         split: str | None = None,
@@ -123,6 +139,8 @@ class TrajectoryWindowDataset:
             raise ValueError("action_horizon must be positive")
         if future_horizon < 0:
             raise ValueError("future_horizon must be non-negative")
+        if include_future_latents and future_horizon <= 0:
+            raise ValueError("include_future_latents requires future_horizon > 0")
         if action_convention not in VALID_ACTION_CONVENTIONS:
             raise ValueError(
                 f"action_convention must be one of {sorted(VALID_ACTION_CONVENTIONS)}"
@@ -131,6 +149,8 @@ class TrajectoryWindowDataset:
         self.history_len = history_len
         self.action_horizon = action_horizon
         self.future_horizon = future_horizon
+        self.include_current_latent = include_current_latent
+        self.include_future_latents = include_future_latents
         self.include_future_images = include_future_images
         self.include_future_frame_refs = include_future_frame_refs
         self.split = split
@@ -144,6 +164,12 @@ class TrajectoryWindowDataset:
         ]
         for trajectory in self.trajectories:
             trajectory.validate()
+            if (include_current_latent or include_future_latents) and (
+                trajectory.visual_latents is None
+            ):
+                raise ValueError(
+                    "visual_latents are required when latent fields are requested"
+                )
 
         self._index: list[tuple[int, int]] = []
         for trajectory_index, trajectory in enumerate(self.trajectories):
@@ -186,6 +212,12 @@ class TrajectoryWindowDataset:
         if trajectory.states is not None:
             optional_state_t = trajectory.states[t]
             input_keys.append("optional_state_t")
+        z_t = None
+        if self.include_current_latent:
+            if trajectory.visual_latents is None:
+                raise RuntimeError("visual_latents unexpectedly missing")
+            z_t = trajectory.visual_latents[t]
+            input_keys.append("z_t")
 
         sample: dict[str, Any] = {
             "trajectory_index": trajectory_index,
@@ -196,6 +228,7 @@ class TrajectoryWindowDataset:
             "language": trajectory.language,
             "action_history": slice_sequence(trajectory.actions, history_start, history_stop),
             "optional_state_t": optional_state_t,
+            "z_t": z_t,
             "target_actions": slice_sequence(trajectory.actions, target_start, action_end),
             "action_history_indices": list(range(history_start, history_stop)),
             "target_action_indices": list(range(target_start, action_end)),
@@ -208,6 +241,15 @@ class TrajectoryWindowDataset:
         if self.future_horizon > 0:
             sample["target_future_indices"] = list(range(future_start, future_end))
             target_keys.append("target_future_indices")
+            if self.include_future_latents:
+                if trajectory.visual_latents is None:
+                    raise RuntimeError("visual_latents unexpectedly missing")
+                sample["target_future_latents"] = slice_sequence(
+                    trajectory.visual_latents,
+                    future_start,
+                    future_end,
+                )
+                target_keys.append("target_future_latents")
             if self.include_future_images:
                 sample["target_future_images"] = slice_sequence(
                     trajectory.images,
@@ -258,6 +300,7 @@ def coerce_trajectory(item: RawTrajectory | Mapping[str, Any], index: int) -> Ra
         actions=item["actions"],
         language=item["language"],
         states=item.get("states"),
+        visual_latents=item.get("visual_latents"),
         frame_refs=item.get("frame_refs"),
         trajectory_id=item.get("trajectory_id", f"trajectory_{index}"),
         split=item.get("split", "unspecified"),
@@ -352,6 +395,9 @@ def make_mock_trajectory_dataset(
     image_shape: tuple[int, int, int] = (2, 2, 1),
     action_dim: int = 3,
     state_dim: int | None = 2,
+    include_current_latent: bool = False,
+    include_future_latents: bool = False,
+    latent_dim: int = 4,
     include_future_images: bool = True,
     include_future_frame_refs: bool = True,
     split: str = "train",
@@ -364,6 +410,8 @@ def make_mock_trajectory_dataset(
     - actions: `[T, action_dim]`, every scalar in `actions[t]` equals `t`.
     - states: `[T, state_dim]` when `state_dim` is not `None`, every scalar
       in `states[t]` equals `t`.
+    - visual_latents: `[T, latent_dim]` when requested, with each scalar in
+      `visual_latents[t]` equal to `t` plus a small dimension offset.
     - frame references: `[T]`, with integer reference `t`.
     """
 
@@ -372,11 +420,18 @@ def make_mock_trajectory_dataset(
     states = None
     if state_dim is not None:
         states = [[t for _ in range(state_dim)] for t in range(length)]
+    visual_latents = None
+    if include_current_latent or include_future_latents:
+        visual_latents = [
+            [float(t) + 0.01 * float(dim) for dim in range(latent_dim)]
+            for t in range(length)
+        ]
 
     trajectory = RawTrajectory(
         images=images,
         actions=actions,
         states=states,
+        visual_latents=visual_latents,
         frame_refs=list(range(length)),
         language="mock instruction",
         trajectory_id="mock_trajectory_0",
@@ -387,6 +442,8 @@ def make_mock_trajectory_dataset(
         history_len=history_len,
         action_horizon=action_horizon,
         future_horizon=future_horizon,
+        include_current_latent=include_current_latent,
+        include_future_latents=include_future_latents,
         include_future_images=include_future_images,
         include_future_frame_refs=include_future_frame_refs,
         split=split,

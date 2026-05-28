@@ -14,6 +14,7 @@ env/
 *.tmp
 *.zip
 *.env
+.env.local
 *:Zone.Identifier
 
 .claude/settings.local.json

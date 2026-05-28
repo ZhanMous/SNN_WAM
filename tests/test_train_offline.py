@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 
 import pytest
@@ -29,12 +30,16 @@ def test_train_offline_dry_run_writes_metrics_and_checkpoints(tmp_path: Path) ->
     assert (run_dir / "environment.json").exists()
     assert (run_dir / "notes.md").exists()
     assert (run_dir / "command.sh").exists()
+    assert (run_dir / "train.log").exists()
     assert (run_dir / "split.json").exists()
     assert (run_dir / "normalization_stats.json").exists()
     assert (run_dir / "metrics.csv").exists()
     assert (run_dir / "checkpoint.pt").exists()
     assert (run_dir / "best.pt").exists()
     assert (run_dir / "summary.json").exists()
+    assert "total_loss,action_loss,future_loss" in (
+        run_dir / "train.log"
+    ).read_text(encoding="utf-8")
 
     with (run_dir / "metrics.csv").open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
@@ -69,6 +74,62 @@ def test_train_offline_gru_dry_run_writes_metrics_and_parameter_count(
     assert all(int(row["trainable_parameter_count"]) > 0 for row in rows)
     assert (run_dir / "checkpoint.pt").exists()
     assert (run_dir / "best.pt").exists()
+
+
+def test_train_offline_wam_gru_dry_run_writes_future_latent_metrics(
+    tmp_path: Path,
+) -> None:
+    run_dir = run_training(
+        ROOT / "configs/libero_spatial_wam_gru.yaml",
+        dry_run=True,
+        max_steps=1,
+        output_dir=tmp_path / "runs",
+        run_id="wam_gru_dry_run",
+        command=["python3", "src/train/train_offline.py", "--dry_run"],
+    )
+
+    with (run_dir / "metrics.csv").open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert [row["split"] for row in rows] == ["train", "val"]
+    assert all(float(row["future_loss"]) >= 0.0 for row in rows)
+    assert all(float(row["future_latent_cosine_error"]) >= 0.0 for row in rows)
+    assert all(
+        len(json.loads(row["future_latent_cosine_error_by_horizon"])) == 4
+        for row in rows
+    )
+    normalization = json.loads(
+        (run_dir / "normalization_stats.json").read_text(encoding="utf-8")
+    )
+    assert normalization["visual_latents"]["encoder"]["encoder_id"] == "smoke_time_index"
+    assert normalization["visual_latents"]["target_only_future"] is True
+    assert (run_dir / "checkpoint.pt").exists()
+    assert (run_dir / "best.pt").exists()
+
+
+def test_train_offline_wam_gru_no_future_dry_run_keeps_future_eval_metrics(
+    tmp_path: Path,
+) -> None:
+    run_dir = run_training(
+        ROOT / "configs/libero_spatial_gru_no_future.yaml",
+        dry_run=True,
+        max_steps=1,
+        output_dir=tmp_path / "runs",
+        run_id="wam_gru_no_future_dry_run",
+        command=["python3", "src/train/train_offline.py", "--dry_run"],
+    )
+
+    with (run_dir / "metrics.csv").open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert [row["split"] for row in rows] == ["train", "val"]
+    assert all(float(row["future_loss"]) >= 0.0 for row in rows)
+    assert all(float(row["future_latent_cosine_error"]) >= 0.0 for row in rows)
+    assert all(
+        float(row["total_loss"]) == pytest.approx(float(row["action_loss"]))
+        for row in rows
+    )
+    assert (run_dir / "train.log").exists()
 
 
 def test_missing_libero_dataset_root_fails_with_clear_message(

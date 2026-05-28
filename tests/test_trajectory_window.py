@@ -28,6 +28,10 @@ def row_time_values(rows: list[list[int]]) -> list[int]:
     return [row[0] for row in rows]
 
 
+def latent_time_values(rows: list[list[float]]) -> list[int]:
+    return [int(row[0]) for row in rows]
+
+
 def test_mock_dataset_import_smoke() -> None:
     dataset = make_mock_trajectory_dataset()
     assert len(dataset) == 3
@@ -101,6 +105,32 @@ def test_future_targets_are_not_input_keys() -> None:
     assert "target_actions" not in input_keys
     assert "rewards" not in sample
     assert "dones" not in sample
+
+
+def test_future_latent_targets_align_after_current_time_and_do_not_leak() -> None:
+    dataset = make_mock_trajectory_dataset(
+        length=10,
+        history_len=4,
+        action_horizon=4,
+        future_horizon=4,
+        include_current_latent=True,
+        include_future_latents=True,
+        latent_dim=3,
+        include_future_images=False,
+        include_future_frame_refs=False,
+    )
+    sample = dataset[dataset.dataset_index_for_time(0, 5)]
+
+    assert sample["time_index"] == 5
+    assert sample["z_t"] == pytest.approx([5.0, 5.01, 5.02])
+    assert nested_shape(sample["target_future_latents"]) == [4, 3]
+    assert latent_time_values(sample["target_future_latents"]) == [6, 7, 8, 9]
+    assert sample["target_future_indices"] == [6, 7, 8, 9]
+
+    assert "z_t" in sample["input_keys"]
+    assert "target_future_latents" not in sample["input_keys"]
+    assert "target_future_latents" in sample["target_keys"]
+    assert not any("future" in key or "target" in key for key in sample["input_keys"])
 
 
 def test_future_latent_placeholders_are_forbidden_as_inputs() -> None:

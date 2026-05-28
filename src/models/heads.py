@@ -47,4 +47,45 @@ class ActionChunkHead(nn.Module):
         return actions.reshape(batch_size, self.action_horizon, self.action_dim)
 
 
-__all__ = ["ActionChunkHead"]
+class FutureLatentChunkHead(nn.Module):
+    """Project model features to future visual latent targets.
+
+    Shape contract:
+
+    - input `features`: `[B, D]`, floating point tensor.
+    - output: `[B, H, Z]`, where `H` is `future_horizon` and `Z` is
+      `latent_dim`.
+    """
+
+    def __init__(self, input_dim: int, future_horizon: int, latent_dim: int) -> None:
+        super().__init__()
+        if input_dim <= 0:
+            raise ValueError("input_dim must be positive")
+        if future_horizon <= 0:
+            raise ValueError("future_horizon must be positive")
+        if latent_dim <= 0:
+            raise ValueError("latent_dim must be positive")
+
+        self.input_dim = input_dim
+        self.future_horizon = future_horizon
+        self.latent_dim = latent_dim
+        self.projection = nn.Linear(input_dim, future_horizon * latent_dim)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        """Return predicted future latents with shape `[B, H, Z]`."""
+
+        if features.ndim != 2:
+            raise ValueError(
+                f"features must have shape [B, D], got {tuple(features.shape)}"
+            )
+        if features.shape[1] != self.input_dim:
+            raise ValueError(
+                f"features dim {features.shape[1]} does not match {self.input_dim}"
+            )
+
+        batch_size = features.shape[0]
+        latents = self.projection(features)
+        return latents.reshape(batch_size, self.future_horizon, self.latent_dim)
+
+
+__all__ = ["ActionChunkHead", "FutureLatentChunkHead"]

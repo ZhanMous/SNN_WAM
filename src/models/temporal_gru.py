@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from src.models.heads import ActionChunkHead
+from src.models.heads import ActionChunkHead, FutureLatentChunkHead
 
 
 class TemporalGRU(nn.Module):
@@ -105,4 +105,75 @@ class TemporalGRUActionModel(nn.Module):
         return self.action_head(features)
 
 
-__all__ = ["TemporalGRU", "TemporalGRUActionModel"]
+class TemporalGRUWAMModel(nn.Module):
+    """GRU world-action adapter baseline with frozen visual latent input.
+
+    Shape contract:
+
+    - input `action_history`: `[B, T, A]`.
+    - input `z_t`: `[B, Z]`, current frozen visual latent only.
+    - output `pred_actions`: `[B, action_horizon, A]`.
+    - output `pred_future_latents`: `[B, future_horizon, Z]`.
+
+    Future latents are predicted targets; this model does not consume
+    `target_future_latents` or future observations as inputs.
+    """
+
+    def __init__(
+        self,
+        *,
+        history_len: int,
+        action_dim: int,
+        action_horizon: int,
+        latent_dim: int,
+        future_horizon: int,
+        hidden_dim: int,
+        num_layers: int = 1,
+    ) -> None:
+        super().__init__()
+        if latent_dim <= 0:
+            raise ValueError("latent_dim must be positive")
+        if future_horizon <= 0:
+            raise ValueError("future_horizon must be positive")
+        self.latent_dim = latent_dim
+        self.future_horizon = future_horizon
+        self.temporal = TemporalGRU(
+            history_len=history_len,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            num_layers=num_layers,
+        )
+        self.fusion = nn.Sequential(
+            nn.Linear(hidden_dim + latent_dim, hidden_dim),
+            nn.ReLU(),
+        )
+        self.action_head = ActionChunkHead(hidden_dim, action_horizon, action_dim)
+        self.future_latent_head = FutureLatentChunkHead(
+            hidden_dim,
+            future_horizon,
+            latent_dim,
+        )
+
+    def forward(
+        self,
+        action_history: torch.Tensor,
+        z_t: torch.Tensor,
+    ) -> dict[str, torch.Tensor]:
+        """Return action and future-latent predictions."""
+
+        self._validate_z_t(z_t)
+        features = self.temporal(action_history)
+        fused = self.fusion(torch.cat([features, z_t], dim=-1))
+        return {
+            "pred_actions": self.action_head(fused),
+            "pred_future_latents": self.future_latent_head(fused),
+        }
+
+    def _validate_z_t(self, z_t: torch.Tensor) -> None:
+        if z_t.ndim != 2:
+            raise ValueError(f"z_t must have shape [B, Z], got {tuple(z_t.shape)}")
+        if z_t.shape[1] != self.latent_dim:
+            raise ValueError(f"latent_dim {z_t.shape[1]} does not match {self.latent_dim}")
+
+
+__all__ = ["TemporalGRU", "TemporalGRUActionModel", "TemporalGRUWAMModel"]

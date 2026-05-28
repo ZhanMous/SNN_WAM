@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Config-driven offline action prediction training for action-only baselines."""
+"""Config-driven offline training for action and minimal WAM-GRU baselines."""
 
 from __future__ import annotations
 
@@ -29,8 +29,12 @@ from src.data.split_normalization import (  # noqa: E402
     FieldStats,
     fit_train_only_standardization_stats,
 )
-from src.models.registry import build_action_model, count_parameters  # noqa: E402
-from src.train.metrics import action_mse  # noqa: E402
+from src.models.encoders import (  # noqa: E402
+    build_frozen_visual_encoder,
+    encode_sequence,
+)
+from src.models.registry import build_offline_model, count_parameters  # noqa: E402
+from src.train.metrics import action_mse, future_latent_cosine_error  # noqa: E402
 from src.utils.config import load_config  # noqa: E402
 from src.utils.experiment_io import create_experiment_dir, format_command  # noqa: E402
 from src.utils.seed import seed_everything  # noqa: E402
@@ -43,6 +47,8 @@ METRIC_FIELDNAMES = [
     "action_loss",
     "action_loss_units",
     "future_loss",
+    "future_latent_cosine_error",
+    "future_latent_cosine_error_by_horizon",
     "spike_loss",
     "action_mse",
     "action_mse_units",
@@ -96,7 +102,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_dir=args.output_dir,
         run_id=args.run_id,
         device_name=args.device,
-        command=["python3", "src/train/train_offline.py", *(argv or sys.argv[1:])],
+        command=[sys.executable, "src/train/train_offline.py", *(argv or sys.argv[1:])],
     )
     print(f"run_dir={run_dir}")
     return 0
@@ -112,7 +118,7 @@ def run_training(
     device_name: str = "cpu",
     command: Sequence[str] | None = None,
 ) -> Path:
-    """Run offline MLP action training and return the result directory."""
+    """Run offline training and return the result directory."""
 
     config = prepare_runtime_config(
         load_config(config_path),
@@ -159,7 +165,8 @@ def run_training(
 
     sample = train_dataset[0]
     action_dim = infer_action_dim(sample)
-    model = build_action_model(config, action_dim=action_dim)
+    latent_dim = infer_latent_dim(sample) if has_future_latent_targets(sample) else None
+    model = build_offline_model(config, action_dim=action_dim, latent_dim=latent_dim)
     parameter_counts = count_parameters(model)
     device = torch.device(device_name)
     model.to(device)
@@ -170,10 +177,16 @@ def run_training(
         raise ValueError("training.epochs must be positive for train_offline.py")
 
     metrics_path = run_dir / "metrics.csv"
+    train_log_path = run_dir / "train.log"
     best_metric = float("inf")
     best_epoch = -1
     rows: list[dict[str, Any]] = []
     last_checkpoint: dict[str, Any] | None = None
+    train_log_path.write_text(
+        "epoch,split,total_loss,action_loss,future_loss,action_mse,"
+        "future_latent_cosine_error\n",
+        encoding="utf-8",
+    )
     with metrics_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=METRIC_FIELDNAMES)
         writer.writeheader()
@@ -185,6 +198,7 @@ def run_training(
                 device=device,
                 optimizer=optimizer,
                 lambda_action=float(config["training"]["lambda_action"]),
+                lambda_future=float(config["training"]["lambda_future"]),
                 grad_clip_norm=config["training"]["grad_clip_norm"],
                 max_steps=max_steps,
                 action_transform=action_transform,
@@ -195,6 +209,7 @@ def run_training(
                 device=device,
                 optimizer=None,
                 lambda_action=float(config["training"]["lambda_action"]),
+                lambda_future=float(config["training"]["lambda_future"]),
                 grad_clip_norm=None,
                 max_steps=max_steps,
                 action_transform=action_transform,
@@ -215,9 +230,11 @@ def run_training(
             writer.writerow(train_row)
             writer.writerow(val_row)
             handle.flush()
+            append_train_log(train_log_path, train_row)
+            append_train_log(train_log_path, val_row)
             rows.extend([train_row, val_row])
 
-            current_metric = float(val_metrics["action_mse"])
+            current_metric = checkpoint_selection_metric(config, val_metrics)
             last_checkpoint = checkpoint_payload(
                 epoch=epoch,
                 model=model,
@@ -251,6 +268,7 @@ def run_training(
             normalization_stats=normalization_stats,
             rows=rows,
             action_dim=action_dim,
+            latent_dim=latent_dim,
             train_windows=len(train_dataset),
             val_windows=len(val_dataset),
             best_metric=best_metric,
@@ -292,20 +310,26 @@ def prepare_runtime_config(
 
 
 def validate_training_scope(config: Mapping[str, Any]) -> None:
-    """Fail closed for adapters/losses outside action-only baselines."""
+    """Fail closed for adapters/losses outside implemented Phase-1 scope."""
 
-    if config["model"]["temporal_adapter"] not in {"mlp", "gru"}:
+    adapter = config["model"]["temporal_adapter"]
+    if adapter not in {"mlp", "gru", "wam_gru"}:
         raise ValueError(
-            "train_offline.py currently supports only temporal_adapter=mlp or gru"
+            "train_offline.py currently supports temporal_adapter=mlp, gru, or wam_gru"
         )
-    if config["model"]["visual_encoder"] != "stub":
-        raise ValueError("only visual_encoder=stub is implemented for this baseline")
     if config["model"]["text_encoder"] != "stub":
         raise ValueError("only text_encoder=stub is implemented for this baseline")
-    if float(config["training"]["lambda_future"]) != 0.0:
-        raise ValueError("future latent loss is not implemented for the MLP baseline")
+    if adapter in {"mlp", "gru"} and config["model"]["visual_encoder"] != "stub":
+        raise ValueError("action-only baselines currently require visual_encoder=stub")
+    if adapter in {"mlp", "gru"} and float(config["training"]["lambda_future"]) != 0.0:
+        raise ValueError("future latent loss requires temporal_adapter=wam_gru")
+    if adapter == "wam_gru":
+        if int(config["data"]["future_horizon"]) <= 0:
+            raise ValueError("wam_gru requires data.future_horizon > 0")
+        if config["model"]["visual_encoder"] == "stub":
+            raise ValueError("wam_gru requires a frozen visual encoder, not stub")
     if float(config["training"]["lambda_spike"]) != 0.0:
-        raise ValueError("spike loss is not implemented for the MLP baseline")
+        raise ValueError("spike loss is not implemented for this trainer")
 
 
 def build_notes(*, dry_run: bool) -> str:
@@ -315,14 +339,15 @@ def build_notes(*, dry_run: bool) -> str:
             "Dry-run smoke training on deterministic mock trajectories only. "
             "This run is for code-path validation and must not be reported as a "
             "scientific result.\n\n"
-            "This baseline is action-only with stub visual/text encoders: "
-            "no future latent loss, no WAM claim, no SNN, and no closed-loop rollout.\n"
+            "When configured with WAM-GRU, future latent targets are produced by "
+            "the frozen smoke time-index encoder. No real visual backbone, SNN, "
+            "or closed-loop rollout is evaluated.\n"
         )
     return (
         "# Notes\n\n"
-        "Offline action-only baseline. Stub visual/text encoders are used; "
-        "no future latent loss, WAM claim, SNN, or closed-loop rollout is "
-        "implemented by this trainer.\n"
+        "Offline Phase-1 trainer. Real WAM-GRU runs require precomputed or "
+        "adapter-produced frozen visual latents. No SNN or closed-loop rollout "
+        "is implemented by this trainer.\n"
     )
 
 
@@ -340,9 +365,13 @@ def build_datasets(
     history_len = int(config["data"]["history_len"])
     action_horizon = int(config["data"]["action_horizon"])
     future_horizon = int(config["data"]["future_horizon"])
+    include_latents = requires_future_latents(config)
 
     if dry_run:
         length = max(history_len + action_horizon + future_horizon + 8, 12)
+        visual_encoder = (
+            build_frozen_visual_encoder(config["model"]) if include_latents else None
+        )
         train_dataset = make_mock_action_dataset(
             trajectory_id="mock_train_0",
             split="train",
@@ -351,6 +380,8 @@ def build_datasets(
             action_horizon=action_horizon,
             future_horizon=future_horizon,
             action_dim=7,
+            visual_encoder=visual_encoder,
+            include_latents=include_latents,
         )
         val_dataset = make_mock_action_dataset(
             trajectory_id="mock_val_0",
@@ -360,6 +391,8 @@ def build_datasets(
             action_horizon=action_horizon,
             future_horizon=future_horizon,
             action_dim=7,
+            visual_encoder=visual_encoder,
+            include_latents=include_latents,
         )
         metadata = {
             "suite": config["data"]["suite"],
@@ -372,7 +405,23 @@ def build_datasets(
             "mock": True,
             "reportable_scientific_result": False,
         }
-        return train_dataset, val_dataset, metadata, None, no_normalization_record()
+        normalization_stats = no_normalization_record()
+        if visual_encoder is not None:
+            normalization_stats["visual_latents"] = {
+                "mode": "frozen_encoder_no_fitted_stats",
+                "source_split": "none",
+                "target_only_future": True,
+                "current_latent_input": True,
+                "encoder": visual_encoder.metadata(),
+            }
+        return train_dataset, val_dataset, metadata, None, normalization_stats
+
+    if include_latents:
+        raise NotImplementedError(
+            "real-data WAM training requires precomputed frozen visual latents or "
+            "a real FrozenVisualEncoderAdapter integration; dry_run supports the "
+            "smoke time-index encoder only"
+        )
 
     trajectories, metadata = load_real_libero_trajectories(config)
     action_transform, normalization_stats = build_action_transform(trajectories, config)
@@ -397,6 +446,15 @@ def build_datasets(
     if len(val_dataset) == 0:
         raise ValueError("real LIBERO val split produced zero valid windows")
     return train_dataset, val_dataset, metadata, action_transform, normalization_stats
+
+
+def requires_future_latents(config: Mapping[str, Any]) -> bool:
+    """Return whether this run needs current/future frozen visual latents."""
+
+    return (
+        str(config["model"]["temporal_adapter"]) == "wam_gru"
+        or float(config["training"]["lambda_future"]) > 0.0
+    )
 
 
 @dataclass(frozen=True)
@@ -466,6 +524,7 @@ def no_normalization_record() -> dict[str, Any]:
         },
         "images": {"mode": "stub_encoder_no_image_stats"},
         "language": {"mode": "stub_encoder_no_tokenizer_stats"},
+        "visual_latents": {"mode": "not_used"},
     }
 
 
@@ -482,6 +541,7 @@ def standardization_record(stats: FieldStats) -> dict[str, Any]:
         },
         "images": {"mode": "stub_encoder_no_image_stats"},
         "language": {"mode": "stub_encoder_no_tokenizer_stats"},
+        "visual_latents": {"mode": "not_used"},
     }
 
 
@@ -494,18 +554,26 @@ def make_mock_action_dataset(
     action_horizon: int,
     future_horizon: int,
     action_dim: int,
+    visual_encoder: Any | None = None,
+    include_latents: bool = False,
 ) -> TrajectoryWindowDataset:
-    """Create a deterministic action-only mock dataset for smoke training."""
+    """Create a deterministic mock dataset for action-only or WAM smoke training."""
 
     actions = [
         [float(timestep) + 0.01 * float(dim) for dim in range(action_dim)]
         for timestep in range(length)
     ]
     frame_refs = [f"{trajectory_id}:frame:{timestep}" for timestep in range(length)]
+    visual_latents = None
+    if include_latents:
+        if visual_encoder is None:
+            raise ValueError("include_latents requires a visual_encoder")
+        visual_latents = encode_sequence(visual_encoder, frame_refs)
     trajectory = RawTrajectory(
         images=frame_refs,
         actions=actions,
         states=None,
+        visual_latents=visual_latents,
         frame_refs=frame_refs,
         language="mock instruction",
         trajectory_id=trajectory_id,
@@ -517,6 +585,8 @@ def make_mock_action_dataset(
         history_len=history_len,
         action_horizon=action_horizon,
         future_horizon=future_horizon,
+        include_current_latent=include_latents,
+        include_future_latents=include_latents,
     )
 
 
@@ -789,7 +859,15 @@ def safe_relative(path: Path, root: Path) -> str:
 
 
 def collate_action_batch(samples: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-    """Collate action-only fields into `[B, T, A]` and `[B, H, A]` tensors."""
+    """Collate fields into tensors.
+
+    Output shapes:
+
+    - `action_history`: `[B, history_len, action_dim]`.
+    - `target_actions`: `[B, action_horizon, action_dim]`.
+    - optional `z_t`: `[B, latent_dim]`.
+    - optional `target_future_latents`: `[B, future_horizon, latent_dim]`.
+    """
 
     action_history = torch.stack(
         [
@@ -805,18 +883,46 @@ def collate_action_batch(samples: Sequence[Mapping[str, Any]]) -> dict[str, Any]
         ],
         dim=0,
     )
-    return {
+    batch: dict[str, Any] = {
         "action_history": action_history,
         "target_actions": target_actions,
         "trajectory_id": [sample["trajectory_id"] for sample in samples],
         "time_index": [sample["time_index"] for sample in samples],
     }
+    if all(sample.get("z_t") is not None for sample in samples):
+        batch["z_t"] = torch.stack(
+            [torch.as_tensor(sample["z_t"], dtype=torch.float32) for sample in samples],
+            dim=0,
+        )
+    if all("target_future_latents" in sample for sample in samples):
+        batch["target_future_latents"] = torch.stack(
+            [
+                torch.as_tensor(sample["target_future_latents"], dtype=torch.float32)
+                for sample in samples
+            ],
+            dim=0,
+        )
+    return batch
 
 
 def infer_action_dim(sample: Mapping[str, Any]) -> int:
     target = torch.as_tensor(sample["target_actions"])
     if target.ndim != 2:
         raise ValueError(f"target_actions must have shape [H, A], got {tuple(target.shape)}")
+    return int(target.shape[-1])
+
+
+def has_future_latent_targets(sample: Mapping[str, Any]) -> bool:
+    return "target_future_latents" in sample
+
+
+def infer_latent_dim(sample: Mapping[str, Any]) -> int:
+    target = torch.as_tensor(sample["target_future_latents"])
+    if target.ndim != 2:
+        raise ValueError(
+            "target_future_latents must have shape [H, Z], "
+            f"got {tuple(target.shape)}"
+        )
     return int(target.shape[-1])
 
 
@@ -827,10 +933,11 @@ def run_one_split(
     device: torch.device,
     optimizer: torch.optim.Optimizer | None,
     lambda_action: float,
+    lambda_future: float,
     grad_clip_norm: float | None,
     max_steps: int | None,
     action_transform: ActionTransform | None,
-) -> dict[str, float | int]:
+) -> dict[str, Any]:
     is_train = optimizer is not None
     model.train(is_train)
 
@@ -838,6 +945,12 @@ def run_one_split(
     element_count = 0
     total_loss_sum = 0.0
     action_loss_sum = 0.0
+    future_loss_sum = 0.0
+    loss_weight_sum = 0
+    future_error_sum = 0.0
+    future_error_count = 0
+    future_error_by_horizon_sum: torch.Tensor | None = None
+    future_error_by_horizon_count: torch.Tensor | None = None
     steps = 0
     samples = 0
 
@@ -848,9 +961,33 @@ def run_one_split(
                 break
             action_history = batch["action_history"].to(device)
             target_actions = batch["target_actions"].to(device)
-            pred_actions = model(action_history)
+            target_future_latents = None
+            if "target_future_latents" in batch:
+                target_future_latents = batch["target_future_latents"].to(device)
+
+            if "z_t" in batch:
+                outputs = model(action_history, batch["z_t"].to(device))
+            else:
+                outputs = model(action_history)
+            if isinstance(outputs, Mapping):
+                pred_actions = outputs["pred_actions"]
+                pred_future_latents = outputs.get("pred_future_latents")
+            else:
+                pred_actions = outputs
+                pred_future_latents = None
             action_loss = action_mse(pred_actions, target_actions)
-            total_loss = lambda_action * action_loss
+            future_loss = torch.zeros((), dtype=action_loss.dtype, device=device)
+            if target_future_latents is not None:
+                if pred_future_latents is None:
+                    raise ValueError("batch has future latent targets but model returned none")
+                future_loss = future_latent_cosine_error(
+                    pred_future_latents,
+                    target_future_latents,
+                )
+            elif lambda_future != 0.0:
+                raise ValueError("lambda_future is nonzero but batch has no future latents")
+
+            total_loss = lambda_action * action_loss + lambda_future * future_loss
             if not torch.isfinite(total_loss):
                 raise FloatingPointError("non-finite training loss")
 
@@ -869,23 +1006,53 @@ def run_one_split(
 
             squared_error_sum += (metric_pred - metric_target).pow(2).sum().item()
             element_count += int(metric_target.numel())
-            action_loss_sum += float(action_loss.detach().item()) * int(target_actions.numel())
-            total_loss_sum += float(total_loss.detach().item()) * int(target_actions.numel())
+            batch_size = int(target_actions.shape[0])
+            action_loss_sum += float(action_loss.detach().item()) * batch_size
+            future_loss_sum += float(future_loss.detach().item()) * batch_size
+            total_loss_sum += float(total_loss.detach().item()) * batch_size
+            loss_weight_sum += batch_size
+            if target_future_latents is not None and pred_future_latents is not None:
+                future_errors = future_latent_cosine_error(
+                    pred_future_latents.detach(),
+                    target_future_latents,
+                    reduction="none",
+                )
+                future_error_sum += future_errors.sum().item()
+                future_error_count += int(future_errors.numel())
+                horizon_sum = future_errors.sum(dim=0).detach().cpu()
+                horizon_count = torch.full_like(horizon_sum, future_errors.shape[0])
+                if future_error_by_horizon_sum is None:
+                    future_error_by_horizon_sum = horizon_sum
+                    future_error_by_horizon_count = horizon_count
+                else:
+                    future_error_by_horizon_sum += horizon_sum
+                    future_error_by_horizon_count += horizon_count
             steps += 1
             samples += int(target_actions.shape[0])
 
-    if steps == 0 or element_count == 0:
+    if steps == 0 or element_count == 0 or loss_weight_sum == 0:
         raise ValueError("split produced no batches")
     action_mse_value = squared_error_sum / element_count
+    future_metric = 0.0
+    future_by_horizon: list[float] = []
+    if future_error_count > 0:
+        future_metric = future_error_sum / future_error_count
+        if future_error_by_horizon_sum is None or future_error_by_horizon_count is None:
+            raise RuntimeError("future horizon accumulators unexpectedly missing")
+        future_by_horizon = (
+            future_error_by_horizon_sum / future_error_by_horizon_count
+        ).tolist()
     return {
-        "total_loss": total_loss_sum / element_count,
-        "action_loss": action_loss_sum / element_count,
+        "total_loss": total_loss_sum / loss_weight_sum,
+        "action_loss": action_loss_sum / loss_weight_sum,
         "action_loss_units": (
             "normalized_action_units"
             if action_transform is not None
             else "raw_action_units"
         ),
-        "future_loss": 0.0,
+        "future_loss": future_loss_sum / loss_weight_sum,
+        "future_latent_cosine_error": future_metric,
+        "future_latent_cosine_error_by_horizon": future_by_horizon,
         "spike_loss": 0.0,
         "action_mse": action_mse_value,
         "steps": steps,
@@ -896,7 +1063,7 @@ def run_one_split(
 def format_metric_row(
     epoch: int,
     split: str,
-    metrics: Mapping[str, float | int],
+    metrics: Mapping[str, Any],
     *,
     parameter_counts: Mapping[str, int],
 ) -> dict[str, Any]:
@@ -907,6 +1074,15 @@ def format_metric_row(
         "action_loss": format_float(float(metrics["action_loss"])),
         "action_loss_units": str(metrics["action_loss_units"]),
         "future_loss": format_float(float(metrics["future_loss"])),
+        "future_latent_cosine_error": format_float(
+            float(metrics["future_latent_cosine_error"])
+        ),
+        "future_latent_cosine_error_by_horizon": json.dumps(
+            [
+                round(float(value), 10)
+                for value in metrics["future_latent_cosine_error_by_horizon"]
+            ]
+        ),
         "spike_loss": format_float(float(metrics["spike_loss"])),
         "action_mse": format_float(float(metrics["action_mse"])),
         "action_mse_units": "raw_action_units",
@@ -918,6 +1094,39 @@ def format_metric_row(
         ),
         "lower_is_better": "true",
     }
+
+
+def checkpoint_selection_metric(
+    config: Mapping[str, Any],
+    metrics: Mapping[str, Any],
+) -> float:
+    """Return the validation metric selected by `output.save_best_by`."""
+
+    metric_name = str(config["output"]["save_best_by"]).split("/", maxsplit=1)[-1]
+    if metric_name not in metrics:
+        raise ValueError(
+            f"output.save_best_by requested {metric_name!r}, "
+            f"available metrics are {sorted(metrics)}"
+        )
+    return float(metrics[metric_name])
+
+
+def append_train_log(path: Path, row: Mapping[str, Any]) -> None:
+    """Append one compact human-readable loss row to `train.log`."""
+
+    line = ",".join(
+        [
+            str(row["epoch"]),
+            str(row["split"]),
+            str(row["total_loss"]),
+            str(row["action_loss"]),
+            str(row["future_loss"]),
+            str(row["action_mse"]),
+            str(row["future_latent_cosine_error"]),
+        ]
+    )
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(f"{line}\n")
 
 
 def format_float(value: float) -> str:
@@ -952,6 +1161,7 @@ def build_summary(
     normalization_stats: Mapping[str, Any],
     rows: Sequence[Mapping[str, Any]],
     action_dim: int,
+    latent_dim: int | None,
     train_windows: int,
     val_windows: int,
     best_metric: float,
@@ -973,6 +1183,7 @@ def build_summary(
             "visual_encoder": config["model"]["visual_encoder"],
             "text_encoder": config["model"]["text_encoder"],
             "action_dim": action_dim,
+            "latent_dim": latent_dim,
             "hidden_dim": config["model"]["hidden_dim"],
             "parameter_count": int(parameter_counts["parameter_count"]),
             "trainable_parameter_count": int(
@@ -991,7 +1202,13 @@ def build_summary(
         },
         "normalization": normalization_stats,
         "metrics": {
-            "best_val_action_mse": best_metric,
+            "best_metric_name": config["output"]["save_best_by"],
+            "best_metric": best_metric,
+            "best_val_action_mse": (
+                best_metric
+                if str(config["output"]["save_best_by"]).endswith("/action_mse")
+                else None
+            ),
             "best_epoch": best_epoch,
             "first_train_total_loss": first_train_loss,
             "last_train_total_loss": last_train_loss,
@@ -1006,11 +1223,19 @@ def build_summary(
             "last_val_action_mse": (
                 float(val_rows[-1]["action_mse"]) if val_rows else None
             ),
+            "last_train_future_latent_cosine_error": (
+                float(train_rows[-1]["future_latent_cosine_error"])
+                if train_rows
+                else None
+            ),
+            "last_val_future_latent_cosine_error": (
+                float(val_rows[-1]["future_latent_cosine_error"]) if val_rows else None
+            ),
             "action_mse_units": "raw_action_units",
             "lower_is_better": True,
         },
         "non_claims": [
-            "not_wam",
+            "not_reportable_wam_result",
             "not_vla",
             "not_snn",
             "not_closed_loop",

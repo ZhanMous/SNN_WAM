@@ -48,12 +48,17 @@ The chosen option must be recorded in config and `normalization_stats.json`.
 
 ## Future Latent Normalization
 
-Future latent targets are not implemented yet. If added later:
+Future latent targets are implemented for deterministic dry-run WAM-GRU only.
+For real-data runs:
 
 - Use the frozen encoder output as the target.
 - Fit any latent normalization on train future targets only.
 - Save latent stats separately from action/state stats.
 - Future latent metrics must state whether latents are normalized.
+
+The current `smoke_time_index` path uses fixed synthetic latents and records
+`visual_latents.mode=frozen_encoder_no_fitted_stats`; no train/val/test latent
+normalization statistics are fit.
 
 ## Storage
 

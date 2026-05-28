@@ -20,7 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIGS = {
     "configs/libero_spatial_mlp.yaml": "mlp",
     "configs/libero_spatial_gru.yaml": "gru",
-    "configs/libero_spatial_wam_gru.yaml": "wam_gru",
+    "configs/smoke/libero_spatial_wam_gru.yaml": "wam_gru",
+    "configs/smoke/libero_spatial_gru_no_future.yaml": "wam_gru",
     "configs/libero_spatial_snn_lif.yaml": "snn_lif",
 }
 
@@ -37,7 +38,7 @@ def test_placeholder_configs_load_and_validate() -> None:
 
 
 def test_action_only_smoke_config_loads_and_stays_in_mlp_scope() -> None:
-    config = load_config(ROOT / "configs/libero_spatial_action_only_smoke.yaml")
+    config = load_config(ROOT / "configs/smoke/libero_spatial_action_only_smoke.yaml")
 
     assert config["data"]["suite"] == "libero_spatial"
     assert config["data"]["dataset_root"] == "env:LIBERO_DATASET_ROOT"
@@ -56,15 +57,42 @@ def test_action_only_smoke_config_loads_and_stays_in_mlp_scope() -> None:
 
 
 def test_wam_placeholders_are_not_reportable_training_claims() -> None:
-    for relative_path in [
-        "configs/libero_spatial_wam_gru.yaml",
-        "configs/libero_spatial_snn_lif.yaml",
-    ]:
-        config = load_config(ROOT / relative_path)
+    wam_config = load_config(ROOT / "configs/smoke/libero_spatial_wam_gru.yaml")
 
-        assert config["data"]["future_horizon"] == 4
-        assert "future_latent_contract_only" in config["experiment"]["tags"]
-        assert config["training"]["lambda_future"] == 1.0
+    assert wam_config["data"]["future_horizon"] == 4
+    assert "g4_ablation" in wam_config["experiment"]["tags"]
+    assert "future_latent_smoke" in wam_config["experiment"]["tags"]
+    assert wam_config["model"]["visual_encoder"] == "smoke_time_index"
+    assert wam_config["model"]["visual_latent_dim"] == 8
+    assert wam_config["training"]["lambda_future"] == 1.0
+
+    snn_config = load_config(ROOT / "configs/libero_spatial_snn_lif.yaml")
+
+    assert snn_config["data"]["future_horizon"] == 4
+    assert "future_latent_contract_only" in snn_config["experiment"]["tags"]
+    assert snn_config["training"]["lambda_future"] == 1.0
+
+
+def test_wam_gru_ablation_configs_differ_only_in_future_objective_metadata() -> None:
+    with_future = load_config(ROOT / "configs/smoke/libero_spatial_wam_gru.yaml")
+    no_future = load_config(ROOT / "configs/smoke/libero_spatial_gru_no_future.yaml")
+
+    allowed_differences = {
+        ("experiment", "name"),
+        ("experiment", "tags"),
+        ("training", "lambda_future"),
+    }
+    differences = {
+        path
+        for path, left, right in compare_mappings(with_future, no_future)
+        if left != right
+    }
+
+    assert differences == allowed_differences
+    assert with_future["training"]["lambda_future"] == 1.0
+    assert no_future["training"]["lambda_future"] == 0.0
+    assert with_future["model"] == no_future["model"]
+    assert with_future["data"] == no_future["data"]
 
 
 def test_config_validation_rejects_missing_required_section() -> None:
@@ -86,3 +114,21 @@ def test_config_validation_rejects_absolute_dataset_root(tmp_path: Path) -> None
 
     with pytest.raises(ConfigValidationError, match="do not hard-code"):
         load_config(path)
+
+
+def compare_mappings(
+    left: dict[str, object],
+    right: dict[str, object],
+    prefix: tuple[str, ...] = (),
+) -> list[tuple[tuple[str, ...], object, object]]:
+    keys = sorted(set(left) | set(right))
+    differences: list[tuple[tuple[str, ...], object, object]] = []
+    for key in keys:
+        left_value = left.get(key)
+        right_value = right.get(key)
+        path = (*prefix, key)
+        if isinstance(left_value, dict) and isinstance(right_value, dict):
+            differences.extend(compare_mappings(left_value, right_value, path))
+        else:
+            differences.append((path, left_value, right_value))
+    return differences

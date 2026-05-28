@@ -6,7 +6,7 @@
 - Suite: `libero_spatial`
 - Dataset root: `/home/zhan_shaoji/data/libero/datasets`
 - Demonstration file: `/home/zhan_shaoji/data/libero/datasets/libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5`
-- Inspection report: `results/inspections/20260528_020959_libero_data_inspection_real.json`
+- Inspection report: `results/inspections/20260528_033539_libero_data_inspection_real.json`
 - Trajectory id: `data/demo_0`
 - Time axis: `0`
 - Observed time lengths: `[103]`

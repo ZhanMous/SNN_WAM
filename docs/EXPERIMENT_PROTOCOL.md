@@ -79,18 +79,24 @@ results/runs/<run_id>/
 
 离线实验可以省略 `eval_rollout.csv` 和 `failure_videos/`，但必须明确标注为 offline-only。
 
-## G3/G4 MLP Output Infrastructure
+## G3/G4 Offline Output Infrastructure
 
 The config and output-directory helpers create reproducibility infrastructure.
-The first implemented trainer is the action-only MLP path:
+The offline trainer supports action-only MLP/GRU dry runs and a minimal
+WAM-GRU dry run with frozen smoke visual latents:
 
 ```bash
 python src/train/train_offline.py --config configs/libero_spatial_mlp.yaml --dry_run --max_steps 1
+python src/train/train_offline.py --config configs/libero_spatial_gru.yaml --dry_run --max_steps 1
+python src/train/train_offline.py --config configs/libero_spatial_wam_gru.yaml --dry_run --max_steps 1
+python src/train/train_offline.py --config configs/libero_spatial_gru_no_future.yaml --dry_run --max_steps 1
 ```
 
-Dry run uses deterministic mock trajectories only. It validates forward shape,
-finite action MSE, `metrics.csv`, `checkpoint.pt`, and `best.pt`; it does not
-produce scientific conclusions.
+Dry run uses deterministic mock trajectories only. For WAM-GRU, current latent
+input `z_t` and future latent targets are produced by the frozen
+`smoke_time_index` encoder from mock frame references; no pixels are generated.
+Dry run validates forward shape, finite losses, `metrics.csv`, `checkpoint.pt`,
+and `best.pt`; it does not produce scientific conclusions.
 
 Placeholder configs live at:
 
@@ -119,10 +125,26 @@ environment.txt
 notes.md
 ```
 
-It must fail if the target run directory already exists. The offline MLP trainer
+It must fail if the target run directory already exists. The offline trainer
 adds `metrics.csv`, `checkpoint.pt`, `best.pt`, `split.json`,
-`normalization_stats.json`, and `seeds.txt`. Rollout files remain unimplemented
-for this offline-only stage.
+`normalization_stats.json`, and `seeds.txt`. WAM-GRU rows include
+`future_loss`, `future_latent_cosine_error`, and
+`future_latent_cosine_error_by_horizon`. Rollout files remain unimplemented for
+this offline-only stage.
+
+Offline checkpoint evaluation writes `eval_offline.csv`:
+
+```bash
+python src/train/eval_offline.py --run_dir <run_dir> --split val --max_steps 1
+```
+
+`eval_offline.csv` is an offline metric table only. It may report action MSE
+and future latent cosine error, but it is not success-rate or robustness
+evidence.
+
+Real-data WAM-GRU training is intentionally fail-closed until frozen visual
+latents are precomputed with recorded metadata or a real frozen encoder adapter
+is integrated. Large visual backbones must remain frozen in Phase 1.
 
 ## Minimum Metrics
 
