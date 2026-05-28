@@ -1,0 +1,1 @@
+python src/train/train_offline.py --config configs/libero_spatial_mlp.yaml --dry_run

@@ -1,0 +1,15 @@
+{
+  "method": "mock_dry_run_separate_synthetic_trajectories",
+  "mock": true,
+  "reportable_scientific_result": false,
+  "seed": 0,
+  "split_unit": "trajectory",
+  "suite": "libero_spatial",
+  "test": [],
+  "train": [
+    "mock_train_0"
+  ],
+  "val": [
+    "mock_val_0"
+  ]
+}

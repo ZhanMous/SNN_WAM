@@ -36,6 +36,25 @@ def test_placeholder_configs_load_and_validate() -> None:
         assert config["training"]["epochs"] == 0
 
 
+def test_action_only_smoke_config_loads_and_stays_in_mlp_scope() -> None:
+    config = load_config(ROOT / "configs/libero_spatial_action_only_smoke.yaml")
+
+    assert config["data"]["suite"] == "libero_spatial"
+    assert config["data"]["dataset_root"] == "env:LIBERO_DATASET_ROOT"
+    assert config["data"]["future_horizon"] == 0
+    assert config["data"]["max_train_trajectories"] == 2
+    assert config["data"]["max_val_trajectories"] == 1
+    assert config["model"]["model_name"] == "action_only_mlp_smoke"
+    assert config["model"]["visual_encoder"] == "stub"
+    assert config["model"]["text_encoder"] == "stub"
+    assert config["model"]["temporal_adapter"] == "mlp"
+    assert config["normalization"]["actions"]["mode"] == "standardize_train"
+    assert config["normalization"]["actions"]["fit_split"] == "train"
+    assert config["training"]["epochs"] == 3
+    assert config["training"]["lambda_future"] == 0.0
+    assert config["training"]["lambda_spike"] == 0.0
+
+
 def test_wam_placeholders_are_not_reportable_training_claims() -> None:
     for relative_path in [
         "configs/libero_spatial_wam_gru.yaml",

@@ -79,11 +79,18 @@ results/runs/<run_id>/
 
 离线实验可以省略 `eval_rollout.csv` 和 `failure_videos/`，但必须明确标注为 offline-only。
 
-## G3/G4 Output Infrastructure
+## G3/G4 MLP Output Infrastructure
 
-The config and output-directory helpers create only reproducibility
-infrastructure. They do not train models, write metrics, or create
-checkpoints.
+The config and output-directory helpers create reproducibility infrastructure.
+The first implemented trainer is the action-only MLP path:
+
+```bash
+python src/train/train_offline.py --config configs/libero_spatial_mlp.yaml --dry_run --max_steps 1
+```
+
+Dry run uses deterministic mock trajectories only. It validates forward shape,
+finite action MSE, `metrics.csv`, `checkpoint.pt`, and `best.pt`; it does not
+produce scientific conclusions.
 
 Placeholder configs live at:
 
@@ -112,9 +119,10 @@ environment.txt
 notes.md
 ```
 
-It must fail if the target run directory already exists. Training code, once
-implemented, is responsible for adding `metrics.csv`, checkpoints, `split.json`,
-normalization stats, and any rollout files.
+It must fail if the target run directory already exists. The offline MLP trainer
+adds `metrics.csv`, `checkpoint.pt`, `best.pt`, `split.json`,
+`normalization_stats.json`, and `seeds.txt`. Rollout files remain unimplemented
+for this offline-only stage.
 
 ## Minimum Metrics
 

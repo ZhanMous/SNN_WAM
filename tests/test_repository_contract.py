@@ -341,13 +341,21 @@ def test_libero_download_wrapper_is_executable_bash() -> None:
     assert script.stat().st_mode & 0o111
 
 
-def test_no_model_or_training_code_before_model_gate() -> None:
+def test_only_action_mlp_and_gru_model_training_code_is_present_for_model_gate() -> None:
     allowed_src_files = {
         "src/.gitkeep",
         "src/__init__.py",
         "src/data/__init__.py",
         "src/data/split_normalization.py",
         "src/data/trajectory_window.py",
+        "src/models/__init__.py",
+        "src/models/heads.py",
+        "src/models/registry.py",
+        "src/models/temporal_gru.py",
+        "src/models/temporal_mlp.py",
+        "src/train/__init__.py",
+        "src/train/metrics.py",
+        "src/train/train_offline.py",
         "src/utils/__init__.py",
         "src/utils/config.py",
         "src/utils/experiment_io.py",
@@ -360,7 +368,7 @@ def test_no_model_or_training_code_before_model_gate() -> None:
     }
     assert src_files <= allowed_src_files
 
-    forbidden_tokens = {"model", "train", "snn", "gru"}
+    forbidden_tokens = {"snn"}
     forbidden_paths = [
         path for path in src_files if any(token in path.lower() for token in forbidden_tokens)
     ]

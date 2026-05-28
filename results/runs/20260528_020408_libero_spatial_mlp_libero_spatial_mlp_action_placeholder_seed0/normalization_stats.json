@@ -1,0 +1,14 @@
+{
+  "actions": {
+    "mode": "none",
+    "note": "No action normalization is applied by the first MLP baseline.",
+    "source_split": "train",
+    "units": "raw_action_units"
+  },
+  "images": {
+    "mode": "stub_encoder_no_image_stats"
+  },
+  "language": {
+    "mode": "stub_encoder_no_tokenizer_stats"
+  }
+}

@@ -1,0 +1,55 @@
+experiment:
+  name: libero_spatial_action_only_mlp_smoke
+  seed: 0
+  tags:
+    - g3a_real_data_smoke
+    - action_only
+    - not_wam
+    - not_vla
+    - not_snn
+    - not_gru
+data:
+  suite: libero_spatial
+  dataset_root: env:LIBERO_DATASET_ROOT
+  history_len: 4
+  action_horizon: 4
+  future_horizon: 0
+  image_size: 128
+  max_files: 2
+  max_train_trajectories: 2
+  max_val_trajectories: 1
+  max_test_trajectories: 0
+  split:
+    source: deterministic_sorted_demo_ids
+    unit: trajectory
+    train: []
+    val: []
+    test: []
+model:
+  name: action_only_mlp_smoke
+  model_name: action_only_mlp_smoke
+  visual_encoder: stub
+  text_encoder: stub
+  temporal_adapter: mlp
+  hidden_dim: 64
+normalization:
+  actions:
+    mode: standardize_train
+    fit_split: train
+    reported_metric_units: raw_action_units
+  images:
+    mode: stub
+  language:
+    mode: stub
+training:
+  batch_size: 16
+  epochs: 3
+  optimizer: adamw
+  lr: 0.001
+  lambda_action: 1.0
+  lambda_future: 0.0
+  lambda_spike: 0.0
+  grad_clip_norm: 1.0
+output:
+  output_dir: results/smoke/action_only_mlp
+  save_best_by: val/action_mse

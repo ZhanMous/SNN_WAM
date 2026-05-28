@@ -47,6 +47,8 @@ SNN-WAM 是一个第一阶段研究仓库，用来把实验计划转化为可复
 - `scripts/check_libero_action_alignment.py`: G2.5 real-demo action/window alignment diagnostic.
 - `scripts/bootstrap_libero_check.py`: G1.5 LIBERO bootstrap checker before real G2 dataset work.
 - `scripts/download_libero_minimal.sh`: safe wrapper for the official minimal LIBERO suite downloader.
+- `src/models/temporal_mlp.py`: action-only MLP temporal baseline; no GRU/SNN/future-latent path.
+- `src/train/train_offline.py`: config-driven offline trainer for the first MLP action baseline.
 - `results/`: 后续实验结果目录。
 
 ## Gate Ladder
@@ -71,9 +73,12 @@ SNN-WAM 是一个第一阶段研究仓库，用来把实验计划转化为可复
 bash scripts/smoke_check.sh
 bash scripts/quality_gate.sh
 python3 -m pytest -q
+python src/train/train_offline.py --config configs/libero_spatial_mlp.yaml --dry_run --max_steps 1
 ```
 
-当前 smoke tests 只检查研究仓库骨架、文档边界和依赖政策，不运行模型训练或仿真。
+`train_offline.py --dry_run` 只运行 deterministic mock action data to validate
+the MLP training path, metrics logging, and checkpoints. Mock dry-run outputs
+are not scientific evidence and must not be cited as LIBERO results.
 
 ## Source Plan
 

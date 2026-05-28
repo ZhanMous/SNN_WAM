@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+
+import pytest
+
+from src.data.trajectory_window import RawTrajectory
+from src.train.train_offline import build_action_transform, run_training
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_train_offline_dry_run_writes_metrics_and_checkpoints(tmp_path: Path) -> None:
+    run_dir = run_training(
+        ROOT / "configs/libero_spatial_mlp.yaml",
+        dry_run=True,
+        max_steps=1,
+        output_dir=tmp_path / "runs",
+        run_id="dry_run",
+        command=["python", "src/train/train_offline.py", "--dry_run"],
+    )
+
+    assert (run_dir / "config.yaml").exists()
+    assert (run_dir / "command.txt").exists()
+    assert (run_dir / "git_commit.txt").exists()
+    assert (run_dir / "environment.txt").exists()
+    assert (run_dir / "environment.json").exists()
+    assert (run_dir / "notes.md").exists()
+    assert (run_dir / "command.sh").exists()
+    assert (run_dir / "split.json").exists()
+    assert (run_dir / "normalization_stats.json").exists()
+    assert (run_dir / "metrics.csv").exists()
+    assert (run_dir / "checkpoint.pt").exists()
+    assert (run_dir / "best.pt").exists()
+    assert (run_dir / "summary.json").exists()
+
+    with (run_dir / "metrics.csv").open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert [row["split"] for row in rows] == ["train", "val"]
+    assert all(float(row["action_mse"]) >= 0.0 for row in rows)
+    assert all(row["action_mse_units"] == "raw_action_units" for row in rows)
+    assert all(int(row["parameter_count"]) > 0 for row in rows)
+    assert all(int(row["trainable_parameter_count"]) > 0 for row in rows)
+    assert all(row["lower_is_better"] == "true" for row in rows)
+
+
+def test_train_offline_gru_dry_run_writes_metrics_and_parameter_count(
+    tmp_path: Path,
+) -> None:
+    run_dir = run_training(
+        ROOT / "configs/libero_spatial_gru.yaml",
+        dry_run=True,
+        max_steps=1,
+        output_dir=tmp_path / "runs",
+        run_id="gru_dry_run",
+        command=["python3", "src/train/train_offline.py", "--dry_run"],
+    )
+
+    with (run_dir / "metrics.csv").open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert [row["split"] for row in rows] == ["train", "val"]
+    assert all(float(row["action_mse"]) >= 0.0 for row in rows)
+    assert all(row["action_mse_units"] == "raw_action_units" for row in rows)
+    assert all(int(row["parameter_count"]) > 0 for row in rows)
+    assert all(int(row["trainable_parameter_count"]) > 0 for row in rows)
+    assert (run_dir / "checkpoint.pt").exists()
+    assert (run_dir / "best.pt").exists()
+
+
+def test_missing_libero_dataset_root_fails_with_clear_message(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LIBERO_DATASET_ROOT", raising=False)
+
+    with pytest.raises(OSError, match="LIBERO_DATASET_ROOT is not set"):
+        run_training(
+            ROOT / "configs/libero_spatial_action_only_smoke.yaml",
+            output_dir=tmp_path / "runs",
+            run_id="missing_env",
+            command=["python3", "src/train/train_offline.py"],
+        )
+
+    assert not (tmp_path / "runs" / "missing_env").exists()
+
+
+def test_trainer_action_standardization_uses_train_split_only() -> None:
+    train = RawTrajectory(
+        images=["train"] * 4,
+        actions=[[0.0, 10.0], [2.0, 12.0], [4.0, 14.0], [6.0, 16.0]],
+        language="train",
+        trajectory_id="train_0",
+        split="train",
+    )
+    val = RawTrajectory(
+        images=["val"] * 4,
+        actions=[[1000.0, 1010.0], [1002.0, 1012.0]],
+        language="val",
+        trajectory_id="val_0",
+        split="val",
+    )
+
+    _, stats = build_action_transform(
+        [train, val],
+        {"normalization": {"actions": {"mode": "standardize_train"}}},
+    )
+
+    assert stats["actions"]["source_split"] == "train"
+    assert stats["actions"]["count"] == 4
+    assert stats["actions"]["mean"] == [3.0, 13.0]
+    assert stats["actions"]["reported_action_mse_units"] == "raw_action_units"
