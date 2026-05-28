@@ -36,7 +36,7 @@ MAX_RETRIES = 5
 RETRY_DELAY_BASE = 10  # seconds, exponential backoff
 
 
-def get_dataset_root():
+def get_dataset_root() -> str:
     """Return the directory that contains suite subdirectories (e.g. libero_spatial/).
 
     Checks LIBERO_DATASET_ROOT and LIBERO_DATA_ROOT.  Falls back to
@@ -57,15 +57,17 @@ def get_dataset_root():
     return os.path.expanduser("~/data/libero/datasets")
 
 
-def expected_filename(task_name):
+def expected_filename(task_name: str) -> str:
+    """Return the HDF5 filename expected for a given task name."""
     return f"{task_name}_demo.hdf5"
 
 
-def url_for(suite, filename):
+def url_for(suite: str, filename: str) -> str:
+    """Return the Hugging Face download URL for a suite file."""
     return f"{HF_BASE}/{suite}/{filename}"
 
 
-def file_is_valid_hdf5(path):
+def file_is_valid_hdf5(path: str) -> bool:
     """Check if a file is a valid HDF5 file.
 
     Falls back to checking the HDF5 magic bytes if h5py is not installed.
@@ -82,13 +84,13 @@ def file_is_valid_hdf5(path):
                 magic = f.read(8)
             # HDF5 magic: bytes 0x89 0x48 0x44 0x46 0x0d 0x0a 0x1a 0x0a
             return magic == b"\x89HDF\r\n\x1a\n"
-        except Exception:
+        except OSError:
             return False
-    except Exception:
+    except (OSError, ValueError):
         return False
 
 
-def download_one(url, dest, dry_run=False):
+def download_one(url: str, dest: str, dry_run: bool = False) -> bool:
     """Download a single file with wget -c (resume). Returns True on success."""
     if dry_run:
         print(f"  [dry-run] wget -c -O {dest} {url}")
@@ -125,7 +127,7 @@ def download_one(url, dest, dry_run=False):
     return False
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--suite", default="libero_spatial", choices=list(TASK_NAMES.keys()))
     parser.add_argument("--dataset-root", default=None)
@@ -230,8 +232,9 @@ def main():
     print(f"Done: {succeeded} succeeded, {failed} failed")
     if failed:
         print("Re-run this script to retry failed downloads (wget -c will resume).")
-        sys.exit(1)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

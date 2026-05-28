@@ -9,7 +9,6 @@ import importlib.util
 import json
 import os
 import platform
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,19 +17,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-
-def run_git(args: list[str]) -> str | None:
-    try:
-        result = subprocess.run(
-            ["git", *args],
-            cwd=REPO_ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return None
-    return result.stdout.strip()
+from _common import run_git  # noqa: E402
 
 
 def import_status(module_name: str) -> dict[str, Any]:

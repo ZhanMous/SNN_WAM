@@ -137,6 +137,10 @@ def _validate_dataset_root(value: Any) -> None:
             "data.dataset_root must be an environment reference or relative path; "
             "do not hard-code local absolute dataset paths in committed configs"
         )
+    if ".." in Path(root).parts:
+        raise ConfigValidationError(
+            "data.dataset_root must not contain path traversal sequences (..)"
+        )
 
 
 def _validate_split(value: Any) -> None:

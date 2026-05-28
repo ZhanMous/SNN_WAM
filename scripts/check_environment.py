@@ -9,7 +9,6 @@ import importlib.metadata
 import importlib.util
 import json
 import platform
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -17,33 +16,7 @@ from typing import Any
 
 KEY_IMPORTS = ["torch", "libero", "yaml", "pytest", "numpy", "h5py"]
 
-
-def run_git(args: list[str]) -> str | None:
-    try:
-        result = subprocess.run(
-            ["git", *args],
-            cwd=Path(__file__).resolve().parents[1],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return None
-    return result.stdout.strip()
-
-
-def package_version(module_name: str) -> str | None:
-    candidates = {
-        "yaml": ["pyyaml", "yaml"],
-        "libero": ["libero"],
-    }.get(module_name, [module_name])
-
-    for candidate in candidates:
-        try:
-            return importlib.metadata.version(candidate)
-        except importlib.metadata.PackageNotFoundError:
-            continue
-    return None
+from _common import package_version, run_git  # noqa: E402
 
 
 def check_import(module_name: str) -> dict[str, Any]:

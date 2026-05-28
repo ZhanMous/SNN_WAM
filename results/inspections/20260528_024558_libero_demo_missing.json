@@ -1,0 +1,22 @@
+{
+  "command": [
+    "scripts/inspect_libero_demo.py",
+    "--allow-missing"
+  ],
+  "dataset_root": null,
+  "dataset_root_source": null,
+  "git": {
+    "branch": "main",
+    "commit": "8e81255",
+    "dirty": true
+  },
+  "next_steps": [
+    "Set LIBERO_DATASET_ROOT to a local LIBERO dataset directory.",
+    "Install LIBERO and use its official dataset downloader for the minimal suite.",
+    "Re-run scripts/inspect_libero_demo.py after a real demonstration file exists."
+  ],
+  "reason": "dataset_root_not_configured",
+  "status": "missing",
+  "suite": "libero_spatial",
+  "timestamp_utc": "2026-05-28T02:45:58.161418+00:00"
+}

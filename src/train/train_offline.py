@@ -173,6 +173,7 @@ def run_training(
     best_metric = float("inf")
     best_epoch = -1
     rows: list[dict[str, Any]] = []
+    last_checkpoint: dict[str, Any] | None = None
     with metrics_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=METRIC_FIELDNAMES)
         writer.writeheader()
@@ -217,7 +218,7 @@ def run_training(
             rows.extend([train_row, val_row])
 
             current_metric = float(val_metrics["action_mse"])
-            checkpoint = checkpoint_payload(
+            last_checkpoint = checkpoint_payload(
                 epoch=epoch,
                 model=model,
                 optimizer=optimizer,
@@ -226,27 +227,20 @@ def run_training(
                 best_epoch=best_epoch,
                 metrics={"train": train_metrics, "val": val_metrics},
             )
-            torch.save(checkpoint, run_dir / "checkpoint.pt")
+            torch.save(last_checkpoint, run_dir / "checkpoint.pt")
             if current_metric < best_metric:
                 best_metric = current_metric
                 best_epoch = epoch
-                checkpoint["best_metric"] = best_metric
-                checkpoint["best_epoch"] = best_epoch
-                torch.save(checkpoint, run_dir / "best.pt")
+                last_checkpoint["best_metric"] = best_metric
+                last_checkpoint["best_epoch"] = best_epoch
+                torch.save(last_checkpoint, run_dir / "best.pt")
 
+    if last_checkpoint is None:
+        raise RuntimeError("training loop produced no checkpoints")
     if not (run_dir / "best.pt").exists():
-        torch.save(
-            checkpoint_payload(
-                epoch=epochs - 1,
-                model=model,
-                optimizer=optimizer,
-                config=config,
-                best_metric=best_metric,
-                best_epoch=best_epoch,
-                metrics={},
-            ),
-            run_dir / "best.pt",
-        )
+        last_checkpoint["best_metric"] = best_metric
+        last_checkpoint["best_epoch"] = best_epoch
+        torch.save(last_checkpoint, run_dir / "best.pt")
     if not rows:
         raise RuntimeError("metrics.csv was not populated")
     write_json(
@@ -551,7 +545,7 @@ def load_real_libero_trajectories(
     trajectories: list[RawTrajectory] = []
     for file_path in files:
         with h5py.File(file_path, "r") as handle:
-            for demo_path, group in iter_demo_groups(handle):
+            for demo_path, group in list_demo_groups(handle):
                 if "actions" not in group:
                     continue
                 actions = np.asarray(group["actions"][()], dtype=np.float32)
@@ -610,7 +604,8 @@ def find_demo_files(dataset_root: Path, suite: str) -> list[Path]:
     return sorted(dict.fromkeys(files))
 
 
-def iter_demo_groups(handle: Any) -> list[tuple[str, Any]]:
+def list_demo_groups(handle: Any) -> list[tuple[str, Any]]:
+    """Return a sorted list of ``(path, group)`` demo groups from an HDF5 handle."""
     if "data" in handle and hasattr(handle["data"], "keys"):
         data_group = handle["data"]
         return [
@@ -740,12 +735,16 @@ def limit_trajectories_by_split(
     output: list[RawTrajectory] = []
     for trajectory in trajectories:
         split = trajectory.split
-        limit = limits.get(split)
+        if split not in limits:
+            raise ValueError(
+                f"trajectory {trajectory.trajectory_id} has unrecognized split={split!r}; "
+                f"expected one of {sorted(limits)}"
+            )
+        limit = limits[split]
         if limit is not None and counts[split] >= limit:
             continue
         output.append(trajectory)
-        if split in counts:
-            counts[split] += 1
+        counts[split] += 1
     return output
 
 

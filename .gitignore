@@ -13,10 +13,13 @@ env/
 *.log
 *.tmp
 *.zip
+*.env
 *:Zone.Identifier
 
+.claude/settings.local.json
+
 # Keep small audit artifacts visible to git. Ignore only large/heavy outputs.
-results/runs/**/checkpoint*.pt
+results/runs/**/*.pt
 results/runs/**/checkpoints/
 results/runs/**/failure_videos/
 results/runs/**/failure_frames/

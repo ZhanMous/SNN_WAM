@@ -18,6 +18,8 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SUITE = "libero_spatial"
 
+from _common import run_git  # noqa: E402
+
 
 def env_or_cli_path(cli_value: Path | None, env_names: tuple[str, ...]) -> tuple[Path | None, str | None]:
     if cli_value is not None:

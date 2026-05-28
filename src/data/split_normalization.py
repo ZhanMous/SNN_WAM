@@ -80,7 +80,11 @@ def as_float_rows(values: Sequence[Sequence[float]]) -> list[list[float]]:
 
 
 def compute_field_stats(rows: list[list[float]], split: str) -> FieldStats:
-    """Compute per-dimension mean/std for `[N, D]` rows."""
+    """Compute per-dimension mean/std for `[N, D]` rows.
+
+    Uses population variance (divides by N, not N-1), which is standard for
+    ML normalization statistics where the rows are the full train population.
+    """
 
     count = len(rows)
     width = len(rows[0])
