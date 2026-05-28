@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "created_at": "2026-05-28",
+    "seed": 20260528,
+    "split_unit": "episode",
+    "benchmark": "LIBERO",
+    "suite": "libero_spatial",
+    "description": "Episode-level split for LIBERO spatial suite with seed 20260528"
+  },
+  "splits": {
+    "train": [],
+    "val": [],
+    "test": []
+  },
+  "notes": "Split file to be populated after LIBERO dataset is downloaded. Use scripts/inspect_libero_demo.py to discover available episodes and then populate this file."
+}

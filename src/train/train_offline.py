@@ -34,7 +34,13 @@ from src.models.encoders import (  # noqa: E402
     encode_sequence,
 )
 from src.models.registry import build_offline_model, count_parameters  # noqa: E402
-from src.train.metrics import action_mse, future_latent_cosine_error  # noqa: E402
+from src.train.metrics import (  # noqa: E402
+    action_mse,
+    action_mse_per_horizon,
+    action_mse_per_dimension,
+    future_latent_cosine_error,
+    future_latent_mse,
+)
 from src.utils.config import load_config  # noqa: E402
 from src.utils.experiment_io import create_experiment_dir, format_command  # noqa: E402
 from src.utils.seed import seed_everything  # noqa: E402
@@ -48,6 +54,7 @@ METRIC_FIELDNAMES = [
     "action_loss_units",
     "future_loss",
     "future_latent_cosine_error",
+    "future_latent_mse",
     "future_latent_cosine_error_by_horizon",
     "spike_loss",
     "action_mse",
@@ -417,22 +424,32 @@ def build_datasets(
         return train_dataset, val_dataset, metadata, None, normalization_stats
 
     if include_latents:
-        raise NotImplementedError(
-            "real-data WAM training requires precomputed frozen visual latents or "
-            "a real FrozenVisualEncoderAdapter integration; dry_run supports the "
-            "smoke time-index encoder only"
-        )
+        # Check if pre-extracted latents are available
+        latent_dir = config["data"].get("latent_dir")
+        if not latent_dir:
+            raise NotImplementedError(
+                "real-data WAM training requires precomputed frozen visual latents or "
+                "a real FrozenVisualEncoderAdapter integration; dry_run supports the "
+                "smoke time-index encoder only. Set data.latent_dir to use pre-extracted latents."
+            )
 
     trajectories, metadata = load_real_libero_trajectories(config)
     action_transform, normalization_stats = build_action_transform(trajectories, config)
     if action_transform is not None:
         trajectories = apply_action_transform(trajectories, action_transform)
+
+    # Add visual latents normalization record if using pre-extracted latents
+    if include_latents and config["data"].get("latent_dir"):
+        normalization_stats.update(preextracted_latents_record(config))
+
     train_dataset = TrajectoryWindowDataset(
         trajectories,
         split="train",
         history_len=history_len,
         action_horizon=action_horizon,
         future_horizon=future_horizon,
+        include_current_latent=include_latents,
+        include_future_latents=include_latents,
     )
     val_dataset = TrajectoryWindowDataset(
         trajectories,
@@ -440,6 +457,8 @@ def build_datasets(
         history_len=history_len,
         action_horizon=action_horizon,
         future_horizon=future_horizon,
+        include_current_latent=include_latents,
+        include_future_latents=include_latents,
     )
     if len(train_dataset) == 0:
         raise ValueError("real LIBERO train split produced zero valid windows")
@@ -528,6 +547,23 @@ def no_normalization_record() -> dict[str, Any]:
     }
 
 
+def preextracted_latents_record(config: Mapping[str, Any]) -> dict[str, Any]:
+    """Create normalization record for pre-extracted latents."""
+    return {
+        "visual_latents": {
+            "mode": "preextracted",
+            "encoder": config["model"].get("visual_encoder", "unknown"),
+            "model_id": config["model"].get("model_id", "unknown"),
+            "revision": config["model"].get("revision", "unknown"),
+            "output_token": config["model"].get("output_token", "cls"),
+            "latent_dim": config["data"].get("latent_dim", 384),
+            "source_split": "train",
+            "target_only_future": True,
+            "current_latent_input": True,
+        }
+    }
+
+
 def standardization_record(stats: FieldStats) -> dict[str, Any]:
     return {
         "actions": {
@@ -612,6 +648,10 @@ def load_real_libero_trajectories(
     if max_files is not None:
         files = files[:max_files]
 
+    # Check if we should load pre-extracted latents
+    latent_dir = config["data"].get("latent_dir")
+    latent_format = config["data"].get("latent_format", "hdf5")
+
     trajectories: list[RawTrajectory] = []
     for file_path in files:
         with h5py.File(file_path, "r") as handle:
@@ -628,11 +668,20 @@ def load_real_libero_trajectories(
                 frame_refs = [
                     f"{trajectory_id}:obs/agentview_rgb:{index}" for index in range(length)
                 ]
+
+                # Load pre-extracted latents if available
+                visual_latents = None
+                if latent_dir:
+                    visual_latents = load_preextracted_latents(
+                        latent_dir, file_path, demo_path, latent_format
+                    )
+
                 trajectories.append(
                     RawTrajectory(
                         images=frame_refs,
                         actions=actions,
                         states=None,
+                        visual_latents=visual_latents,
                         frame_refs=frame_refs,
                         language=extract_language(handle, group),
                         trajectory_id=trajectory_id,
@@ -644,6 +693,57 @@ def load_real_libero_trajectories(
         raise ValueError(f"no action trajectories found under {dataset_root}")
     split_trajectories, split_metadata = assign_splits(trajectories, config)
     return split_trajectories, split_metadata
+
+
+def load_preextracted_latents(
+    latent_dir: Path | str,
+    source_file: Path,
+    demo_path: str,
+    latent_format: str = "hdf5",
+) -> list[list[float]] | None:
+    """Load pre-extracted latents from HDF5 or Zarr storage."""
+
+    latent_dir = Path(latent_dir)
+    source_name = source_file.stem
+
+    if latent_format == "hdf5":
+        latent_file = latent_dir / f"{source_name}_dinov2_vits14.hdf5"
+        if not latent_file.exists():
+            return None
+
+        try:
+            import h5py
+            import numpy as np
+        except ImportError:
+            return None
+
+        with h5py.File(latent_file, "r") as f:
+            if demo_path not in f:
+                return None
+            demo_group = f[demo_path]
+            if "latents" not in demo_group:
+                return None
+            latents = np.array(demo_group["latents"])
+            return latents.tolist()
+
+    elif latent_format == "zarr":
+        try:
+            import zarr
+            import numpy as np
+        except ImportError:
+            return None
+
+        latent_file = latent_dir / f"{source_name}_dinov2_vits14.zarr"
+        if not latent_file.exists():
+            return None
+
+        store = zarr.open(str(latent_file), mode="r")
+        if demo_path not in store:
+            return None
+        latents = np.array(store[demo_path]["latents"])
+        return latents.tolist()
+
+    return None
 
 
 def resolve_dataset_root(value: str) -> Path:
@@ -951,6 +1051,14 @@ def run_one_split(
     future_error_count = 0
     future_error_by_horizon_sum: torch.Tensor | None = None
     future_error_by_horizon_count: torch.Tensor | None = None
+    future_mse_sum = 0.0
+    future_mse_count = 0
+    future_mse_by_horizon_sum: torch.Tensor | None = None
+    future_mse_by_horizon_count: torch.Tensor | None = None
+    action_mse_by_horizon_sum: torch.Tensor | None = None
+    action_mse_by_horizon_count: torch.Tensor | None = None
+    action_mse_by_dim_sum: torch.Tensor | None = None
+    action_mse_by_dim_count: torch.Tensor | None = None
     steps = 0
     samples = 0
 
@@ -1011,6 +1119,26 @@ def run_one_split(
             future_loss_sum += float(future_loss.detach().item()) * batch_size
             total_loss_sum += float(total_loss.detach().item()) * batch_size
             loss_weight_sum += batch_size
+
+            # Per-horizon action MSE
+            action_mse_horizon = action_mse_per_horizon(metric_pred, metric_target)
+            horizon_size = int(action_mse_horizon.shape[0])
+            if action_mse_by_horizon_sum is None:
+                action_mse_by_horizon_sum = action_mse_horizon.detach().cpu()
+                action_mse_by_horizon_count = torch.full_like(action_mse_by_horizon_sum, batch_size)
+            else:
+                action_mse_by_horizon_sum += action_mse_horizon.detach().cpu() * batch_size
+                action_mse_by_horizon_count += batch_size
+
+            # Per-dimension action MSE
+            action_mse_dim = action_mse_per_dimension(metric_pred, metric_target)
+            if action_mse_by_dim_sum is None:
+                action_mse_by_dim_sum = action_mse_dim.detach().cpu()
+                action_mse_by_dim_count = torch.full_like(action_mse_by_dim_sum, batch_size)
+            else:
+                action_mse_by_dim_sum += action_mse_dim.detach().cpu() * batch_size
+                action_mse_by_dim_count += batch_size
+
             if target_future_latents is not None and pred_future_latents is not None:
                 future_errors = future_latent_cosine_error(
                     pred_future_latents.detach(),
@@ -1027,6 +1155,24 @@ def run_one_split(
                 else:
                     future_error_by_horizon_sum += horizon_sum
                     future_error_by_horizon_count += horizon_count
+
+                # Future latent MSE
+                future_mse_errors = future_latent_mse(
+                    pred_future_latents.detach(),
+                    target_future_latents,
+                    reduction="none",
+                )
+                future_mse_sum += future_mse_errors.sum().item()
+                future_mse_count += int(future_mse_errors.numel())
+                mse_horizon_sum = future_mse_errors.sum(dim=0).detach().cpu()
+                mse_horizon_count = torch.full_like(mse_horizon_sum, future_mse_errors.shape[0])
+                if future_mse_by_horizon_sum is None:
+                    future_mse_by_horizon_sum = mse_horizon_sum
+                    future_mse_by_horizon_count = mse_horizon_count
+                else:
+                    future_mse_by_horizon_sum += mse_horizon_sum
+                    future_mse_by_horizon_count += mse_horizon_count
+
             steps += 1
             samples += int(target_actions.shape[0])
 
@@ -1042,6 +1188,24 @@ def run_one_split(
         future_by_horizon = (
             future_error_by_horizon_sum / future_error_by_horizon_count
         ).tolist()
+
+    future_mse_metric = 0.0
+    future_mse_by_horizon: list[float] = []
+    if future_mse_count > 0:
+        future_mse_metric = future_mse_sum / future_mse_count
+        if future_mse_by_horizon_sum is not None and future_mse_by_horizon_count is not None:
+            future_mse_by_horizon = (
+                future_mse_by_horizon_sum / future_mse_by_horizon_count
+            ).tolist()
+
+    action_mse_by_horizon: list[float] = []
+    if action_mse_by_horizon_sum is not None and action_mse_by_horizon_count is not None:
+        action_mse_by_horizon = (action_mse_by_horizon_sum / action_mse_by_horizon_count).tolist()
+
+    action_mse_by_dim: list[float] = []
+    if action_mse_by_dim_sum is not None and action_mse_by_dim_count is not None:
+        action_mse_by_dim = (action_mse_by_dim_sum / action_mse_by_dim_count).tolist()
+
     return {
         "total_loss": total_loss_sum / loss_weight_sum,
         "action_loss": action_loss_sum / loss_weight_sum,
@@ -1053,6 +1217,10 @@ def run_one_split(
         "future_loss": future_loss_sum / loss_weight_sum,
         "future_latent_cosine_error": future_metric,
         "future_latent_cosine_error_by_horizon": future_by_horizon,
+        "future_latent_mse": future_mse_metric,
+        "future_latent_mse_by_horizon": future_mse_by_horizon,
+        "action_mse_by_horizon": action_mse_by_horizon,
+        "action_mse_by_dimension": action_mse_by_dim,
         "spike_loss": 0.0,
         "action_mse": action_mse_value,
         "steps": steps,
@@ -1081,6 +1249,25 @@ def format_metric_row(
             [
                 round(float(value), 10)
                 for value in metrics["future_latent_cosine_error_by_horizon"]
+            ]
+        ),
+        "future_latent_mse": format_float(float(metrics.get("future_latent_mse", 0.0))),
+        "future_latent_mse_by_horizon": json.dumps(
+            [
+                round(float(value), 10)
+                for value in metrics.get("future_latent_mse_by_horizon", [])
+            ]
+        ),
+        "action_mse_by_horizon": json.dumps(
+            [
+                round(float(value), 10)
+                for value in metrics.get("action_mse_by_horizon", [])
+            ]
+        ),
+        "action_mse_by_dimension": json.dumps(
+            [
+                round(float(value), 10)
+                for value in metrics.get("action_mse_by_dimension", [])
             ]
         ),
         "spike_loss": format_float(float(metrics["spike_loss"])),

@@ -175,6 +175,94 @@ class RealVisualEncoderPlaceholder(FrozenVisualEncoder):
         )
 
 
+class DINOv2VisualEncoder(FrozenVisualEncoder):
+    """DINOv2 frozen visual encoder for real LIBERO experiments.
+
+    Uses the DINOv2 ViT-S/14 model from HuggingFace. The encoder is frozen
+    and produces CLS token embeddings with shape [B, 384].
+
+    This encoder requires the transformers library and DINOv2 model weights.
+    It is intended for offline latent extraction, not real-time training.
+    """
+
+    def __init__(
+        self,
+        *,
+        model_id: str = "facebook/dinov2-small",
+        revision: str | None = None,
+        latent_dim: int = 384,
+        output_token: str = "cls",
+    ) -> None:
+        super().__init__(latent_dim=latent_dim, encoder_id=f"dinov2_{model_id.split('/')[-1]}")
+        self.model_id = model_id
+        self.revision = revision
+        self.output_token = output_token
+
+        # Lazy loading - only load when actually used
+        self._model = None
+        self._processor = None
+
+    def _load_model(self) -> None:
+        """Lazy load the DINOv2 model and processor."""
+        if self._model is not None:
+            return
+
+        try:
+            from transformers import AutoImageProcessor, AutoModel
+        except ImportError as exc:
+            raise RuntimeError(
+                "transformers library is required for DINOv2 encoder. "
+                "Install with: pip install transformers"
+            ) from exc
+
+        self._processor = AutoImageProcessor.from_pretrained(
+            self.model_id, revision=self.revision
+        )
+        self._model = AutoModel.from_pretrained(
+            self.model_id, revision=self.revision
+        )
+        self.freeze()
+
+    def encode(self, images: Any) -> torch.Tensor:
+        """Encode images using DINOv2 and return CLS embeddings."""
+        self._load_model()
+
+        if not isinstance(images, torch.Tensor):
+            raise TypeError("DINOv2VisualEncoder expects tensor inputs")
+
+        # images should be [B, C, H, W] or [B, H, W, C]
+        if images.ndim == 3:
+            images = images.unsqueeze(0)
+
+        # Convert to PIL images for the processor
+        from torchvision.transforms.functional import to_pil_image
+
+        pil_images = [to_pil_image(img) for img in images]
+        inputs = self._processor(images=pil_images, return_tensors="pt")
+        inputs = {k: v.to(next(self._model.parameters()).device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = self._model(**inputs)
+
+        # Extract CLS token or mean of patch tokens
+        if self.output_token == "cls":
+            latents = outputs.last_hidden_state[:, 0, :]  # CLS token
+        else:
+            latents = outputs.last_hidden_state[:, 1:, :].mean(dim=1)  # Mean of patches
+
+        return latents.detach()
+
+    def metadata(self) -> dict[str, Any]:
+        metadata = super().metadata()
+        metadata.update({
+            "model_id": self.model_id,
+            "revision": self.revision,
+            "output_token": self.output_token,
+            "extraction_mode": "offline",
+        })
+        return metadata
+
+
 def build_frozen_visual_encoder(config: Mapping[str, Any]) -> FrozenVisualEncoder:
     """Build a frozen visual encoder from the model config."""
 
@@ -187,10 +275,20 @@ def build_frozen_visual_encoder(config: Mapping[str, Any]) -> FrozenVisualEncode
             encoder_id=encoder_name,
             latent_dim=latent_dim,
         )
+    if encoder_name.startswith("dinov2_"):
+        model_id = config.get("model_id", "facebook/dinov2-small")
+        revision = config.get("revision")
+        output_token = config.get("output_token", "cls")
+        return DINOv2VisualEncoder(
+            model_id=model_id,
+            revision=revision,
+            latent_dim=latent_dim,
+            output_token=output_token,
+        )
     raise ValueError(
         "unknown visual_encoder. Expected one of "
         "['smoke_time_index', 'frozen_smoke', 'stub', 'frozen_resnet', "
-        "'frozen_clip', 'clip', 'resnet'], "
+        "'frozen_clip', 'clip', 'resnet', 'dinov2_*'], "
         f"got {encoder_name!r}"
     )
 

@@ -143,4 +143,163 @@ def _validate_horizon_mask(mask: torch.Tensor, shape: torch.Size) -> torch.Tenso
     return mask
 
 
-__all__ = ["action_mse", "future_latent_cosine_error"]
+def action_mse_per_horizon(
+    pred_actions: torch.Tensor,
+    target_actions: torch.Tensor,
+    *,
+    mask: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Return per-horizon action MSE with shape `[H]`.
+
+    Metric contract:
+
+    - `pred_actions`: `[B, H, A]` floating point tensor.
+    - `target_actions`: same shape.
+    - `mask`: optional `[B, H]` or `[B, H, 1]` tensor.
+    - Returns: `[H]` tensor with MSE for each horizon step.
+    - Lower is better.
+    """
+
+    if pred_actions.shape != target_actions.shape:
+        raise ValueError(
+            "pred_actions and target_actions must have the same shape, "
+            f"got {tuple(pred_actions.shape)} and {tuple(target_actions.shape)}"
+        )
+    if pred_actions.ndim != 3:
+        raise ValueError(
+            "pred_actions and target_actions must have shape [B, H, A], "
+            f"got {tuple(pred_actions.shape)}"
+        )
+    if not pred_actions.is_floating_point() or not target_actions.is_floating_point():
+        raise TypeError("action_mse_per_horizon expects floating point tensors")
+
+    squared_error = (pred_actions - target_actions).pow(2).mean(dim=-1)  # [B, H]
+
+    if mask is None:
+        return squared_error.mean(dim=0)  # [H]
+
+    mask_2d = _validate_horizon_mask(mask, pred_actions.shape[:2]).to(
+        device=squared_error.device,
+        dtype=squared_error.dtype,
+    )
+    weighted = squared_error * mask_2d
+    denominator = mask_2d.sum(dim=0)
+    if torch.any(denominator <= 0):
+        raise ValueError("each horizon step must have at least one valid mask entry")
+    return weighted.sum(dim=0) / denominator
+
+
+def action_mse_per_dimension(
+    pred_actions: torch.Tensor,
+    target_actions: torch.Tensor,
+    *,
+    mask: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Return per-dimension action MSE with shape `[A]`.
+
+    Metric contract:
+
+    - `pred_actions`: `[B, H, A]` floating point tensor.
+    - `target_actions`: same shape.
+    - `mask`: optional `[B, H]` or `[B, H, 1]` tensor.
+    - Returns: `[A]` tensor with MSE for each action dimension.
+    - Lower is better.
+    """
+
+    if pred_actions.shape != target_actions.shape:
+        raise ValueError(
+            "pred_actions and target_actions must have the same shape, "
+            f"got {tuple(pred_actions.shape)} and {tuple(target_actions.shape)}"
+        )
+    if pred_actions.ndim != 3:
+        raise ValueError(
+            "pred_actions and target_actions must have shape [B, H, A], "
+            f"got {tuple(pred_actions.shape)}"
+        )
+    if not pred_actions.is_floating_point() or not target_actions.is_floating_point():
+        raise TypeError("action_mse_per_dimension expects floating point tensors")
+
+    squared_error = (pred_actions - target_actions).pow(2)  # [B, H, A]
+
+    if mask is None:
+        return squared_error.mean(dim=(0, 1))  # [A]
+
+    mask_3d = mask
+    if mask_3d.ndim == 2:
+        mask_3d = mask_3d.unsqueeze(-1)
+    mask_3d = mask_3d.to(device=squared_error.device, dtype=squared_error.dtype)
+    weighted = squared_error * mask_3d
+    denominator = mask_3d.sum()
+    if denominator.item() <= 0:
+        raise ValueError("mask must contain at least one valid horizon step")
+    return weighted.sum(dim=(0, 1)) / (denominator / pred_actions.shape[-1])
+
+
+def future_latent_mse(
+    pred_latents: torch.Tensor,
+    target_latents: torch.Tensor,
+    *,
+    mask: torch.Tensor | None = None,
+    reduction: str = "mean",
+) -> torch.Tensor:
+    """Return future latent MSE for prediction quality assessment.
+
+    Metric contract:
+
+    - `pred_latents`: `[B, H, D]` floating point tensor.
+    - `target_latents`: same shape.
+    - `mask`: optional `[B, H]` or `[B, H, 1]` tensor.
+    - Reduction: `"mean"` returns scalar, `"per_horizon"` returns `[H]`, `"none"` returns `[B, H]`.
+    - Lower is better.
+    """
+
+    if pred_latents.shape != target_latents.shape:
+        raise ValueError(
+            "pred_latents and target_latents must have the same shape, "
+            f"got {tuple(pred_latents.shape)} and {tuple(target_latents.shape)}"
+        )
+    if pred_latents.ndim != 3:
+        raise ValueError(
+            "pred_latents and target_latents must have shape [B, H, D], "
+            f"got {tuple(pred_latents.shape)}"
+        )
+    if not pred_latents.is_floating_point() or not target_latents.is_floating_point():
+        raise TypeError("future_latent_mse expects floating point tensors")
+    if reduction not in {"mean", "per_horizon", "none"}:
+        raise ValueError("reduction must be one of ['mean', 'per_horizon', 'none']")
+
+    mse = (pred_latents - target_latents).pow(2).mean(dim=-1)  # [B, H]
+
+    if mask is None:
+        if reduction == "none":
+            return mse
+        if reduction == "per_horizon":
+            return mse.mean(dim=0)
+        return mse.mean()
+
+    mask_2d = _validate_horizon_mask(mask, pred_latents.shape[:2]).to(
+        device=mse.device,
+        dtype=mse.dtype,
+    )
+    weighted = mse * mask_2d
+    if reduction == "none":
+        return weighted
+    if reduction == "per_horizon":
+        denominator = mask_2d.sum(dim=0)
+        if torch.any(denominator <= 0):
+            raise ValueError("each horizon step must have at least one valid mask entry")
+        return weighted.sum(dim=0) / denominator
+
+    denominator = mask_2d.sum()
+    if denominator.item() <= 0:
+        raise ValueError("mask must contain at least one valid horizon step")
+    return weighted.sum() / denominator
+
+
+__all__ = [
+    "action_mse",
+    "action_mse_per_horizon",
+    "action_mse_per_dimension",
+    "future_latent_cosine_error",
+    "future_latent_mse",
+]
