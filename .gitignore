@@ -42,3 +42,7 @@ results/figures/**/*.png
 results/figures/**/*.jpg
 results/figures/**/*.jpeg
 results/figures/**/*.pdf
+
+# Latent files (large binary files, should not be committed)
+latents/
+*.hdf5_manifest.json
