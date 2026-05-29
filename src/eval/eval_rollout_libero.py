@@ -336,6 +336,64 @@ class MockLIBEROEnv(LIBEROEnvInterface):
 
 
 # ---------------------------------------------------------------------------
+# Action sources for baselines
+# ---------------------------------------------------------------------------
+
+
+class ActionSource:
+    """Produces actions for each rollout step."""
+
+    def reset(self, total_steps: int) -> None:
+        """Called at the start of each episode."""
+
+    def query(self, step: int) -> np.ndarray:
+        """Return the action for the given step."""
+        raise NotImplementedError
+
+
+class ExpertReplayActionSource(ActionSource):
+    """Replays actions from a LIBERO demonstration trajectory."""
+
+    def __init__(self, demo_actions: np.ndarray) -> None:
+        if demo_actions.ndim != 2 or demo_actions.shape[1] != 7:
+            raise ValueError(
+                f"demo_actions must be [T, 7], got {demo_actions.shape}"
+            )
+        self._actions = demo_actions.astype(np.float32)
+        self._length = len(demo_actions)
+
+    def query(self, step: int) -> np.ndarray:
+        if step < self._length:
+            return self._actions[step]
+        # Hold last action if demo is shorter than max_steps
+        return self._actions[-1]
+
+
+class ZeroActionSource(ActionSource):
+    """Always returns zero action (hold pose)."""
+
+    def __init__(self, action_dim: int = 7) -> None:
+        self._action_dim = action_dim
+
+    def query(self, step: int) -> np.ndarray:
+        return np.zeros(self._action_dim, dtype=np.float32)
+
+
+class RandomActionSource(ActionSource):
+    """Uniform random actions in [-1, 1]."""
+
+    def __init__(self, action_dim: int = 7, seed: int = 0) -> None:
+        self._action_dim = action_dim
+        self._seed = seed
+
+    def reset(self, total_steps: int) -> None:
+        self._rng = np.random.RandomState(self._seed)
+
+    def query(self, step: int) -> np.ndarray:
+        return self._rng.uniform(-1.0, 1.0, size=self._action_dim).astype(np.float32)
+
+
+# ---------------------------------------------------------------------------
 # Rollout runner
 # ---------------------------------------------------------------------------
 
@@ -360,12 +418,18 @@ def run_single_episode(
     episode_id: int = 0,
     settle_steps: int = 0,
     action_chunk_exec: int = 1,
+    action_source: ActionSource | None = None,
 ) -> EpisodeResult:
-    """Run one closed-loop episode and return the result."""
+    """Run one closed-loop episode and return the result.
 
-    model.eval()
-    if encoder is not None:
-        encoder.eval()
+    If *action_source* is provided it overrides the model: actions come from
+    the source (expert replay, zero, random) instead of a learned policy.
+    """
+
+    if action_source is None:
+        model.eval()
+        if encoder is not None:
+            encoder.eval()
     if max_steps <= 0:
         raise ValueError("max_steps must be positive")
     if action_chunk_exec <= 0:
@@ -392,57 +456,64 @@ def run_single_episode(
     action_chunk: torch.Tensor | None = None
     chunk_step = 0
 
+    if action_source is not None:
+        action_source.reset(max_steps)
+
     while not done and step_count < max_steps:
-        # Get current image observation for WAM encoder
-        z_t: torch.Tensor | None = None
-        if is_wam and encoder is not None:
-            obs_image = env.get_observation()
-            obs_tensor = torch.from_numpy(obs_image).float()
-            if obs_tensor.max() > 1.0:
-                obs_tensor = obs_tensor / 255.0
-            # HWC -> CHW
-            if obs_tensor.ndim == 3 and obs_tensor.shape[-1] in (1, 3):
-                obs_tensor = obs_tensor.permute(2, 0, 1)
-            obs_tensor = obs_tensor.unsqueeze(0).to(device)
-            with torch.no_grad():
-                z_t = encoder.encode(obs_tensor).to(device)
+        if action_source is not None:
+            # Baseline mode: action source overrides model
+            action_np = action_source.query(step_count)
+        else:
+            # Model mode: query the learned policy
+            z_t: torch.Tensor | None = None
+            if is_wam and encoder is not None:
+                obs_image = env.get_observation()
+                obs_tensor = torch.from_numpy(obs_image).float()
+                if obs_tensor.max() > 1.0:
+                    obs_tensor = obs_tensor / 255.0
+                # HWC -> CHW
+                if obs_tensor.ndim == 3 and obs_tensor.shape[-1] in (1, 3):
+                    obs_tensor = obs_tensor.permute(2, 0, 1)
+                obs_tensor = obs_tensor.unsqueeze(0).to(device)
+                with torch.no_grad():
+                    z_t = encoder.encode(obs_tensor).to(device)
 
-        # Query model if we need new actions
-        if (
-            action_chunk is None
-            or chunk_step >= action_chunk.shape[1]
-            or chunk_step >= action_chunk_exec
-        ):
-            with torch.no_grad():
-                if is_wam and z_t is not None:
-                    outputs = model(action_history, z_t)
-                    if isinstance(outputs, dict):
-                        action_chunk = outputs["pred_actions"]
+            # Query model if we need new actions
+            if (
+                action_chunk is None
+                or chunk_step >= action_chunk.shape[1]
+                or chunk_step >= action_chunk_exec
+            ):
+                with torch.no_grad():
+                    if is_wam and z_t is not None:
+                        outputs = model(action_history, z_t)
+                        if isinstance(outputs, dict):
+                            action_chunk = outputs["pred_actions"]
+                        else:
+                            action_chunk = outputs
                     else:
-                        action_chunk = outputs
-                else:
-                    action_chunk = model(action_history)
-            chunk_step = 0
+                        action_chunk = model(action_history)
+                chunk_step = 0
 
-        # Take action from chunk
-        model_action = action_chunk[0, chunk_step, :action_dim].cpu()
-        chunk_step += 1
+            # Take action from chunk
+            model_action = action_chunk[0, chunk_step, :action_dim].cpu()
+            chunk_step += 1
 
-        # Denormalize if needed
-        env_action = model_action
-        if action_transform is not None:
-            env_action = action_transform.denormalize_tensor(model_action)
+            # Denormalize if needed
+            env_action = model_action
+            if action_transform is not None:
+                env_action = action_transform.denormalize_tensor(model_action)
 
-        action_np = env_action.numpy()
+            action_np = env_action.numpy()
+
+            # Update action history (model-space)
+            action_history = torch.roll(action_history, shifts=-1, dims=1)
+            action_history[0, -1, :] = model_action.to(device)
 
         # Step environment
         obs, reward, done, info = env.step(action_np)
         total_reward += reward
         step_count += 1
-
-        # The action history stays in the same units the model saw at training.
-        action_history = torch.roll(action_history, shifts=-1, dims=1)
-        action_history[0, -1, :] = model_action.to(device)
 
         # Record frame
         if record_video and media_dir is not None:
@@ -505,8 +576,16 @@ def run_rollout_evaluation(
     device_name: str = "cpu",
     mock: bool = False,
     command: Sequence[str] | None = None,
+    baseline: str = "model",
+    dataset_root: Path | None = None,
 ) -> Path:
     """Run closed-loop LIBERO rollout evaluation.
+
+    *baseline* selects the action source:
+    - "model": learned policy from checkpoint (default)
+    - "expert": replay demonstration actions from HDF5
+    - "zero": always-zero actions (hold pose)
+    - "random": uniform random actions in [-1, 1]
 
     Returns the path to eval_rollout.csv.
     """
@@ -524,6 +603,8 @@ def run_rollout_evaluation(
         raise ValueError("action_chunk_exec must be positive")
     if settle_steps < 0:
         raise ValueError("settle_steps must be non-negative")
+    if baseline not in ("model", "expert", "zero", "random"):
+        raise ValueError(f"Unknown baseline: {baseline!r}")
 
     if not run_dir.exists():
         raise FileNotFoundError(f"run_dir does not exist: {run_dir}")
@@ -592,9 +673,25 @@ def run_rollout_evaluation(
     # Set up environment
     media_dir = output_dir if record_video else None
 
+    # Resolve dataset root for expert replay
+    if baseline == "expert" and dataset_root is None:
+        dataset_root = resolve_dataset_root(str(config["data"]["dataset_root"]))
+
     results: list[EpisodeResult] = []
     episode_id = 0
     model_name = str(config["model"].get("name", config["model"]["temporal_adapter"]))
+
+    # Pre-load expert demo actions per task (only for expert baseline)
+    expert_demo_cache: dict[int, np.ndarray] = {}
+    if baseline == "expert" and not mock:
+        assert dataset_root is not None
+        for task_id in task_ids:
+            try:
+                expert_demo_cache[task_id] = load_demo_actions(
+                    dataset_root, suite, task_id, demo_id=0,
+                )
+            except (FileNotFoundError, KeyError) as exc:
+                print(f"[warning] Cannot load demo for task {task_id}: {exc}")
 
     for task_id in task_ids:
         task_init_states = None if mock else load_task_init_states(suite, task_id)
@@ -603,6 +700,22 @@ def run_rollout_evaluation(
             requested=init_state_ids,
             available_count=None if task_init_states is None else int(len(task_init_states)),
         )
+
+        # Create action source for this task
+        task_action_source: ActionSource | None = None
+        if baseline == "expert":
+            if task_id in expert_demo_cache:
+                task_action_source = ExpertReplayActionSource(expert_demo_cache[task_id])
+            elif mock:
+                # Mock expert: synthetic actions
+                task_action_source = ExpertReplayActionSource(
+                    np.random.RandomState(task_id).uniform(-0.5, 0.5, (max_steps, 7)).astype(np.float32)
+                )
+        elif baseline == "zero":
+            task_action_source = ZeroActionSource(action_dim)
+        elif baseline == "random":
+            task_action_source = RandomActionSource(action_dim, seed=seed)
+
         for ep_idx, init_state_id in enumerate(selected_init_state_ids):
             ep_seed = seed + episode_id
             env: LIBEROEnvInterface | None = None
@@ -639,6 +752,7 @@ def run_rollout_evaluation(
                     action_transform=action_transform,
                     encoder=encoder,
                     is_wam=is_wam,
+                    action_source=task_action_source,
                     init_state=init_state,
                     init_state_id=init_state_id,
                     seed=ep_seed,
@@ -698,6 +812,19 @@ def run_rollout_evaluation(
                 "video_path": r.video_path,
             })
 
+    # Write failure taxonomy
+    taxonomy = build_failure_taxonomy(
+        results, model_name=model_name, run_id=run_dir.name,
+    )
+    write_failure_taxonomy(taxonomy, output_dir / "failure_taxonomy.csv")
+    write_diagnostic_summary(
+        taxonomy,
+        output_dir / "diagnostic_summary.md",
+        model_name=model_name,
+        suite=suite,
+        task_ids=task_ids,
+    )
+
     # Save metadata
     _write_metadata(
         output_dir=output_dir,
@@ -717,6 +844,7 @@ def run_rollout_evaluation(
         action_chunk_exec=action_chunk_exec,
         settle_steps=settle_steps,
         command=command,
+        baseline=baseline,
     )
 
     return csv_path
@@ -741,6 +869,7 @@ def _write_metadata(
     action_chunk_exec: int,
     settle_steps: int,
     command: Sequence[str] | None,
+    baseline: str = "model",
 ) -> None:
     """Write eval metadata files."""
 
@@ -798,6 +927,7 @@ def _write_metadata(
     summary = {
         "status": "mock_eval_not_real_evidence" if mock else "closed_loop_smoke" if is_smoke else "closed_loop_eval",
         "suite": suite,
+        "baseline": baseline,
         "task_ids": task_ids,
         "num_episodes": num_episodes,
         "init_state_ids": init_state_ids,
@@ -1020,6 +1150,228 @@ def _non_claims(mock: bool) -> list[str]:
     return claims
 
 
+# ---------------------------------------------------------------------------
+# Expert replay and baselines
+# ---------------------------------------------------------------------------
+
+
+def load_demo_actions(
+    dataset_root: Path,
+    suite: str,
+    task_id: int,
+    demo_id: int = 0,
+) -> np.ndarray:
+    """Load demonstration actions from a LIBERO HDF5 file.
+
+    Returns actions as [T, 7] float32 array.
+    """
+    try:
+        import h5py  # type: ignore[import-not-found]
+    except ImportError as exc:
+        raise RuntimeError("h5py is required for expert replay") from exc
+
+    from libero.libero import benchmark  # type: ignore[import-not-found]
+
+    benchmark_dict = benchmark.get_benchmark_dict()
+    suite_obj = benchmark_dict[suite]()
+    task = suite_obj.get_task(task_id)
+    hdf5_name = f"{task.name}_demo.hdf5"
+    hdf5_path = dataset_root / "datasets" / suite / hdf5_name
+    if not hdf5_path.exists():
+        raise FileNotFoundError(
+            f"Demo file not found: {hdf5_path}\n"
+            f"Task {task_id} ({task.name}) has no demo HDF5 in {dataset_root}/datasets/{suite}/"
+        )
+
+    with h5py.File(hdf5_path, "r") as f:
+        demo_key = f"data/demo_{demo_id}"
+        if demo_key not in f:
+            available = sorted(
+                k for k in f["data"].keys() if k.startswith("demo_")
+            )
+            raise KeyError(
+                f"{demo_key} not in {hdf5_path}. Available: {available[:10]}..."
+            )
+        actions = np.asarray(f[f"{demo_key}/actions"][()], dtype=np.float32)
+
+    return actions
+
+
+def resolve_dataset_root(value: str) -> Path:
+    """Resolve dataset root from config value (may use env: prefix)."""
+    if value.startswith("env:"):
+        env_name = value.split(":", maxsplit=1)[1]
+        env_value = os.environ.get(env_name)
+        if not env_value:
+            raise EnvironmentError(f"{env_name} is not set")
+        return Path(env_value).expanduser()
+    return Path(os.path.expandvars(value)).expanduser()
+
+
+# ---------------------------------------------------------------------------
+# Failure taxonomy
+# ---------------------------------------------------------------------------
+
+
+TAXONOMY_FIELDNAMES = [
+    "run_id",
+    "model",
+    "episode_id",
+    "task_id",
+    "task_name",
+    "init_state_id",
+    "seed",
+    "success",
+    "steps",
+    "total_reward",
+    "failure_category",
+    "action_mean_norm",
+    "action_max_norm",
+    "action_min_norm",
+    "gripper_open_fraction",
+    "gripper_close_fraction",
+    "gripper_neutral_fraction",
+    "ever_triggered_success",
+    "final_step",
+    "video_path",
+]
+
+# Gripper thresholds: action dim index 6
+# LIBERO convention: -1 = close, +1 = open
+GRIPPER_OPEN_THRESH = 0.5
+GRIPPER_CLOSE_THRESH = -0.5
+
+
+def classify_failure(
+    result: EpisodeResult,
+    demo_actions: np.ndarray | None = None,
+) -> dict[str, Any]:
+    """Classify a single episode result into a failure taxonomy entry."""
+
+    entry: dict[str, Any] = {
+        "run_id": "",
+        "model": "",
+        "episode_id": result.episode_id,
+        "task_id": result.task_id,
+        "task_name": result.task_name,
+        "init_state_id": result.init_state_id,
+        "seed": result.seed,
+        "success": result.success,
+        "steps": result.steps,
+        "total_reward": result.total_reward,
+        "failure_category": "",
+        "action_mean_norm": "",
+        "action_max_norm": "",
+        "action_min_norm": "",
+        "gripper_open_fraction": "",
+        "gripper_close_fraction": "",
+        "gripper_neutral_fraction": "",
+        "ever_triggered_success": result.success,
+        "final_step": result.steps,
+        "video_path": result.video_path,
+    }
+
+    if result.success:
+        entry["failure_category"] = "success"
+        return entry
+
+    # Classify failure reason
+    reason = result.failure_reason
+    if reason == "max_steps_reached":
+        entry["failure_category"] = "timeout_no_progress"
+    elif "environment" in reason and "error" in reason:
+        entry["failure_category"] = "environment_error"
+    elif reason == "environment_done_without_success":
+        entry["failure_category"] = "env_done_early"
+    else:
+        entry["failure_category"] = reason or "unknown"
+
+    # If we have the video, we could analyze it, but for now just record
+    # the basic stats from the result
+    return entry
+
+
+def build_failure_taxonomy(
+    results: list[EpisodeResult],
+    model_name: str = "",
+    run_id: str = "",
+) -> list[dict[str, Any]]:
+    """Build failure taxonomy for a set of episode results."""
+
+    taxonomy = []
+    for result in results:
+        entry = classify_failure(result)
+        entry["run_id"] = run_id
+        entry["model"] = model_name
+        taxonomy.append(entry)
+    return taxonomy
+
+
+def write_failure_taxonomy(
+    taxonomy: list[dict[str, Any]],
+    output_path: Path,
+) -> None:
+    """Write failure taxonomy to CSV."""
+
+    with output_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=TAXONOMY_FIELDNAMES)
+        writer.writeheader()
+        for entry in taxonomy:
+            writer.writerow(entry)
+
+
+def write_diagnostic_summary(
+    taxonomy: list[dict[str, Any]],
+    output_path: Path,
+    *,
+    model_name: str = "",
+    suite: str = "",
+    task_ids: list[int] | None = None,
+) -> None:
+    """Write a short diagnostic summary of failure taxonomy."""
+
+    total = len(taxonomy)
+    successes = sum(1 for e in taxonomy if e["success"])
+    failures = [e for e in taxonomy if not e["success"]]
+
+    categories: dict[str, int] = {}
+    for e in failures:
+        cat = e.get("failure_category", "unknown")
+        categories[cat] = categories.get(cat, 0) + 1
+
+    lines = [
+        "# Diagnostic Summary",
+        "",
+        f"Model: {model_name}",
+        f"Suite: {suite}",
+        f"Tasks: {task_ids or 'all'}",
+        f"Total episodes: {total}",
+        f"Successes: {successes}/{total} = {successes / total:.1%}" if total else "No episodes",
+        "",
+        "Failure categories:",
+    ]
+    if categories:
+        for cat, count in sorted(categories.items(), key=lambda x: -x[1]):
+            lines.append(f"  {cat}: {count}")
+    else:
+        lines.append("  (none)")
+
+    lines.extend([
+        "",
+        "Notes:",
+        "- timeout_no_progress: episode hit max_steps without success",
+        "- env_done_early: environment terminated before max_steps without success",
+        "- environment_error: evaluator/environment exception",
+        "- success: episode succeeded",
+        "",
+        "Limitations:",
+        "- No action-level analysis is performed in this diagnostic.",
+        "- Failure videos (.npy) can be loaded for visual inspection.",
+    ])
+
+    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def _get_git_info() -> dict[str, str]:
     try:
         commit = subprocess.check_output(
@@ -1110,6 +1462,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--mock", action="store_true",
         help="Use mock environment instead of real LIBERO. For testing only.",
     )
+    parser.add_argument(
+        "--baseline", default="model",
+        choices=["model", "expert", "zero", "random"],
+        help="Action source: model (default), expert replay, zero, or random.",
+    )
+    parser.add_argument(
+        "--dataset_root", type=Path, default=None,
+        help="LIBERO dataset root for expert replay. Default: from config.",
+    )
     return parser.parse_args(argv)
 
 
@@ -1131,6 +1492,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         settle_steps=args.settle_steps,
         device_name=args.device,
         mock=args.mock,
+        baseline=args.baseline,
+        dataset_root=args.dataset_root,
         command=[sys.executable, "-m", "src.eval.eval_rollout_libero", *(argv or sys.argv[1:])],
     )
     print(f"eval_rollout_csv={csv_path}")

@@ -1,10 +1,11 @@
 {
   "action_chunk_exec": 1,
   "action_chunk_policy": "receding_horizon_first_action",
+  "baseline": "model",
   "checkpoint": "results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0/best.pt",
   "csv_path": "results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0/eval_rollout/eval_rollout.csv",
   "failure_counts": {
-    "max_steps_reached": 5
+    "max_steps_reached": 30
   },
   "init_state_ids": null,
   "is_reportable": false,
@@ -16,23 +17,24 @@
     "not_model_comparison",
     "not_future_latent_improvement_evidence"
   ],
-  "num_episodes": 5,
+  "num_episodes": 10,
   "record_video": true,
   "recorded_media": true,
   "reportability_reasons": [
-    "closed_loop_rollout_smoke",
-    "limited_episode_count"
+    "closed_loop_rollout_smoke"
   ],
   "run_dir": "results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0",
   "seed": 0,
   "settle_steps_after_fixed_init": 5,
-  "status": "closed_loop_smoke",
+  "status": "closed_loop_eval",
   "success_completion_steps": [],
   "success_rate": 0.0,
   "successes": 0,
   "suite": "libero_spatial",
   "task_ids": [
-    0
+    1,
+    2,
+    3
   ],
-  "total_episodes": 5
+  "total_episodes": 30
 }
