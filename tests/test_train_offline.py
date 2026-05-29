@@ -5,9 +5,14 @@ import json
 from pathlib import Path
 
 import pytest
+import torch
 
 from src.data.trajectory_window import RawTrajectory
-from src.train.train_offline import build_action_transform, run_training
+from src.train.train_offline import (
+    build_action_transform,
+    run_training,
+    split_gripper_action_loss,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -132,6 +137,32 @@ def test_train_offline_wam_gru_no_future_dry_run_keeps_future_eval_metrics(
     assert (run_dir / "train.log").exists()
 
 
+def test_train_offline_bc_gru_dry_run_uses_latent_proprio_task_inputs(
+    tmp_path: Path,
+) -> None:
+    run_dir = run_training(
+        ROOT / "configs/smoke/libero_spatial_bc_gru.yaml",
+        dry_run=True,
+        max_steps=1,
+        output_dir=tmp_path / "runs",
+        run_id="bc_gru_dry_run",
+        command=["python3", "src/train/train_offline.py", "--dry_run"],
+    )
+
+    with (run_dir / "metrics.csv").open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert [row["split"] for row in rows] == ["train", "val"]
+    assert all(float(row["action_mse"]) >= 0.0 for row in rows)
+    assert all(float(row["future_loss"]) == 0.0 for row in rows)
+    normalization = json.loads(
+        (run_dir / "normalization_stats.json").read_text(encoding="utf-8")
+    )
+    assert normalization["visual_latents"]["current_latent_input"] is True
+    assert normalization["visual_latents"]["target_only_future"] is False
+    assert (run_dir / "best.pt").exists()
+
+
 def test_missing_libero_dataset_root_fails_with_clear_message(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -174,3 +205,20 @@ def test_trainer_action_standardization_uses_train_split_only() -> None:
     assert stats["actions"]["count"] == 4
     assert stats["actions"]["mean"] == [3.0, 13.0]
     assert stats["actions"]["reported_action_mse_units"] == "raw_action_units"
+
+
+def test_split_gripper_action_loss_uses_continuous_dims_and_gripper_logits() -> None:
+    target_actions = torch.tensor(
+        [
+            [[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0]],
+            [[1.0, 1.1, 1.2, 1.3, 1.4, 1.5, -1.0]],
+        ]
+    )
+    outputs = {
+        "pred_continuous_actions": target_actions[..., :6].clone(),
+        "pred_gripper_logits": torch.tensor([[20.0], [-20.0]]),
+    }
+
+    loss = split_gripper_action_loss(outputs, target_actions)
+
+    assert float(loss.item()) < 1e-6

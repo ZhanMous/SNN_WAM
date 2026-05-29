@@ -1,0 +1,1 @@
+/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python -m src.eval.overfit_diagnostics --config configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml --output_dir results/diagnostics/overfit_diag --epochs 300 --batch_size 64 --lr 0.001 --loss_threshold 0.0001 --device cuda --seed 0

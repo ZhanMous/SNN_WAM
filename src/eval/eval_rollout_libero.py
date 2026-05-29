@@ -39,6 +39,7 @@ if __package__ is None or __package__ == "":
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.models.encoders import build_frozen_visual_encoder  # noqa: E402
+from src.models.heads import gripper_logits_to_command  # noqa: E402
 from src.models.registry import build_offline_model  # noqa: E402
 from src.train.eval_offline import load_checkpoint  # noqa: E402
 from src.train.train_offline import (  # noqa: E402
@@ -393,6 +394,26 @@ class RandomActionSource(ActionSource):
         return self._rng.uniform(-1.0, 1.0, size=self._action_dim).astype(np.float32)
 
 
+def extract_action_chunk(outputs: torch.Tensor | Mapping[str, torch.Tensor]) -> tuple[torch.Tensor, bool]:
+    """Return `[B, H, A]` actions and whether they are already env commands.
+
+    Split gripper heads may expose continuous action dims plus gripper logits.
+    Those logits are converted to the LIBERO command convention used by the
+    dataset diagnostics: final action dim `+1` means open and `-1` means close.
+    """
+
+    if not isinstance(outputs, Mapping):
+        return outputs, False
+    if "pred_continuous_actions" in outputs and "pred_gripper_logits" in outputs:
+        continuous = outputs["pred_continuous_actions"]
+        logits = outputs["pred_gripper_logits"]
+        gripper = gripper_logits_to_command(logits).unsqueeze(-1)
+        return torch.cat([continuous, gripper], dim=-1), True
+    if "pred_actions" not in outputs:
+        raise ValueError("policy output mapping must contain pred_actions")
+    return outputs["pred_actions"], False
+
+
 # ---------------------------------------------------------------------------
 # Rollout runner
 # ---------------------------------------------------------------------------
@@ -454,6 +475,7 @@ def run_single_episode(
     action_history = torch.zeros(1, history_len, action_dim, device=device)
     # Action chunk buffer for executing multiple actions per model query
     action_chunk: torch.Tensor | None = None
+    action_chunk_env_space = False
     chunk_step = 0
 
     if action_source is not None:
@@ -487,12 +509,10 @@ def run_single_episode(
                 with torch.no_grad():
                     if is_wam and z_t is not None:
                         outputs = model(action_history, z_t)
-                        if isinstance(outputs, dict):
-                            action_chunk = outputs["pred_actions"]
-                        else:
-                            action_chunk = outputs
+                        action_chunk, action_chunk_env_space = extract_action_chunk(outputs)
                     else:
-                        action_chunk = model(action_history)
+                        outputs = model(action_history)
+                        action_chunk, action_chunk_env_space = extract_action_chunk(outputs)
                 chunk_step = 0
 
             # Take action from chunk
@@ -501,7 +521,7 @@ def run_single_episode(
 
             # Denormalize if needed
             env_action = model_action
-            if action_transform is not None:
+            if action_transform is not None and not action_chunk_env_space:
                 env_action = action_transform.denormalize_tensor(model_action)
 
             action_np = env_action.numpy()

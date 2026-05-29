@@ -1,0 +1,3 @@
+commit=unknown
+dirty=True
+note=reconstructed sidecar; original diagnostic outputs predated reproducibility sidecar writing

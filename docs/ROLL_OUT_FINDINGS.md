@@ -200,7 +200,7 @@ Same tasks (`1, 2, 3`), same init states (`0–9`), same seed (`0`), same max st
 - Supported: the evaluator is a valid closed-loop test — expert replay achieves 90% success.
 - Supported: both WAM-GRU variants (future and no-future) fail to solve any episode across 30 episodes on 3 tasks.
 - Supported: WAM-GRU performs no better than zero-action or random-action baselines.
-- Supported: future-latent prediction provides no observable benefit or harm vs. no-future.
+- Supported: future-latent benefit or harm is not observable from rollout because both learned policies have zero success.
 - Unsupported: any claim that WAM-GRU is effective at LIBERO closed-loop control.
 - Unsupported: any claim that future-latent prediction improves rollout success.
 - Unsupported: generalization to tasks 0, 4–9 (not evaluated).
@@ -210,14 +210,78 @@ Same tasks (`1, 2, 3`), same init states (`0–9`), same seed (`0`), same max st
 1. Both WAM-GRU checkpoints produce actions that fail to solve any LIBERO spatial task in closed-loop evaluation.
 2. The failure is not an evaluator artifact: expert replay succeeds on the same evaluator, tasks, and init states.
 3. The failure is not task-specific: all 3 tasks show 0% model success.
-4. The failure is not a future-latent issue: both future and no-future variants perform identically.
+4. The failure cannot be attributed to future-latent benefit or harm: both future and no-future variants have zero closed-loop success.
 5. The failure mode is uniform: all episodes hit the 300-step ceiling (timeout_no_progress).
 6. The models may be producing actions that don't move the robot meaningfully, or that move it in unproductive directions.
 
+## Teacher-Forced Open-Loop Diagnostics
+
+Status: diagnostic, not reportable.
+
+Both WAM-GRU checkpoints were evaluated on demonstration windows from the configured val split with teacher forcing. The evaluator compares model action MSE against zero-action, train-distribution random-action, train-mean-action, and last-action baselines; it also writes per-horizon, per-dimension, and action-trace diagnostics.
+
+| Model | Model MSE | Zero | Random | Mean | Last action | Beats all listed baselines? |
+|---|---:|---:|---:|---:|---:|---|
+| WAM-GRU future | 0.019102 | 0.222224 | 0.420760 | 0.200154 | 0.029960 | yes |
+| WAM-GRU no-future | 0.018413 | 0.222224 | 0.420760 | 0.200154 | 0.029960 | yes |
+
+Trace artifacts:
+- Future: `results/runs/libero_spatial_wam_gru_dinov2s_future/20260528_081325_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_future_seed0/open_loop_diagnostics/action_trace_diagnostics.csv`
+- No-future: `results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0/open_loop_diagnostics/action_trace_diagnostics.csv`
+
+Interpretation: WAM-GRU is not merely worse than simple action baselines under teacher forcing. This does not rescue the closed-loop result, because the same checkpoints still score 0/30 in rollout.
+
+## Single-Demo Overfit Diagnostic
+
+Status: diagnostic, not reportable.
+
+The no-future WAM-GRU was trained from scratch on one LIBERO spatial demonstration and evaluated teacher-forced on the same demonstration. The stronger run used `lr=0.001`, 1000 epochs, and a predeclared near-zero threshold of `1e-4`.
+
+Result:
+- Best same-demo action MSE: `0.000527482`
+- Threshold passed: no
+- Main residual: gripper and late-horizon action errors
+- Closed-loop same initial condition: not run, because the current evaluator does not map an HDF5 demo id to a LIBERO benchmark init-state id.
+
+Evidence:
+- `results/diagnostics/single_demo_overfit/20260529_wam_gru_no_future_single_demo_overfit_lr0p001_seed0/summary.json`
+- `results/diagnostics/single_demo_overfit/20260529_wam_gru_no_future_single_demo_overfit_lr0p001_seed0/metrics.csv`
+- `results/diagnostics/single_demo_overfit/20260529_wam_gru_no_future_single_demo_overfit_lr0p001_seed0/action_trace_diagnostics.csv`
+
+Interpretation: because the predeclared near-zero single-demo overfit threshold was not reached, the policy training pipeline is not validated for architecture claims. Do not classify the 0/30 rollout solely as closed-loop covariate shift yet.
+
+## H=1 Overfit Repair Diagnostic
+
+Status: diagnostic, not reportable.
+
+The repaired H=1 diagnostic trains fresh models for target shifts `{-1, 0, +1, +2}`, then trains split-gripper WAM-GRU, timestep-embedding MLP, and DINO-latent MLP baselines on the best shift. The split head uses continuous SmoothL1 for dims 0-5 and BCE gripper logits thresholded to `{-1, +1}` for environment commands.
+
+Result:
+- Raw WAM-GRU shift sweep: shift `-1` is best and passes (`eval_mse=0.000066282`); nominal shift `0` does not pass (`eval_mse=0.000103113`).
+- Split-gripper WAM-GRU on best shift `-1`: fails (`eval_mse=0.000228181`, continuous MSE `0.000266211`, gripper MSE `0.0`).
+- Timestep-embedding MLP: passes (`eval_mse=0.0000000536`).
+- DINO-latent MLP: fails (`eval_mse=0.002817895`).
+- Nonzero shift `-1` is clearly best; under the diagnostic definition this targets `actions[t]`, which is already the last action in `action_history`. This cannot validate next-action policy learning.
+
+Evidence:
+- `results/diagnostics/overfit_repair/20260529_h1_overfit_repair_seed0_v2/timestep_shift_train_sweep.csv`
+- `results/diagnostics/overfit_repair/20260529_h1_overfit_repair_seed0_v2/split_head_gripper_diagnostics.csv`
+- `results/diagnostics/overfit_repair/20260529_h1_overfit_repair_seed0_v2/overfit_debug_curves.csv`
+- `results/diagnostics/overfit_repair/20260529_h1_overfit_repair_seed0_v2/summary.json`
+
+Interpretation: the gripper magnitude problem is fixed by the split head, but continuous MSE remains above threshold. Because the only passing WAM-GRU result uses shift `-1`, the current policy training/alignment pipeline remains invalid for architecture claims. Do not run larger closed-loop experiments from these repaired diagnostics until valid H=1 next-action overfit passes.
+
+## Alignment and Normalization Audit
+
+- Timestep alignment remains `action_to_current_obs`: `actions[t]` is history for `obs[t]`, and targets start at `actions[t+1]`.
+- Future latent targets start at `t+1` and are targets only; they do not shift action targets.
+- No padding masks are used because windows that would cross episode boundaries are excluded.
+- Action normalization for these WAM-GRU runs is `none`; open-loop diagnostics report raw action units.
+- The gripper diagnostic uses the last action dimension and records expert/pred gripper values in the trace CSV.
+- A minimal BC-GRU baseline path was added with frozen current latent, proprio, and task-id conditioning, no future-latent objective: `configs/diagnostics/libero_spatial_bc_gru_dinov2s_proprio_task.yaml`.
+
 ### Recommendations
 
-1. **Investigate model action output**: log model predictions during rollout to check if actions are near-zero, oscillating, or divergent.
-2. **Check training data alignment**: verify that the training action convention matches the evaluator's action convention (7D, [-1,1], gripper sign).
-3. **Check DINOv2 latent alignment**: verify that the encoder produces similar latents at eval time as at training time.
-4. **Try longer training or different hyperparameters**: the models may be undertrained.
-5. **Add an action clipping guard**: clip model actions to [-1, 1] before env.step() to prevent extreme commands.
+1. Prioritize gripper/action-head diagnostics before future-latent claims.
+2. Run the BC-GRU baseline as a sanity check for current latent + proprio + task conditioning.
+3. Only classify the rollout failure as covariate shift after a single-demo run passes the near-zero teacher-forced threshold and still fails on the matching closed-loop initial condition.

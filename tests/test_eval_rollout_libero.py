@@ -16,6 +16,7 @@ import torch
 from src.eval.eval_rollout_libero import (
     EpisodeResult,
     MockLIBEROEnv,
+    extract_action_chunk,
     run_single_episode,
     run_rollout_evaluation,
 )
@@ -73,6 +74,19 @@ def test_mock_env_action_dim() -> None:
 def test_mock_env_task_name() -> None:
     env = MockLIBEROEnv(task_name="pick_up_bowl")
     assert env.task_name == "pick_up_bowl"
+
+
+def test_extract_action_chunk_converts_split_gripper_logits_to_env_commands() -> None:
+    outputs = {
+        "pred_continuous_actions": torch.zeros(2, 1, 6),
+        "pred_gripper_logits": torch.tensor([[-0.1], [0.0]]),
+    }
+
+    action_chunk, already_env_space = extract_action_chunk(outputs)
+
+    assert already_env_space is True
+    assert tuple(action_chunk.shape) == (2, 1, 7)
+    assert action_chunk[:, 0, -1].tolist() == [-1.0, 1.0]
 
 
 # ---------------------------------------------------------------------------

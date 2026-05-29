@@ -175,8 +175,19 @@ def run_training(
 
     sample = train_dataset[0]
     action_dim = infer_action_dim(sample)
-    latent_dim = infer_latent_dim(sample) if has_future_latent_targets(sample) else None
-    model = build_offline_model(config, action_dim=action_dim, latent_dim=latent_dim)
+    latent_dim = None
+    if has_future_latent_targets(sample):
+        latent_dim = infer_latent_dim(sample)
+    elif has_current_latent(sample):
+        latent_dim = infer_current_latent_dim(sample)
+    state_dim = infer_state_dim(sample)
+    model = build_offline_model(
+        config,
+        action_dim=action_dim,
+        latent_dim=latent_dim,
+        state_dim=state_dim,
+        num_tasks=infer_task_count(config, split_metadata),
+    )
     parameter_counts = count_parameters(model)
     device = torch.device(device_name)
     model.to(device)
@@ -323,9 +334,10 @@ def validate_training_scope(config: Mapping[str, Any]) -> None:
     """Fail closed for adapters/losses outside implemented Phase-1 scope."""
 
     adapter = config["model"]["temporal_adapter"]
-    if adapter not in {"mlp", "gru", "wam_gru"}:
+    if adapter not in {"mlp", "gru", "wam_gru", "bc_gru"}:
         raise ValueError(
-            "train_offline.py currently supports temporal_adapter=mlp, gru, or wam_gru"
+            "train_offline.py currently supports temporal_adapter=mlp, gru, "
+            "wam_gru, or bc_gru"
         )
     if config["model"]["text_encoder"] != "stub":
         raise ValueError("only text_encoder=stub is implemented for this baseline")
@@ -333,6 +345,11 @@ def validate_training_scope(config: Mapping[str, Any]) -> None:
         raise ValueError("action-only baselines currently require visual_encoder=stub")
     if adapter in {"mlp", "gru"} and float(config["training"]["lambda_future"]) != 0.0:
         raise ValueError("future latent loss requires temporal_adapter=wam_gru")
+    if adapter == "bc_gru":
+        if config["model"]["visual_encoder"] == "stub":
+            raise ValueError("bc_gru requires a frozen visual encoder, not stub")
+        if float(config["training"]["lambda_future"]) != 0.0:
+            raise ValueError("bc_gru is an action-only baseline; set lambda_future=0")
     if adapter == "wam_gru":
         if int(config["data"]["future_horizon"]) <= 0:
             raise ValueError("wam_gru requires data.future_horizon > 0")
@@ -375,12 +392,13 @@ def build_datasets(
     history_len = int(config["data"]["history_len"])
     action_horizon = int(config["data"]["action_horizon"])
     future_horizon = int(config["data"]["future_horizon"])
-    include_latents = requires_future_latents(config)
+    include_current_latent = uses_current_latent(config)
+    include_future_latents = requires_future_latents(config)
 
     if dry_run:
         length = max(history_len + action_horizon + future_horizon + 8, 12)
         visual_encoder = (
-            build_frozen_visual_encoder(config["model"]) if include_latents else None
+            build_frozen_visual_encoder(config["model"]) if include_current_latent else None
         )
         train_dataset = make_mock_action_dataset(
             trajectory_id="mock_train_0",
@@ -391,7 +409,8 @@ def build_datasets(
             future_horizon=future_horizon,
             action_dim=7,
             visual_encoder=visual_encoder,
-            include_latents=include_latents,
+            include_current_latent=include_current_latent,
+            include_future_latents=include_future_latents,
         )
         val_dataset = make_mock_action_dataset(
             trajectory_id="mock_val_0",
@@ -402,7 +421,8 @@ def build_datasets(
             future_horizon=future_horizon,
             action_dim=7,
             visual_encoder=visual_encoder,
-            include_latents=include_latents,
+            include_current_latent=include_current_latent,
+            include_future_latents=include_future_latents,
         )
         metadata = {
             "suite": config["data"]["suite"],
@@ -420,13 +440,13 @@ def build_datasets(
             normalization_stats["visual_latents"] = {
                 "mode": "frozen_encoder_no_fitted_stats",
                 "source_split": "none",
-                "target_only_future": True,
-                "current_latent_input": True,
+                "target_only_future": include_future_latents,
+                "current_latent_input": include_current_latent,
                 "encoder": visual_encoder.metadata(),
             }
         return train_dataset, val_dataset, metadata, None, normalization_stats
 
-    if include_latents:
+    if include_current_latent or include_future_latents:
         # Check if pre-extracted latents are available
         latent_dir = config["data"].get("latent_dir")
         if not latent_dir:
@@ -442,8 +462,14 @@ def build_datasets(
         trajectories = apply_action_transform(trajectories, action_transform)
 
     # Add visual latents normalization record if using pre-extracted latents
-    if include_latents and config["data"].get("latent_dir"):
-        normalization_stats.update(preextracted_latents_record(config))
+    if (include_current_latent or include_future_latents) and config["data"].get("latent_dir"):
+        normalization_stats.update(
+            preextracted_latents_record(
+                config,
+                include_current_latent=include_current_latent,
+                include_future_latents=include_future_latents,
+            )
+        )
 
     train_dataset = TrajectoryWindowDataset(
         trajectories,
@@ -451,8 +477,8 @@ def build_datasets(
         history_len=history_len,
         action_horizon=action_horizon,
         future_horizon=future_horizon,
-        include_current_latent=include_latents,
-        include_future_latents=include_latents,
+        include_current_latent=include_current_latent,
+        include_future_latents=include_future_latents,
     )
     val_dataset = TrajectoryWindowDataset(
         trajectories,
@@ -460,8 +486,8 @@ def build_datasets(
         history_len=history_len,
         action_horizon=action_horizon,
         future_horizon=future_horizon,
-        include_current_latent=include_latents,
-        include_future_latents=include_latents,
+        include_current_latent=include_current_latent,
+        include_future_latents=include_future_latents,
     )
     if len(train_dataset) == 0:
         raise ValueError("real LIBERO train split produced zero valid windows")
@@ -471,12 +497,19 @@ def build_datasets(
 
 
 def requires_future_latents(config: Mapping[str, Any]) -> bool:
-    """Return whether this run needs current/future frozen visual latents."""
+    """Return whether this run needs future frozen visual latent targets."""
 
     return (
         str(config["model"]["temporal_adapter"]) == "wam_gru"
         or float(config["training"]["lambda_future"]) > 0.0
     )
+
+
+def uses_current_latent(config: Mapping[str, Any]) -> bool:
+    """Return whether this run uses the current frozen visual latent as input."""
+
+    adapter = str(config["model"]["temporal_adapter"])
+    return adapter in {"wam_gru", "bc_gru"} or float(config["training"]["lambda_future"]) > 0.0
 
 
 @dataclass(frozen=True)
@@ -550,7 +583,12 @@ def no_normalization_record() -> dict[str, Any]:
     }
 
 
-def preextracted_latents_record(config: Mapping[str, Any]) -> dict[str, Any]:
+def preextracted_latents_record(
+    config: Mapping[str, Any],
+    *,
+    include_current_latent: bool = True,
+    include_future_latents: bool = True,
+) -> dict[str, Any]:
     """Create normalization record for pre-extracted latents."""
     return {
         "visual_latents": {
@@ -561,8 +599,8 @@ def preextracted_latents_record(config: Mapping[str, Any]) -> dict[str, Any]:
             "output_token": config["model"].get("output_token", "cls"),
             "latent_dim": config["data"].get("latent_dim", 384),
             "source_split": "train",
-            "target_only_future": True,
-            "current_latent_input": True,
+            "target_only_future": include_future_latents,
+            "current_latent_input": include_current_latent,
         }
     }
 
@@ -594,7 +632,8 @@ def make_mock_action_dataset(
     future_horizon: int,
     action_dim: int,
     visual_encoder: Any | None = None,
-    include_latents: bool = False,
+    include_current_latent: bool = False,
+    include_future_latents: bool = False,
 ) -> TrajectoryWindowDataset:
     """Create a deterministic mock dataset for action-only or WAM smoke training."""
 
@@ -602,17 +641,23 @@ def make_mock_action_dataset(
         [float(timestep) + 0.01 * float(dim) for dim in range(action_dim)]
         for timestep in range(length)
     ]
+    states = [
+        [float(timestep) + 0.001 * float(dim) for dim in range(9)]
+        for timestep in range(length)
+    ]
     frame_refs = [f"{trajectory_id}:frame:{timestep}" for timestep in range(length)]
     visual_latents = None
-    if include_latents:
+    if include_current_latent or include_future_latents:
         if visual_encoder is None:
-            raise ValueError("include_latents requires a visual_encoder")
+            raise ValueError("latent fields require a visual_encoder")
         visual_latents = encode_sequence(visual_encoder, frame_refs)
     trajectory = RawTrajectory(
         images=frame_refs,
         actions=actions,
-        states=None,
+        states=states,
         visual_latents=visual_latents,
+        task_id=0,
+        task_name="mock_task",
         frame_refs=frame_refs,
         language="mock instruction",
         trajectory_id=trajectory_id,
@@ -624,8 +669,8 @@ def make_mock_action_dataset(
         history_len=history_len,
         action_horizon=action_horizon,
         future_horizon=future_horizon,
-        include_current_latent=include_latents,
-        include_future_latents=include_latents,
+        include_current_latent=include_current_latent,
+        include_future_latents=include_future_latents,
     )
 
 
@@ -650,6 +695,8 @@ def load_real_libero_trajectories(
     max_files = optional_positive_int(config["data"].get("max_files"), "data.max_files")
     if max_files is not None:
         files = files[:max_files]
+    task_names = [task_name_from_file(path) for path in files]
+    task_id_by_name = {name: index for index, name in enumerate(sorted(set(task_names)))}
 
     # Check if we should load pre-extracted latents
     latent_dir = config["data"].get("latent_dir")
@@ -657,6 +704,8 @@ def load_real_libero_trajectories(
 
     trajectories: list[RawTrajectory] = []
     for file_path in files:
+        task_name = task_name_from_file(file_path)
+        task_id = task_id_by_name[task_name]
         with h5py.File(file_path, "r") as handle:
             for demo_path, group in list_demo_groups(handle):
                 if "actions" not in group:
@@ -671,6 +720,7 @@ def load_real_libero_trajectories(
                 frame_refs = [
                     f"{trajectory_id}:obs/agentview_rgb:{index}" for index in range(length)
                 ]
+                states = load_proprio_states(group, expected_length=length)
 
                 # Load pre-extracted latents if available
                 visual_latents = None
@@ -683,8 +733,10 @@ def load_real_libero_trajectories(
                     RawTrajectory(
                         images=frame_refs,
                         actions=actions,
-                        states=None,
+                        states=states,
                         visual_latents=visual_latents,
+                        task_id=task_id,
+                        task_name=task_name,
                         frame_refs=frame_refs,
                         language=extract_language(handle, group),
                         trajectory_id=trajectory_id,
@@ -695,7 +747,38 @@ def load_real_libero_trajectories(
     if not trajectories:
         raise ValueError(f"no action trajectories found under {dataset_root}")
     split_trajectories, split_metadata = assign_splits(trajectories, config)
+    split_metadata["task_id_map"] = task_id_by_name
     return split_trajectories, split_metadata
+
+
+def task_name_from_file(path: Path) -> str:
+    """Return stable LIBERO task name from a demonstration HDF5 file path."""
+
+    return path.stem.removesuffix("_demo")
+
+
+def load_proprio_states(group: Any, *, expected_length: int) -> Any | None:
+    """Load current proprio/state input with shape `[T, state_dim]` when present."""
+
+    try:
+        import numpy as np  # type: ignore[import-not-found]
+    except ImportError:  # pragma: no cover - optional environment dependency.
+        return None
+
+    if "robot_states" in group:
+        states = np.asarray(group["robot_states"][()], dtype=np.float32)
+    elif "obs" in group and "ee_states" in group["obs"] and "gripper_states" in group["obs"]:
+        ee_states = np.asarray(group["obs"]["ee_states"][()], dtype=np.float32)
+        gripper_states = np.asarray(group["obs"]["gripper_states"][()], dtype=np.float32)
+        states = np.concatenate([ee_states, gripper_states], axis=-1)
+    else:
+        return None
+    if states.ndim != 2 or int(states.shape[0]) != expected_length:
+        raise ValueError(
+            "proprio states must have shape [T, state_dim], "
+            f"got {tuple(states.shape)} for expected length {expected_length}"
+        )
+    return states
 
 
 def load_preextracted_latents(
@@ -968,7 +1051,9 @@ def collate_action_batch(samples: Sequence[Mapping[str, Any]]) -> dict[str, Any]
 
     - `action_history`: `[B, history_len, action_dim]`.
     - `target_actions`: `[B, action_horizon, action_dim]`.
+    - optional `optional_state_t`: `[B, state_dim]`.
     - optional `z_t`: `[B, latent_dim]`.
+    - optional `task_id`: `[B]`.
     - optional `target_future_latents`: `[B, future_horizon, latent_dim]`.
     """
 
@@ -991,11 +1076,26 @@ def collate_action_batch(samples: Sequence[Mapping[str, Any]]) -> dict[str, Any]
         "target_actions": target_actions,
         "trajectory_id": [sample["trajectory_id"] for sample in samples],
         "time_index": [sample["time_index"] for sample in samples],
+        "language": [sample.get("language", "") for sample in samples],
+        "task_name": [sample.get("task_name", "") for sample in samples],
     }
+    if all(sample.get("optional_state_t") is not None for sample in samples):
+        batch["optional_state_t"] = torch.stack(
+            [
+                torch.as_tensor(sample["optional_state_t"], dtype=torch.float32)
+                for sample in samples
+            ],
+            dim=0,
+        )
     if all(sample.get("z_t") is not None for sample in samples):
         batch["z_t"] = torch.stack(
             [torch.as_tensor(sample["z_t"], dtype=torch.float32) for sample in samples],
             dim=0,
+        )
+    if all(sample.get("task_id") is not None for sample in samples):
+        batch["task_id"] = torch.as_tensor(
+            [int(sample["task_id"]) for sample in samples],
+            dtype=torch.long,
         )
     if all("target_future_latents" in sample for sample in samples):
         batch["target_future_latents"] = torch.stack(
@@ -1015,6 +1115,37 @@ def infer_action_dim(sample: Mapping[str, Any]) -> int:
     return int(target.shape[-1])
 
 
+def infer_state_dim(sample: Mapping[str, Any]) -> int | None:
+    state = sample.get("optional_state_t")
+    if state is None:
+        return None
+    tensor = torch.as_tensor(state)
+    if tensor.ndim != 1:
+        raise ValueError(f"optional_state_t must have shape [S], got {tuple(tensor.shape)}")
+    return int(tensor.shape[-1])
+
+
+def infer_task_count(config: Mapping[str, Any], split_metadata: Mapping[str, Any]) -> int:
+    configured = config["model"].get("num_tasks")
+    if configured is not None:
+        count = int(configured)
+    else:
+        task_id_map = split_metadata.get("task_id_map", {})
+        count = len(task_id_map) if isinstance(task_id_map, Mapping) else 0
+    return max(1, count)
+
+
+def has_current_latent(sample: Mapping[str, Any]) -> bool:
+    return sample.get("z_t") is not None
+
+
+def infer_current_latent_dim(sample: Mapping[str, Any]) -> int:
+    latent = torch.as_tensor(sample["z_t"])
+    if latent.ndim != 1:
+        raise ValueError(f"z_t must have shape [Z], got {tuple(latent.shape)}")
+    return int(latent.shape[-1])
+
+
 def has_future_latent_targets(sample: Mapping[str, Any]) -> bool:
     return "target_future_latents" in sample
 
@@ -1027,6 +1158,34 @@ def infer_latent_dim(sample: Mapping[str, Any]) -> int:
             f"got {tuple(target.shape)}"
         )
     return int(target.shape[-1])
+
+
+def forward_offline_model(
+    model: torch.nn.Module,
+    batch: Mapping[str, Any],
+    *,
+    device: torch.device,
+) -> torch.Tensor | Mapping[str, torch.Tensor]:
+    """Forward a batch through an offline model using only declared inputs."""
+
+    action_history = batch["action_history"].to(device)
+    if getattr(model, "uses_proprio_task", False):
+        missing = [
+            name
+            for name in ("z_t", "optional_state_t", "task_id")
+            if name not in batch
+        ]
+        if missing:
+            raise ValueError(f"BC-GRU batch is missing required inputs: {missing}")
+        return model(
+            action_history,
+            batch["z_t"].to(device),
+            batch["optional_state_t"].to(device),
+            batch["task_id"].to(device),
+        )
+    if "z_t" in batch:
+        return model(action_history, batch["z_t"].to(device))
+    return model(action_history)
 
 
 def run_one_split(
@@ -1076,17 +1235,22 @@ def run_one_split(
             if "target_future_latents" in batch:
                 target_future_latents = batch["target_future_latents"].to(device)
 
-            if "z_t" in batch:
-                outputs = model(action_history, batch["z_t"].to(device))
-            else:
-                outputs = model(action_history)
+            outputs = forward_offline_model(model, batch, device=device)
             if isinstance(outputs, Mapping):
                 pred_actions = outputs["pred_actions"]
                 pred_future_latents = outputs.get("pred_future_latents")
             else:
                 pred_actions = outputs
                 pred_future_latents = None
-            action_loss = action_mse(pred_actions, target_actions)
+            if isinstance(outputs, Mapping) and "pred_gripper_logits" in outputs:
+                if action_transform is not None:
+                    raise ValueError(
+                        "split gripper head currently requires raw action targets "
+                        "(normalization.actions.mode=none)"
+                    )
+                action_loss = split_gripper_action_loss(outputs, target_actions)
+            else:
+                action_loss = action_mse(pred_actions, target_actions)
             future_loss = torch.zeros((), dtype=action_loss.dtype, device=device)
             if target_future_latents is not None:
                 if pred_future_latents is None:
@@ -1229,6 +1393,27 @@ def run_one_split(
         "steps": steps,
         "samples": samples,
     }
+
+
+def split_gripper_action_loss(
+    outputs: Mapping[str, torch.Tensor],
+    target_actions: torch.Tensor,
+) -> torch.Tensor:
+    """Continuous SmoothL1 for dims 0-5 plus BCE gripper classification."""
+
+    if "pred_continuous_actions" not in outputs or "pred_gripper_logits" not in outputs:
+        raise ValueError("split gripper outputs are missing continuous actions or logits")
+    continuous_target = target_actions[..., :-1]
+    gripper_target = (target_actions[..., -1] > 0).to(target_actions.dtype)
+    continuous_loss = torch.nn.functional.smooth_l1_loss(
+        outputs["pred_continuous_actions"],
+        continuous_target,
+    )
+    gripper_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+        outputs["pred_gripper_logits"],
+        gripper_target,
+    )
+    return continuous_loss + gripper_loss
 
 
 def format_metric_row(

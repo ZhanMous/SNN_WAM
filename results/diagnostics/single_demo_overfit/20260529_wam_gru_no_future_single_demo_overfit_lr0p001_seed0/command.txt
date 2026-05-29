@@ -1,0 +1,1 @@
+/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python3 -m src.eval.single_demo_overfit --config configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml --run_id 20260529_wam_gru_no_future_single_demo_overfit_lr0p001_seed0 --epochs 1000 --batch_size 64 --lr 0.001 --loss_threshold 0.0001 --trace_limit 1024 --device cuda --seed 0

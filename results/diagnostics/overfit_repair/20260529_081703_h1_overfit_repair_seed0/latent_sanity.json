@@ -1,0 +1,27 @@
+{
+  "trajectory_id": "datasets/libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+  "trajectory_length": 103,
+  "latent_dim": 384,
+  "latent_variance": {
+    "mean": 0.0716552734375,
+    "min": 0.003763009561225772,
+    "max": 0.7613689303398132
+  },
+  "adjacent_cosine_distance": {
+    "mean": 0.0006407773962207869,
+    "min": 1.0251998901367188e-05,
+    "max": 0.011310875415802002
+  },
+  "pca_top5_concentration": 0.9502489250776563,
+  "nearest_neighbor": {
+    "adjacent_accuracy": 0.8543689320388349,
+    "mean_dist_ratio": 0.7658710416080883
+  },
+  "pixel_diff_mean": NaN,
+  "latent_uniqueness": {
+    "all_unique": true,
+    "n_unique": 103,
+    "n_total": 103
+  },
+  "pass": true
+}

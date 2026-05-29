@@ -156,6 +156,37 @@ def test_optional_state_t_is_current_time_not_future_state() -> None:
     assert 6 not in sample["optional_state_t"]
 
 
+def test_sample_exposes_causal_state_and_task_conditioning() -> None:
+    trajectory = RawTrajectory(
+        images=["obs0", "obs1", "obs2", "obs3", "obs4", "obs5"],
+        actions=[[float(t)] for t in range(6)],
+        states=[[float(t), float(t) + 0.5] for t in range(6)],
+        visual_latents=[[float(t)] for t in range(6)],
+        language="pick object",
+        task_id=3,
+        task_name="pick_object",
+        trajectory_id="traj_0",
+        split="train",
+    )
+    dataset = TrajectoryWindowDataset(
+        [trajectory],
+        history_len=2,
+        action_horizon=2,
+        future_horizon=1,
+        include_current_latent=True,
+        include_future_latents=True,
+        split="train",
+    )
+
+    sample = dataset[0]
+
+    assert sample["optional_state_t"] == [1.0, 1.5]
+    assert sample["task_id"] == 3
+    assert sample["task_name"] == "pick_object"
+    assert "optional_state_t" in sample["input_keys"]
+    assert "task_id" in sample["input_keys"]
+
+
 def test_optional_state_is_none_and_not_an_input_key_when_absent() -> None:
     dataset = make_mock_trajectory_dataset(state_dim=None)
     sample = dataset[0]

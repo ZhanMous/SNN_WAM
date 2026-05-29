@@ -41,6 +41,8 @@ class RawTrajectory:
         states: Optional state/proprio array with shape `[T, state_dim]`.
         visual_latents: Optional frozen visual latents with shape
             `[T, latent_dim]`.
+        task_id: Optional integer task id for task-conditioned baselines.
+        task_name: Optional stable task name used for diagnostics.
         frame_refs: Optional frame references with shape `[T]`, such as
             HDF5 dataset paths or integer frame ids.
         trajectory_id: Stable id used only for sample metadata.
@@ -52,6 +54,8 @@ class RawTrajectory:
     language: str
     states: Sequence[Any] | None = None
     visual_latents: Sequence[Any] | None = None
+    task_id: int | None = None
+    task_name: str = ""
     frame_refs: Sequence[Any] | None = None
     trajectory_id: str = "trajectory_0"
     split: str = "unspecified"
@@ -80,6 +84,8 @@ class RawTrajectory:
                 "visual_latents length "
                 f"{len(self.visual_latents)} does not match images length {self.length}"
             )
+        if self.task_id is not None and self.task_id < 0:
+            raise ValueError("task_id must be non-negative when set")
         if self.frame_refs is not None and len(self.frame_refs) != self.length:
             raise ValueError(
                 f"frame_refs length {len(self.frame_refs)} does not match images length {self.length}"
@@ -94,6 +100,8 @@ class TrajectoryWindowDataset:
 
     - `image_t`: `[H, W, C]`, exactly `images[t]`.
     - `language`: `str`, trajectory-level instruction.
+    - `task_id`: optional integer task id when available; this is derived
+      from the task/demonstration identity, not from target actions.
     - `action_history`: `[history_len, action_dim]`, exactly
       `actions[t-history_len+1:t+1]`; this includes the last executed action
       that led to `images[t]` and excludes future action targets.
@@ -208,6 +216,8 @@ class TrajectoryWindowDataset:
         future_end = future_start + self.future_horizon
 
         input_keys = ["image_t", "language", "action_history"]
+        if trajectory.task_id is not None:
+            input_keys.append("task_id")
         optional_state_t = None
         if trajectory.states is not None:
             optional_state_t = trajectory.states[t]
@@ -226,6 +236,8 @@ class TrajectoryWindowDataset:
             "time_index": t,
             "image_t": trajectory.images[t],
             "language": trajectory.language,
+            "task_id": trajectory.task_id,
+            "task_name": trajectory.task_name,
             "action_history": slice_sequence(trajectory.actions, history_start, history_stop),
             "optional_state_t": optional_state_t,
             "z_t": z_t,
@@ -301,6 +313,8 @@ def coerce_trajectory(item: RawTrajectory | Mapping[str, Any], index: int) -> Ra
         language=item["language"],
         states=item.get("states"),
         visual_latents=item.get("visual_latents"),
+        task_id=item.get("task_id"),
+        task_name=item.get("task_name", ""),
         frame_refs=item.get("frame_refs"),
         trajectory_id=item.get("trajectory_id", f"trajectory_{index}"),
         split=item.get("split", "unspecified"),

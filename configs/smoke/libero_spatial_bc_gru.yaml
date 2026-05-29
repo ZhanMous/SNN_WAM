@@ -1,0 +1,40 @@
+experiment:
+  name: libero_spatial_bc_gru_smoke
+  seed: 0
+  tags:
+    - g4_diagnostic
+    - bc_gru
+    - smoke
+data:
+  suite: libero_spatial
+  dataset_root: env:LIBERO_DATASET_ROOT
+  history_len: 4
+  action_horizon: 4
+  future_horizon: 4
+  image_size: 128
+  split:
+    source: split.json
+    unit: trajectory
+    train: []
+    val: []
+    test: []
+model:
+  name: bc_gru_smoke_latent_proprio_task
+  visual_encoder: smoke_time_index
+  visual_latent_dim: 8
+  num_tasks: 1
+  text_encoder: stub
+  temporal_adapter: bc_gru
+  hidden_dim: 64
+training:
+  batch_size: 16
+  epochs: 1
+  optimizer: adamw
+  lr: 0.0003
+  lambda_action: 1.0
+  lambda_future: 0.0
+  lambda_spike: 0.0
+  grad_clip_norm: null
+output:
+  output_dir: results/runs
+  save_best_by: val/action_mse

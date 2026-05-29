@@ -6,7 +6,11 @@ from typing import Any, Mapping
 
 from torch import nn
 
-from src.models.temporal_gru import TemporalGRUActionModel, TemporalGRUWAMModel
+from src.models.temporal_gru import (
+    LatentProprioTaskGRUActionModel,
+    TemporalGRUActionModel,
+    TemporalGRUWAMModel,
+)
 from src.models.temporal_mlp import TemporalMLPActionModel
 
 
@@ -17,6 +21,7 @@ ACTION_MODEL_REGISTRY = {
 
 OFFLINE_MODEL_REGISTRY = {
     **ACTION_MODEL_REGISTRY,
+    "bc_gru": LatentProprioTaskGRUActionModel,
     "wam_gru": TemporalGRUWAMModel,
 }
 
@@ -48,6 +53,8 @@ def build_offline_model(
     *,
     action_dim: int,
     latent_dim: int | None = None,
+    state_dim: int | None = None,
+    num_tasks: int | None = None,
 ) -> nn.Module:
     """Build an offline action or WAM model.
 
@@ -58,6 +65,21 @@ def build_offline_model(
     adapter = str(config["model"]["temporal_adapter"])
     if adapter in ACTION_MODEL_REGISTRY:
         return build_action_model(config, action_dim=action_dim)
+    if adapter == "bc_gru":
+        if latent_dim is None or latent_dim <= 0:
+            raise ValueError("bc_gru requires a positive latent_dim")
+        if state_dim is None or state_dim <= 0:
+            raise ValueError("bc_gru requires a positive state_dim")
+        task_count = int(num_tasks or config["model"].get("num_tasks", 1))
+        return LatentProprioTaskGRUActionModel(
+            history_len=int(config["data"]["history_len"]),
+            action_dim=action_dim,
+            action_horizon=int(config["data"]["action_horizon"]),
+            latent_dim=latent_dim,
+            state_dim=state_dim,
+            num_tasks=task_count,
+            hidden_dim=int(config["model"]["hidden_dim"]),
+        )
     if adapter != "wam_gru":
         raise ValueError(
             "train_offline.py currently supports adapters "
@@ -72,6 +94,7 @@ def build_offline_model(
         latent_dim=latent_dim,
         future_horizon=int(config["data"]["future_horizon"]),
         hidden_dim=int(config["model"]["hidden_dim"]),
+        split_gripper_head=str(config["model"].get("action_head_type", "mse")) == "split_gripper",
     )
 
 

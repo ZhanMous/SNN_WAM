@@ -56,6 +56,15 @@ def test_action_only_smoke_config_loads_and_stays_in_mlp_scope() -> None:
     assert config["training"]["lambda_spike"] == 0.0
 
 
+def test_bc_gru_smoke_config_loads_and_has_no_future_loss() -> None:
+    config = load_config(ROOT / "configs/smoke/libero_spatial_bc_gru.yaml")
+
+    assert config["model"]["temporal_adapter"] == "bc_gru"
+    assert config["model"]["visual_encoder"] == "smoke_time_index"
+    assert config["model"]["num_tasks"] == 1
+    assert config["training"]["lambda_future"] == 0.0
+
+
 def test_wam_placeholders_are_not_reportable_training_claims() -> None:
     wam_config = load_config(ROOT / "configs/smoke/libero_spatial_wam_gru.yaml")
 

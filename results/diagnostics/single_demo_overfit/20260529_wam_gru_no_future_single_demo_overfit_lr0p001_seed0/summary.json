@@ -1,0 +1,21 @@
+{
+  "batch_size": 64,
+  "best_epoch": 990,
+  "best_eval_same_demo_action_mse": 0.0005274823467646326,
+  "closed_loop_same_initial_condition": "not_run_demo_to_init_state_mapping_not_available",
+  "config": "configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml",
+  "epochs_requested": 1000,
+  "evaluation_split": "same_demo_teacher_forced",
+  "is_reportable": false,
+  "loss_threshold": 0.0001,
+  "metrics_csv": "results/diagnostics/single_demo_overfit/20260529_wam_gru_no_future_single_demo_overfit_lr0p001_seed0/metrics.csv",
+  "model": "wam_gru_dinov2s_no_future",
+  "non_claims": [
+    "not_closed_loop_success",
+    "not_generalization_evidence",
+    "not_future_latent_benefit_evidence"
+  ],
+  "passed_threshold": false,
+  "status": "single_demo_overfit_fail",
+  "trace_csv": "results/diagnostics/single_demo_overfit/20260529_wam_gru_no_future_single_demo_overfit_lr0p001_seed0/action_trace_diagnostics.csv"
+}

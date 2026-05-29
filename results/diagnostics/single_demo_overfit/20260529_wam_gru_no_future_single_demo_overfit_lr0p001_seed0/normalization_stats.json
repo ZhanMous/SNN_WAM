@@ -1,0 +1,17 @@
+{
+  "actions": {
+    "mode": "none",
+    "note": "No action normalization is applied.",
+    "source_split": "train",
+    "units": "raw_action_units"
+  },
+  "images": {
+    "mode": "stub_encoder_no_image_stats"
+  },
+  "language": {
+    "mode": "stub_encoder_no_tokenizer_stats"
+  },
+  "visual_latents": {
+    "mode": "not_used"
+  }
+}

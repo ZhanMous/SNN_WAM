@@ -1,0 +1,62 @@
+experiment:
+  name: libero_spatial_wam_gru_dinov2s_no_future
+  seed: 0
+  tags:
+    - g4_reportable
+    - wam_gru
+    - dinov2s
+    - no_future_latent
+    - real_data
+    - frozen_encoder
+  artifact_id: R-G4-WAM-GRU-DINOV2S-REAL-OFFLINE-002
+
+data:
+  suite: libero_spatial
+  dataset_root: env:LIBERO_DATASET_ROOT
+  history_len: 4
+  action_horizon: 4
+  future_horizon: 4
+  image_size: 128
+  split:
+    source: splits/libero_episode_split_seed20260528.json
+    unit: episode
+    train: []
+    val: []
+    test: []
+  latent_dir: latents/libero_spatial/dinov2_vits14
+  latent_format: hdf5
+  latent_dim: 384
+
+model:
+  name: wam_gru_dinov2s_no_future
+  visual_encoder: dinov2_vits14
+  visual_latent_dim: 384
+  model_id: facebook/dinov2-small
+  revision: ed25f3a31f01632728cabb09d1542f84ab7b0056
+  preprocessing_id: AutoImageProcessor.from_pretrained
+  output_token: cls
+  text_encoder: stub
+  temporal_adapter: wam_gru
+  hidden_dim: 256
+
+training:
+  batch_size: 32
+  epochs: 100
+  optimizer: adamw
+  lr: 0.0003
+  lambda_action: 1.0
+  lambda_future: 0.0
+  lambda_spike: 0.0
+  grad_clip_norm: 1.0
+
+output:
+  output_dir: results/runs/libero_spatial_wam_gru_dinov2s_no_future
+  save_best_by: val/action_mse
+
+reproducibility:
+  require_clean_git: true
+  encoder_in_optimizer: false
+  same_data: true
+  same_split: true
+  same_action_normalization: true
+  same_seed_set: [0, 1, 2]

@@ -46,7 +46,7 @@ OPTIONAL_SECTIONS: dict[str, tuple[str, ...]] = {
     "reproducibility": ("require_clean_git",),
 }
 
-ALLOWED_TEMPORAL_ADAPTERS = {"mlp", "gru", "wam_gru", "snn_lif"}
+ALLOWED_TEMPORAL_ADAPTERS = {"mlp", "gru", "wam_gru", "bc_gru", "snn_lif"}
 ALLOWED_OPTIMIZERS = {"adamw"}
 
 
