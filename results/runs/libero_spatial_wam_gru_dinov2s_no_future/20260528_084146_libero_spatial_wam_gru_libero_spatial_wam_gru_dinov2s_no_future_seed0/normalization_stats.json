@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "mode": "none",
+    "note": "No action normalization is applied.",
+    "source_split": "train",
+    "units": "raw_action_units"
+  },
+  "images": {
+    "mode": "stub_encoder_no_image_stats"
+  },
+  "language": {
+    "mode": "stub_encoder_no_tokenizer_stats"
+  },
+  "visual_latents": {
+    "current_latent_input": true,
+    "encoder": "dinov2_vits14",
+    "latent_dim": 384,
+    "mode": "preextracted",
+    "model_id": "facebook/dinov2-small",
+    "output_token": "cls",
+    "revision": "ed25f3a31f01632728cabb09d1542f84ab7b0056",
+    "source_split": "train",
+    "target_only_future": true
+  }
+}

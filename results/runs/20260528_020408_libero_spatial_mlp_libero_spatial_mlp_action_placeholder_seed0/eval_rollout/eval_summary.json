@@ -1,0 +1,42 @@
+{
+  "action_chunk_exec": 1,
+  "action_chunk_policy": "receding_horizon_first_action",
+  "checkpoint": "results/runs/20260528_020408_libero_spatial_mlp_libero_spatial_mlp_action_placeholder_seed0/best.pt",
+  "csv_path": "results/runs/20260528_020408_libero_spatial_mlp_libero_spatial_mlp_action_placeholder_seed0/eval_rollout/eval_rollout.csv",
+  "failure_counts": {
+    "max_steps_reached": 1
+  },
+  "init_state_ids": [
+    0
+  ],
+  "is_reportable": false,
+  "max_steps": 3,
+  "mean_completion_steps_successes": null,
+  "mock": false,
+  "non_claims": [
+    "not_offline_metric",
+    "not_model_comparison",
+    "not_future_latent_improvement_evidence"
+  ],
+  "num_episodes": 1,
+  "record_video": true,
+  "recorded_media": true,
+  "reportability_reasons": [
+    "closed_loop_rollout_smoke",
+    "limited_episode_count",
+    "limited_max_steps",
+    "git_dirty=True"
+  ],
+  "run_dir": "results/runs/20260528_020408_libero_spatial_mlp_libero_spatial_mlp_action_placeholder_seed0",
+  "seed": 20260529,
+  "settle_steps_after_fixed_init": 5,
+  "status": "closed_loop_smoke",
+  "success_completion_steps": [],
+  "success_rate": 0.0,
+  "successes": 0,
+  "suite": "libero_spatial",
+  "task_ids": [
+    0
+  ],
+  "total_episodes": 1
+}

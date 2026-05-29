@@ -1,0 +1,1 @@
+/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python3 -m src.eval.eval_rollout_libero --run_dir results/runs/20260528_020408_libero_spatial_mlp_libero_spatial_mlp_action_placeholder_seed0 --suite libero_spatial --task_ids 0 --num_episodes 1 --init_state_ids 0 --max_steps 3 --seed 20260529 --record_video --device cpu --settle_steps 5

@@ -361,6 +361,8 @@ def test_only_phase1_offline_model_training_code_is_present_for_model_gate() -> 
         "src/models/registry.py",
         "src/models/temporal_gru.py",
         "src/models/temporal_mlp.py",
+        "src/eval/__init__.py",
+        "src/eval/eval_rollout_libero.py",
         "src/train/__init__.py",
         "src/train/eval_offline.py",
         "src/train/metrics.py",

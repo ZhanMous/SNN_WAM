@@ -1,0 +1,12 @@
+{
+  "action_dim": 7,
+  "checkpoint_best_epoch": 20,
+  "checkpoint_best_metric": 0.019102207989461734,
+  "checkpoint_epoch": 20,
+  "checkpoint_path": "results/runs/libero_spatial_wam_gru_dinov2s_future/20260528_081325_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_future_seed0/best.pt",
+  "compatible": true,
+  "config_path": "results/runs/libero_spatial_wam_gru_dinov2s_future/20260528_081325_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_future_seed0/config.yaml",
+  "latent_dim": 384,
+  "mismatches": [],
+  "state_dict_load": "strict_pass"
+}

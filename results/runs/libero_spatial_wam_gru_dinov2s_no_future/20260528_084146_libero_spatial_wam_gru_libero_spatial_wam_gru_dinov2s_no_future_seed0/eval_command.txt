@@ -1,0 +1,1 @@
+/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python3 src/train/eval_offline.py --run_dir results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0 --split val

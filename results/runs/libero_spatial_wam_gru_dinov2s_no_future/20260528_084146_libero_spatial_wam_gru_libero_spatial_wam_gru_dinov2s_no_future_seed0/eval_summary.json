@@ -1,0 +1,41 @@
+{
+  "checkpoint": "results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0/best.pt",
+  "config": "results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0/config.yaml",
+  "dry_run": false,
+  "max_steps": null,
+  "non_claims": [
+    "not_closed_loop",
+    "not_success_rate",
+    "not_reportable_wam_improvement"
+  ],
+  "output_csv": "results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0/eval_offline.csv",
+  "rows": [
+    {
+      "action_loss": "0.01841307318",
+      "action_loss_units": "raw_action_units",
+      "action_mse": "0.01841307318",
+      "action_mse_by_dimension": "[0.0093277497, 0.006803765, 0.0089810332, 0.0002686581, 0.0013616057, 0.0005662323, 0.101024814]",
+      "action_mse_by_horizon": "[0.0084472839, 0.0150636518, 0.021571584, 0.0282511096]",
+      "action_mse_units": "raw_action_units",
+      "checkpoint": "results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0/best.pt",
+      "epoch": 20,
+      "future_latent_cosine_error": "1.003726423",
+      "future_latent_cosine_error_by_horizon": "[1.0321623087, 1.0204995871, 0.9833083153, 0.9789354801]",
+      "future_latent_mse": "5.471436987",
+      "future_latent_mse_by_horizon": "[5.5172920227, 5.4967393875, 5.4421901703, 5.4295248985]",
+      "future_loss": "1.003726423",
+      "lower_is_better": "true",
+      "parameter_count": 769564,
+      "samples": 6073,
+      "source_split": "val",
+      "spike_loss": "0",
+      "split": "eval_val",
+      "steps": 190,
+      "total_loss": "0.01841307318",
+      "trainable_parameter_count": 769564
+    }
+  ],
+  "run_dir": "results/runs/libero_spatial_wam_gru_dinov2s_no_future/20260528_084146_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_no_future_seed0",
+  "split": "val",
+  "status": "offline_smoke_eval_not_closed_loop"
+}

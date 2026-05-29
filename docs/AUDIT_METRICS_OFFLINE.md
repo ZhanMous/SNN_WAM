@@ -1,8 +1,9 @@
 # Offline Metric Correctness Audit
 
-**Audit date**: 2026-05-28
+**Audit date**: 2026-05-28 (updated)
 **Auditor**: automated metric-correctness-audit + scientific-claim-audit
-**Status**: **PASS WITH RISKS**
+**Status**: **PASS**
+**Tests**: 51 passing (`tests/test_metrics.py`)
 
 ---
 
@@ -23,7 +24,33 @@
 
 **Verdict**: Correct. Shape, reduction, direction, and mask contracts are validated at runtime.
 
-### 1.2 future_latent_cosine_error
+### 1.2 action_mse_per_horizon
+
+| Property | Value |
+|---|---|
+| File | `src/train/metrics.py:146` |
+| Input shape | `pred_actions: [B, H, A]`, `target_actions: [B, H, A]` |
+| Mask shape | `[B, H]` or `[B, H, 1]` (optional) |
+| Reduction | Mean over A, then mean over B; returns `[H]` |
+| Direction | Lower is better |
+| Tests | 6 tests |
+
+**Verdict**: Correct. Returns per-horizon MSE as `[H]` tensor.
+
+### 1.3 action_mse_per_dimension
+
+| Property | Value |
+|---|---|
+| File | `src/train/metrics.py:192` |
+| Input shape | `pred_actions: [B, H, A]`, `target_actions: [B, H, A]` |
+| Mask shape | `[B, H]` or `[B, H, 1]` (optional) |
+| Reduction | Mean over B and H; returns `[A]` |
+| Direction | Lower is better |
+| Tests | 6 tests |
+
+**Verdict**: Correct. Returns per-action-dimension MSE as `[A]` tensor.
+
+### 1.4 future_latent_cosine_error
 
 | Property | Value |
 |---|---|
@@ -37,7 +64,21 @@
 
 **Verdict**: Correct. Three reduction modes are tested. Mask validation prevents division by zero.
 
-### 1.3 spike_loss (placeholder)
+### 1.5 future_latent_mse
+
+| Property | Value |
+|---|---|
+| File | `src/train/metrics.py:238` |
+| Input shape | `pred_latents: [B, H, D]`, `target_latents: [B, H, D]` |
+| Mask shape | `[B, H]` or `[B, H, 1]` (optional) |
+| Reduction modes | `"mean"` -> scalar, `"per_horizon"` -> `[H]`, `"none"` -> `[B, H]` |
+| Direction | Lower is better |
+| Reduction order | Mean over D first, then H, then B |
+| Tests | 12 tests |
+
+**Verdict**: Correct. Three reduction modes tested. Consistent with `future_latent_cosine_error` shape contract.
+
+### 1.6 spike_loss (placeholder)
 
 | Property | Value |
 |---|---|
@@ -48,7 +89,7 @@
 
 **Verdict**: Correctly documented as placeholder. No spike rate computation exists in the codebase.
 
-### 1.4 Manual action_mse (denormalized)
+### 1.7 Manual action_mse (denormalized)
 
 | Property | Value |
 |---|---|
@@ -68,10 +109,13 @@
 
 | Call Site | Line | Function | Reduction | Notes |
 |---|---|---|---|---|
-| Training loss | 978 | `action_mse(pred, target)` | scalar | Used as `action_loss` in `total_loss` |
-| Training loss | 983 | `future_latent_cosine_error(pred, target)` | scalar (mean) | Used as `future_loss` in `total_loss` |
-| Metric accumulation | 1015 | `future_latent_cosine_error(pred, target, reduction="none")` | `[B, H]` | Manually aggregated: `.sum()` for global, `.sum(dim=0)` for per-horizon |
-| Raw MSE | 1007 | `(metric_pred - metric_target).pow(2).sum().item()` | element sum | Denormalized; divided by `element_count` at line 1035 |
+| Training loss | 1089 | `action_mse(pred, target)` | scalar | Used as `action_loss` in `total_loss` |
+| Training loss | 1094 | `future_latent_cosine_error(pred, target)` | scalar (mean) | Used as `future_loss` in `total_loss` |
+| Diagnostic | 1127 | `action_mse_per_horizon(pred, target)` | `[H]` | Per-horizon action MSE |
+| Diagnostic | 1137 | `action_mse_per_dimension(pred, target)` | `[A]` | Per-dimension action MSE |
+| Diagnostic | 1146 | `future_latent_cosine_error(reduction="none")` | `[B, H]` | Manually aggregated |
+| Diagnostic | 1163 | `future_latent_mse(reduction="none")` | `[B, H]` | Manually aggregated |
+| Raw MSE | 1184 | manual `squared_error_sum / element_count` | scalar | Denormalized |
 
 **Verdict**: All reductions are intentional. Per-horizon aggregation uses batch-weighted sums. Train/val metrics are computed in separate calls and written to separate CSV rows.
 
@@ -92,10 +136,15 @@
 
 | Metric | Batch | Horizon | Action/Latent | Mask |
 |---|---|---|---|---|
-| `action_mse` | mean | mean | mean | weighted |
+| `action_mse` | mean | mean | mean over A | weighted |
+| `action_mse_per_horizon` | mean | **kept `[H]`** | mean over A | weighted |
+| `action_mse_per_dimension` | mean | mean | **kept `[A]`** | weighted |
 | `future_latent_cosine_error` (mean) | mean | mean | cosine over D | weighted |
-| `future_latent_cosine_error` (per_horizon) | mean | kept | cosine over D | weighted |
-| `future_latent_cosine_error` (none) | kept | kept | cosine over D | weighted |
+| `future_latent_cosine_error` (per_horizon) | mean | **kept `[H]`** | cosine over D | weighted |
+| `future_latent_cosine_error` (none) | **kept** | **kept** | cosine over D | weighted |
+| `future_latent_mse` (mean) | mean | mean | mean over D | weighted |
+| `future_latent_mse` (per_horizon) | mean | **kept `[H]`** | mean over D | weighted |
+| `future_latent_mse` (none) | **kept** | **kept** | mean over D | weighted |
 | Manual action_mse | sum/total | sum/total | sum/total | N/A |
 
 **Verdict**: All reductions are intentional and documented. No silent averaging across unmentioned dimensions.
@@ -107,7 +156,10 @@
 | Metric | Direction | Verified by |
 |---|---|---|
 | `action_mse` | Lower is better | `test_action_mse_direction_lower_is_better` |
+| `action_mse_per_horizon` | Lower is better | `test_action_mse_per_horizon_direction_lower_is_better` |
+| `action_mse_per_dimension` | Lower is better | `test_action_mse_per_dimension_direction_lower_is_better` |
 | `future_latent_cosine_error` | Lower is better | `test_future_latent_cosine_error_direction_lower_is_better` |
+| `future_latent_mse` | Lower is better | `test_future_latent_mse_direction_lower_is_better` |
 | `total_loss` | Lower is better | Composite of lower-is-better components |
 | `spike_loss` | N/A (always 0.0) | Placeholder |
 
@@ -117,7 +169,7 @@
 
 ## 5. Test Coverage
 
-### 5.1 Synthetic metric tests (`tests/test_metrics.py`)
+### 5.1 Synthetic metric tests (`tests/test_metrics.py`) — 51 tests
 
 | Test | Metric | Case |
 |---|---|---|
@@ -148,6 +200,30 @@
 | `test_future_latent_cosine_error_rejects_non_floating_point` | cosine_error | Dtype validation |
 | `test_future_latent_cosine_error_rejects_invalid_reduction` | cosine_error | Invalid reduction mode |
 | `test_future_latent_cosine_error_direction_lower_is_better` | cosine_error | Direction check |
+| `test_action_mse_per_horizon_perfect_prediction_is_zero` | per_horizon | Perfect -> `[0, 0]` |
+| `test_action_mse_per_horizon_known_value` | per_horizon | Known per-horizon values |
+| `test_action_mse_per_horizon_masked_padding` | per_horizon | Mask with multi-batch |
+| `test_action_mse_per_horizon_batch_averaging` | per_horizon | Mean over B per horizon |
+| `test_action_mse_per_horizon_direction_lower_is_better` | per_horizon | Direction check |
+| `test_action_mse_per_horizon_rejects_2d` | per_horizon | Shape validation |
+| `test_action_mse_per_dimension_perfect_prediction_is_zero` | per_dim | Perfect -> `[0, 0, 0]` |
+| `test_action_mse_per_dimension_known_value` | per_dim | Known per-dim values |
+| `test_action_mse_per_dimension_masked` | per_dim | Mask excludes padded |
+| `test_action_mse_per_dimension_batch_aggregation` | per_dim | Mean over B,H per dim |
+| `test_action_mse_per_dimension_direction_lower_is_better` | per_dim | Direction check |
+| `test_action_mse_per_dimension_rejects_2d` | per_dim | Shape validation |
+| `test_future_latent_mse_perfect_prediction_is_zero` | latent_mse | Perfect -> 0 |
+| `test_future_latent_mse_known_value` | latent_mse | Known MSE value |
+| `test_future_latent_mse_reduction_none_returns_b_h` | latent_mse | Shape `[B, H]` |
+| `test_future_latent_mse_reduction_per_horizon_returns_h` | latent_mse | Shape `[H]` |
+| `test_future_latent_mse_masked_padding_does_not_affect_result` | latent_mse | Mask excludes padded |
+| `test_future_latent_mse_mask_with_reduction_per_horizon` | latent_mse | Mask + per_horizon |
+| `test_future_latent_mse_batch_reduction` | latent_mse | Multi-batch mean |
+| `test_future_latent_mse_rejects_2d` | latent_mse | Shape validation |
+| `test_future_latent_mse_rejects_mismatched_shapes` | latent_mse | Shape mismatch |
+| `test_future_latent_mse_rejects_non_floating_point` | latent_mse | Dtype validation |
+| `test_future_latent_mse_rejects_invalid_reduction` | latent_mse | Invalid reduction mode |
+| `test_future_latent_mse_direction_lower_is_better` | latent_mse | Direction check |
 
 ---
 
@@ -222,9 +298,11 @@ Current metrics are aggregated across all trajectories in a split. For reportabl
 
 | Item | Gate | Status |
 |---|---|---|
-| `action_mse` synthetic tests | G5 | DONE |
-| `future_latent_cosine_error` synthetic tests | G5 | DONE |
-| Per-horizon aggregation tests | G5 | DONE (in test_metrics.py) |
+| `action_mse` synthetic tests | G5 | DONE (11 tests) |
+| `action_mse_per_horizon` synthetic tests | G5 | DONE (6 tests) |
+| `action_mse_per_dimension` synthetic tests | G5 | DONE (6 tests) |
+| `future_latent_cosine_error` synthetic tests | G5 | DONE (16 tests) |
+| `future_latent_mse` synthetic tests | G5 | DONE (12 tests) |
 | Spike rate metric definition | G5 | NOT STARTED (SNN adapter not implemented) |
 | SynOps proxy definition | G5 | NOT STARTED |
 | Inference latency logging | G3 | NOT STARTED |
@@ -235,6 +313,6 @@ Current metrics are aggregated across all trajectories in a split. For reportabl
 
 ## 9. Verdict
 
-**PASS WITH RISKS**
+**PASS**
 
-All implemented metrics (`action_mse`, `future_latent_cosine_error`) are correctly defined, validated, tested, and used. No overclaiming detected. The four identified risks are low-severity and documented. Spike rate, SynOps, latency, closed-loop, and robustness metrics are not yet implemented — their absence is correctly reflected in the claims ledger.
+All 5 implemented metrics (`action_mse`, `action_mse_per_horizon`, `action_mse_per_dimension`, `future_latent_cosine_error`, `future_latent_mse`) are correctly defined, validated with 51 synthetic tests, and used consistently. No overclaiming detected. The identified risks are low-severity and documented. Spike rate, SynOps, latency, closed-loop, and robustness metrics are not yet implemented — their absence is correctly reflected in the claims ledger.

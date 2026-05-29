@@ -1,0 +1,12 @@
+{
+  "action_dim": 7,
+  "checkpoint_best_epoch": 0,
+  "checkpoint_best_metric": 92.36582728794643,
+  "checkpoint_epoch": 0,
+  "checkpoint_path": "results/runs/20260528_020408_libero_spatial_mlp_libero_spatial_mlp_action_placeholder_seed0/best.pt",
+  "compatible": true,
+  "config_path": "results/runs/20260528_020408_libero_spatial_mlp_libero_spatial_mlp_action_placeholder_seed0/config.yaml",
+  "latent_dim": null,
+  "mismatches": [],
+  "state_dict_load": "strict_pass"
+}
