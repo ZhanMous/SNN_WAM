@@ -1028,16 +1028,17 @@ def _get_git_info() -> dict[str, str]:
             text=True,
         ).strip()
         # Check for dirty state excluding eval_rollout output directories.
-        # Eval creates new files that would always report dirty=False otherwise.
-        has_staged = subprocess.call(
-            ["git", "diff", "--cached", "--quiet"],
-            stderr=subprocess.DEVNULL,
-        ) != 0
-        has_unstaged = subprocess.call(
-            ["git", "diff", "--quiet"],
-            stderr=subprocess.DEVNULL,
-        ) != 0
-        # Untracked files outside eval_rollout directories
+        # Eval creates/modifies files that would always report dirty otherwise.
+        def _has_changes_outside_eval_rollout(diff_args: list[str]) -> bool:
+            lines = subprocess.check_output(
+                ["git", "diff", *diff_args, "--name-only"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip().splitlines()
+            return any(line for line in lines if "eval_rollout" not in line)
+
+        has_staged = _has_changes_outside_eval_rollout(["--cached"])
+        has_unstaged = _has_changes_outside_eval_rollout([])
         untracked = subprocess.check_output(
             ["git", "ls-files", "--others", "--exclude-standard"],
             stderr=subprocess.DEVNULL,
