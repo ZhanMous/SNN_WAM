@@ -1027,12 +1027,28 @@ def _get_git_info() -> dict[str, str]:
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
-        status = subprocess.check_output(
-            ["git", "status", "--short"],
+        # Check for dirty state excluding eval_rollout output directories.
+        # Eval creates new files that would always report dirty=False otherwise.
+        has_staged = subprocess.call(
+            ["git", "diff", "--cached", "--quiet"],
+            stderr=subprocess.DEVNULL,
+        ) != 0
+        has_unstaged = subprocess.call(
+            ["git", "diff", "--quiet"],
+            stderr=subprocess.DEVNULL,
+        ) != 0
+        # Untracked files outside eval_rollout directories
+        untracked = subprocess.check_output(
+            ["git", "ls-files", "--others", "--exclude-standard"],
             stderr=subprocess.DEVNULL,
             text=True,
-        ).strip()
-        return {"commit": commit, "dirty": str(bool(status))}
+        ).strip().splitlines()
+        has_untracked = any(
+            line for line in untracked
+            if line and "eval_rollout" not in line
+        )
+        dirty = has_staged or has_unstaged or has_untracked
+        return {"commit": commit, "dirty": str(dirty)}
     except (subprocess.CalledProcessError, FileNotFoundError):
         return {"commit": "unknown", "dirty": "unknown"}
 
