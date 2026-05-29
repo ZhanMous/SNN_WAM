@@ -2,6 +2,6 @@
   "device": "cuda",
   "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
   "python_version": "3.10.20",
-  "timestamp": "2026-05-29T09:54:59+0800",
+  "timestamp": "2026-05-29T10:57:44+0800",
   "torch_version": "2.12.0+cu130"
 }

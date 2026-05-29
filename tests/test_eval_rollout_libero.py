@@ -218,6 +218,50 @@ def test_run_single_episode_records_video(tmp_path: Path) -> None:
     assert "failure_videos" in result.video_path
 
 
+def test_run_single_episode_moves_wam_latent_to_policy_device() -> None:
+    class CpuLatentEncoder:
+        def eval(self) -> None:
+            pass
+
+        def encode(self, obs: torch.Tensor) -> torch.Tensor:
+            return torch.zeros(obs.shape[0], 384, device=torch.device("cpu"))
+
+    class DeviceCheckingWAM(torch.nn.Module):
+        def forward(
+            self,
+            action_history: torch.Tensor,
+            z_t: torch.Tensor,
+        ) -> dict[str, torch.Tensor]:
+            assert z_t.device == action_history.device
+            batch_size = action_history.shape[0]
+            return {
+                "pred_actions": torch.zeros(
+                    batch_size,
+                    1,
+                    action_history.shape[-1],
+                    device=action_history.device,
+                )
+            }
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    env = MockLIBEROEnv(episode_length=1, action_dim=7)
+    result = run_single_episode(
+        DeviceCheckingWAM().to(device),
+        env,
+        device=device,
+        max_steps=1,
+        action_dim=7,
+        history_len=2,
+        action_horizon=1,
+        action_transform=None,
+        encoder=CpuLatentEncoder(),
+        is_wam=True,
+        seed=0,
+    )
+
+    assert result.steps == 1
+
+
 # ---------------------------------------------------------------------------
 # Full rollout evaluation tests (mock mode)
 # ---------------------------------------------------------------------------

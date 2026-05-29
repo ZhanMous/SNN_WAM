@@ -405,7 +405,7 @@ def run_single_episode(
                 obs_tensor = obs_tensor.permute(2, 0, 1)
             obs_tensor = obs_tensor.unsqueeze(0).to(device)
             with torch.no_grad():
-                z_t = encoder.encode(obs_tensor)
+                z_t = encoder.encode(obs_tensor).to(device)
 
         # Query model if we need new actions
         if (

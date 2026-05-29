@@ -256,12 +256,20 @@ class DINOv2VisualEncoder(FrozenVisualEncoder):
                 "Install with: pip install transformers"
             ) from exc
 
-        self._processor = AutoImageProcessor.from_pretrained(
-            self.model_id, revision=self.revision
-        )
-        self._model = AutoModel.from_pretrained(
-            self.model_id, revision=self.revision
-        )
+        try:
+            self._processor = AutoImageProcessor.from_pretrained(
+                self.model_id, revision=self.revision, local_files_only=True
+            )
+            self._model = AutoModel.from_pretrained(
+                self.model_id, revision=self.revision, local_files_only=True
+            )
+        except OSError:
+            self._processor = AutoImageProcessor.from_pretrained(
+                self.model_id, revision=self.revision
+            )
+            self._model = AutoModel.from_pretrained(
+                self.model_id, revision=self.revision
+            )
         self.freeze()
 
     def encode(self, images: Any) -> torch.Tensor:
@@ -270,6 +278,9 @@ class DINOv2VisualEncoder(FrozenVisualEncoder):
 
         if not isinstance(images, torch.Tensor):
             raise TypeError("DINOv2VisualEncoder expects tensor inputs")
+        target_device = images.device
+        if self._model is not None:
+            self._model.to(target_device)
 
         # images should be [B, C, H, W] or [B, H, W, C]
         if images.ndim == 3:

@@ -4,13 +4,11 @@
   "checkpoint": "results/runs/libero_spatial_wam_gru_dinov2s_future/20260528_081325_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_future_seed0/best.pt",
   "csv_path": "results/runs/libero_spatial_wam_gru_dinov2s_future/20260528_081325_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_future_seed0/eval_rollout/eval_rollout.csv",
   "failure_counts": {
-    "environment/evaluator error: AssertionError: [error] pick_up_the_black_bowl_between_the_plate_and_the_ramekin_and_place_it_on_the_plate.bddl does not exist!": 1
+    "max_steps_reached": 5
   },
-  "init_state_ids": [
-    0
-  ],
+  "init_state_ids": null,
   "is_reportable": false,
-  "max_steps": 3,
+  "max_steps": 300,
   "mean_completion_steps_successes": null,
   "mock": false,
   "non_claims": [
@@ -18,16 +16,16 @@
     "not_model_comparison",
     "not_future_latent_improvement_evidence"
   ],
-  "num_episodes": 1,
-  "record_video": false,
+  "num_episodes": 5,
+  "record_video": true,
+  "recorded_media": true,
   "reportability_reasons": [
     "closed_loop_rollout_smoke",
     "limited_episode_count",
-    "limited_max_steps",
     "git_dirty=True"
   ],
   "run_dir": "results/runs/libero_spatial_wam_gru_dinov2s_future/20260528_081325_libero_spatial_wam_gru_libero_spatial_wam_gru_dinov2s_future_seed0",
-  "seed": 20260529,
+  "seed": 0,
   "settle_steps_after_fixed_init": 5,
   "status": "closed_loop_smoke",
   "success_completion_steps": [],
@@ -37,5 +35,5 @@
   "task_ids": [
     0
   ],
-  "total_episodes": 1
+  "total_episodes": 5
 }
