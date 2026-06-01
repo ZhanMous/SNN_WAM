@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pytest
+
+pytest.importorskip("numpy")
+import numpy as np
+
+pytest.importorskip("torch")
 import torch
 
 from src.eval.g9_residual_action_repair import (

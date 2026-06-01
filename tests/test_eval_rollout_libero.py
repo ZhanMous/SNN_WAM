@@ -9,8 +9,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import numpy as np
 import pytest
+
+pytest.importorskip("numpy")
+import numpy as np
+
+pytest.importorskip("torch")
 import torch
 
 from src.eval.eval_rollout_libero import (

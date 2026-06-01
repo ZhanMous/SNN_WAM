@@ -1,15 +1,39 @@
 # SNN-WAM
 
-SNN-WAM 是一个第一阶段研究仓库，用来把实验计划转化为可复现、可复评估、可审计的工程基础。当前目标不是训练完整具身大模型，而是为后续验证 `SNN temporal/world-action adapter` 建立清晰边界、产物契约和 smoke tests。
+SNN-WAM 是一个研究仓库，用来探索 **SNN 版 latent world model / world-action model** 能否在语言条件机器人操作中提供可复现的动态建模证据。
 
-## Stage 1 Goal
+## Route Reset: 2026-06-01
 
-第一阶段只验证冻结视觉/语言表示之后的 temporal/world-action adapter 思路：
+旧的 direct action BC 路线已经冻结为诊断证据，不再作为主实验路线。主要原因不是“还差几轮调参”，而是 direct action behavior cloning 没有成为检验 WAM / future latent / SNN dynamics 的稳定底座：WAM-GRU future/no-future 在 matched LIBERO closed-loop diagnostic 中均为 `0/30`，而 expert replay 为 `27/30`。
 
-- 输入：当前视觉 latent、语言条件、动作历史和可选机器人状态。
-- 输出：future action chunk 与 future visual latent chunk。
-- 对比：MLP、GRU、SNN adapter。
-- 证据：action error、future latent error、closed-loop success rate、spike rate、鲁棒性曲线等结果文件。
+新的主线从 DINO-WM 复现开始：
+
+```text
+image_t
+  -> frozen DINOv2 spatial patch features
+  -> action-conditioned latent world model
+  -> future patch features
+  -> action sequence optimization / planning
+```
+
+目标不是用 SNN 微调已有 ANN world model，也不是 ANN-to-SNN conversion；目标是在 DINO-WM 式 latent world-model 问题上，研究是否能直接训练一个 SNN world model，后续再比较 ES/EGGROLL-style low-rank optimization 与梯度训练 baseline。
+
+旧路线归档点：
+
+- branch/tag: `legacy_bc_policy_diagnostics_20260601`
+- report: `docs/WEEKLY_REPORT_2026-06-01.md`
+- reflection: `docs/EXPERIMENT_REFLECTION_REPORT_2026-06-01.md`
+- new route plan: `docs/DINOWM_SNN_WORLDMODEL_PLAN.md`
+
+## Current Goal
+
+当前阶段先复现 DINO-WM 的最小机制，再把 temporal predictor 替换为 SNN world model：
+
+- 输入：DINOv2 spatial patch features、action sequence、可选语言/任务条件。
+- 输出：future spatial patch features，不以 direct action BC 为主目标。
+- 规划：在 latent space 中通过 action sequence optimization 选择动作序列。
+- 对比：DINO-WM-style ANN/Transformer predictor、GRU predictor、直接训练的 SNN predictor。
+- 证据：future patch feature error、multi-step latent drift、planning objective、closed-loop planning success、spike rate / SynOps proxy。
 
 ## Non-goals
 
@@ -17,11 +41,17 @@ SNN-WAM 是一个第一阶段研究仓库，用来把实验计划转化为可复
 - 不直接上 OpenVLA 7B。
 - 不直接上真实 Unitree。
 - 不先写论文故事。
-- 不在 bootstrap 阶段写模型代码、训练代码、LIBERO 集成代码或硬件控制代码。
+- 不把 direct action BC 结果写成 WAM / SNN dynamics 证据。
+- 不声称 EGGROLL 已复现；只允许写成 EGGROLL-style / low-rank ES direct training 研究。
+- 不声称 spike rate 等于真实硬件能耗。
 
 ## Repository Map
 
 - `docs/project_plan.md`: 从 `SNN_WAM_plan.pdf` 提取的紧凑项目计划摘要。
+- `docs/TOP_LEVEL_SCIENTIFIC_PLAN.md`: 新路线总规划、阶段 gate、artifact schema、claim ledger schema、stop rules 和 Claude Code prompt。
+- `docs/DINOWM_SNN_WORLDMODEL_PLAN.md`: 2026-06-01 新路线计划，DINO-WM 复现到直接训练 SNN latent world model。
+- `docs/EXPERIMENT_REFLECTION_REPORT_2026-06-01.md`: direct action BC 旧路线反思报告。
+- `docs/WEEKLY_REPORT_2026-06-01.md`: 旧路线诊断周报。
 - `docs/PROJECT_CONTRACT.md`: 项目边界、依赖政策、科学主张和结果产物契约。
 - `docs/EXPERIMENT_PROTOCOL.md`: 实验生命周期、结果目录和复评估协议。
 - `docs/ENVIRONMENT.md`: LIBERO-first environment setup and verification workflow.

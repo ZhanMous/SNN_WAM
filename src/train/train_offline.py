@@ -40,6 +40,9 @@ from src.train.metrics import (  # noqa: E402
     action_mse_per_dimension,
     future_latent_cosine_error,
     future_latent_mse,
+    patch_cosine_error,
+    patch_mean_cosine_error,
+    patch_mse,
 )
 from src.utils.config import load_config  # noqa: E402
 from src.utils.experiment_io import create_experiment_dir, format_command  # noqa: E402
@@ -57,6 +60,10 @@ METRIC_FIELDNAMES = [
     "future_latent_mse",
     "future_latent_cosine_error_by_horizon",
     "future_latent_mse_by_horizon",
+    "patch_mse",
+    "patch_cosine_error",
+    "patch_mean_cosine_error",
+    "patch_mse_by_horizon",
     "action_mse_by_horizon",
     "action_mse_by_dimension",
     "spike_loss",
@@ -1105,6 +1112,24 @@ def collate_action_batch(samples: Sequence[Mapping[str, Any]]) -> dict[str, Any]
             ],
             dim=0,
         )
+    if all(sample.get("z_t_patch") is not None for sample in samples):
+        batch["z_t_patch"] = torch.stack(
+            [
+                torch.as_tensor(sample["z_t_patch"], dtype=torch.float32)
+                for sample in samples
+            ],
+            dim=0,
+        )
+    if all("target_future_patch_latents" in sample for sample in samples):
+        batch["target_future_patch_latents"] = torch.stack(
+            [
+                torch.as_tensor(
+                    sample["target_future_patch_latents"], dtype=torch.float32
+                )
+                for sample in samples
+            ],
+            dim=0,
+        )
     return batch
 
 
@@ -1160,6 +1185,39 @@ def infer_latent_dim(sample: Mapping[str, Any]) -> int:
     return int(target.shape[-1])
 
 
+def has_current_patch_latent(sample: Mapping[str, Any]) -> bool:
+    return sample.get("z_t_patch") is not None
+
+
+def has_future_patch_latent_targets(sample: Mapping[str, Any]) -> bool:
+    return "target_future_patch_latents" in sample
+
+
+def infer_patch_latent_dims(sample: Mapping[str, Any]) -> tuple[int, int]:
+    """Return (num_patches, feature_dim) from a sample's z_t_patch."""
+    patch = torch.as_tensor(sample["z_t_patch"])
+    if patch.ndim != 2:
+        raise ValueError(f"z_t_patch must have shape [N, D], got {tuple(patch.shape)}")
+    return int(patch.shape[0]), int(patch.shape[-1])
+
+
+def pool_patch_latents(patch_latents: torch.Tensor) -> torch.Tensor:
+    """Mean-pool patch latents from [B, N, D] to [B, D].
+
+    This is the compatibility smoke path for existing WAM-GRU which expects
+    a flat [B, Z] latent. It is NOT full DINO-WM spatial modeling.
+    """
+    if patch_latents.ndim == 3:
+        return patch_latents.mean(dim=1)
+    if patch_latents.ndim == 4:
+        # [B, H, N, D] -> [B, H, D]
+        return patch_latents.mean(dim=2)
+    raise ValueError(
+        f"patch_latents must be [B, N, D] or [B, H, N, D], "
+        f"got {tuple(patch_latents.shape)}"
+    )
+
+
 def forward_offline_model(
     model: torch.nn.Module,
     batch: Mapping[str, Any],
@@ -1185,6 +1243,10 @@ def forward_offline_model(
         )
     if "z_t" in batch:
         return model(action_history, batch["z_t"].to(device))
+    if "z_t_patch" in batch:
+        # Mean-patch pooling compatibility path: project [B, N, D] -> [B, D]
+        z_pooled = pool_patch_latents(batch["z_t_patch"].to(device))
+        return model(action_history, z_pooled)
     return model(action_history)
 
 
@@ -1221,6 +1283,12 @@ def run_one_split(
     action_mse_by_horizon_count: torch.Tensor | None = None
     action_mse_by_dim_sum: torch.Tensor | None = None
     action_mse_by_dim_count: torch.Tensor | None = None
+    patch_mse_by_horizon_sum: torch.Tensor | None = None
+    patch_mse_by_horizon_count: torch.Tensor | None = None
+    patch_mse_metric = 0.0
+    patch_cosine_err_metric = 0.0
+    patch_mean_cosine_err_metric = 0.0
+
     steps = 0
     samples = 0
 
@@ -1232,8 +1300,18 @@ def run_one_split(
             action_history = batch["action_history"].to(device)
             target_actions = batch["target_actions"].to(device)
             target_future_latents = None
+            target_future_patch_latents = None
             if "target_future_latents" in batch:
                 target_future_latents = batch["target_future_latents"].to(device)
+            if "target_future_patch_latents" in batch:
+                target_future_patch_latents = batch["target_future_patch_latents"].to(
+                    device
+                )
+                # For WAM-GRU future loss, pool patch latents to flat [B, H, D]
+                if target_future_latents is None:
+                    target_future_latents = pool_patch_latents(
+                        target_future_patch_latents
+                    )
 
             outputs = forward_offline_model(model, batch, device=device)
             if isinstance(outputs, Mapping):
@@ -1340,6 +1418,45 @@ def run_one_split(
                     future_mse_by_horizon_sum += mse_horizon_sum
                     future_mse_by_horizon_count += mse_horizon_count
 
+            # Patch latent metrics (computed on raw patch targets, not pooled)
+            if (
+                target_future_patch_latents is not None
+                and pred_future_latents is not None
+            ):
+                # Pool predictions to match patch target shape for metric:
+                # pred is [B, H, D], target is [B, H, N, D]
+                # We expand pred to [B, H, 1, D] for patch_mse / patch_cosine_error
+                pred_expanded = pred_future_latents.unsqueeze(2).expand_as(
+                    target_future_patch_latents
+                )
+                p_mse = patch_mse(
+                    pred_expanded.detach(),
+                    target_future_patch_latents,
+                    reduction="none",
+                )
+                p_cos = patch_cosine_error(
+                    pred_expanded.detach(),
+                    target_future_patch_latents,
+                    reduction="none",
+                )
+                p_mean_cos = patch_mean_cosine_error(
+                    pred_expanded.detach(),
+                    target_future_patch_latents,
+                    reduction="none",
+                )
+                patch_mse_metric += p_mse.sum().item()
+                patch_cosine_err_metric += p_cos.sum().item()
+                patch_mean_cosine_err_metric += p_mean_cos.sum().item()
+                # Per-horizon accumulation for patch_mse
+                p_mse_horizon = p_mse.sum(dim=0).detach().cpu()
+                p_mse_hcount = torch.full_like(p_mse_horizon, p_mse.shape[0])
+                if patch_mse_by_horizon_sum is None:
+                    patch_mse_by_horizon_sum = p_mse_horizon
+                    patch_mse_by_horizon_count = p_mse_hcount
+                else:
+                    patch_mse_by_horizon_sum += p_mse_horizon
+                    patch_mse_by_horizon_count += p_mse_hcount
+
             steps += 1
             samples += int(target_actions.shape[0])
 
@@ -1365,6 +1482,17 @@ def run_one_split(
                 future_mse_by_horizon_sum / future_mse_by_horizon_count
             ).tolist()
 
+    # Finalize patch metrics
+    patch_mse_count = loss_weight_sum  # same number of batches
+    patch_mse_value = patch_mse_metric / max(patch_mse_count, 1)
+    patch_cosine_err_value = patch_cosine_err_metric / max(patch_mse_count, 1)
+    patch_mean_cosine_err_value = patch_mean_cosine_err_metric / max(patch_mse_count, 1)
+    patch_mse_by_horizon: list[float] = []
+    if patch_mse_by_horizon_sum is not None and patch_mse_by_horizon_count is not None:
+        patch_mse_by_horizon = (
+            patch_mse_by_horizon_sum / patch_mse_by_horizon_count
+        ).tolist()
+
     action_mse_by_horizon: list[float] = []
     if action_mse_by_horizon_sum is not None and action_mse_by_horizon_count is not None:
         action_mse_by_horizon = (action_mse_by_horizon_sum / action_mse_by_horizon_count).tolist()
@@ -1386,6 +1514,10 @@ def run_one_split(
         "future_latent_cosine_error_by_horizon": future_by_horizon,
         "future_latent_mse": future_mse_metric,
         "future_latent_mse_by_horizon": future_mse_by_horizon,
+        "patch_mse": patch_mse_value,
+        "patch_cosine_error": patch_cosine_err_value,
+        "patch_mean_cosine_error": patch_mean_cosine_err_value,
+        "patch_mse_by_horizon": patch_mse_by_horizon,
         "action_mse_by_horizon": action_mse_by_horizon,
         "action_mse_by_dimension": action_mse_by_dim,
         "spike_loss": 0.0,
@@ -1444,6 +1576,19 @@ def format_metric_row(
             [
                 round(float(value), 10)
                 for value in metrics.get("future_latent_mse_by_horizon", [])
+            ]
+        ),
+        "patch_mse": format_float(float(metrics.get("patch_mse", 0.0))),
+        "patch_cosine_error": format_float(
+            float(metrics.get("patch_cosine_error", 0.0))
+        ),
+        "patch_mean_cosine_error": format_float(
+            float(metrics.get("patch_mean_cosine_error", 0.0))
+        ),
+        "patch_mse_by_horizon": json.dumps(
+            [
+                round(float(value), 10)
+                for value in metrics.get("patch_mse_by_horizon", [])
             ]
         ),
         "action_mse_by_horizon": json.dumps(

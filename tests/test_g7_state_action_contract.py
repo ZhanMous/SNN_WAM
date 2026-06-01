@@ -5,8 +5,12 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-import numpy as np
 import pytest
+
+pytest.importorskip("numpy")
+import numpy as np
+
+pytest.importorskip("torch")
 import torch
 
 from src.data.trajectory_window import RawTrajectory

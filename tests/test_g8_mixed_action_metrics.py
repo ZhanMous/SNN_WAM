@@ -6,8 +6,12 @@ import math
 import tempfile
 from pathlib import Path
 
-import numpy as np
 import pytest
+
+pytest.importorskip("numpy")
+import numpy as np
+
+pytest.importorskip("torch")
 import torch
 
 from src.eval.g8_mixed_action_metrics import (

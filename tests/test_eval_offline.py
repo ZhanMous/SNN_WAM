@@ -4,6 +4,9 @@ import csv
 import json
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip("torch")
 from src.train.eval_offline import run_eval_offline
 from src.train.train_offline import run_training
 

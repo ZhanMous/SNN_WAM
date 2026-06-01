@@ -305,7 +305,7 @@ def test_libero_real_data_contract_blocks_dataset_until_observed() -> None:
 def test_result_artifact_registry_has_reproducibility_columns() -> None:
     registry = read("docs/RESULT_ARTIFACTS.md")
     required_phrases = [
-        "| Artifact ID | Run ID | Result Files | Config | Commit | Environment | Seeds | Evaluation Split | Command | Notes |",
+        "| artifact_id | run_id | path | stage | config | git_commit | git_dirty | environment | seeds | evaluation_split | command | reportable | notes |",
         "environment.txt",
         "seeds.txt",
         "command.sh",
@@ -368,6 +368,7 @@ def test_only_phase1_offline_model_training_code_is_present_for_model_gate() -> 
         "src/eval/g8_mixed_action_metrics.py",
         "src/eval/g9_residual_action_repair.py",
         "src/eval/g10_residual_action_head.py",
+        "src/eval/g11_autoregressive_stabilization.py",
         "src/eval/open_loop_diagnostics.py",
         "src/eval/single_demo_overfit.py",
         "src/eval/overfit_diagnostics.py",

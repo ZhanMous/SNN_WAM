@@ -1,0 +1,46 @@
+{
+  "status": "g11_autoregressive_stabilization",
+  "config": "configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml",
+  "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+  "trajectory_length": 103,
+  "task_id": 0,
+  "task_name": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+  "dataset": "libero_spatial",
+  "git_commit": "d7302b8",
+  "git_dirty": "True",
+  "seed": 0,
+  "epochs": 300,
+  "hidden_dim": 256,
+  "best_teacher_forced_mse": 0.009913524612784386,
+  "best_autoregressive_full_mse": 0.9878094792366028,
+  "best_stabilization_variant": "history_noise_aug",
+  "readiness_gate_pass": false,
+  "stabilization_ladder": [
+    {
+      "variant": "baseline",
+      "teacher_forced_mse": 0.01424364373087883
+    },
+    {
+      "variant": "history_noise_aug",
+      "teacher_forced_mse": 0.009913524612784386
+    },
+    {
+      "variant": "history_dropout_aug",
+      "teacher_forced_mse": 0.010671366937458515
+    },
+    {
+      "variant": "diagnostic_regularization",
+      "teacher_forced_mse": 0.014240054413676262
+    },
+    {
+      "variant": "offline_multistep_loss",
+      "teacher_forced_mse": 0.015084147453308105
+    }
+  ],
+  "non_claims": [
+    "not_closed_loop_success",
+    "not_future_latent_benefit_evidence",
+    "not_architecture_claim_evidence",
+    "offline_improvement_does_not_guarantee_closed_loop"
+  ]
+}

@@ -2,16 +2,32 @@
 
 本文件是 `SNN_WAM_plan.pdf` 的紧凑工程摘要。原始 PDF 是当前计划来源；本 markdown 用于让仓库内文档和 smoke tests 有稳定入口。
 
+## Route Reset: 2026-06-01
+
+The original direct action BC / WAM-GRU route is now frozen as diagnostic evidence. It showed that direct action BC is not a stable enough base for testing WAM, future-latent objectives, or SNN dynamics. The current route starts from DINO-WM-style latent world modeling:
+
+```text
+DINOv2 spatial patch features + action sequence
+  -> latent world model
+  -> future spatial patch features
+  -> action sequence optimization / planning
+```
+
+The intended SNN contribution is a directly trained SNN latent world model, not an SNN fine-tuning head, not surrogate-gradient-only training, and not ANN-to-SNN conversion.
+
+See `docs/DINOWM_SNN_WORLDMODEL_PLAN.md`.
+
 ## Core Question
 
 在具身基础模型中，SNN 能否作为 `world-action adapter`，承担短期动态记忆、future state/latent prediction 和 action modulation？
 
-第一阶段不做完整大模型，而是验证冻结视觉/语言编码器之后的 temporal adapter：
+更新后的第一阶段不做完整大模型，而是验证冻结 DINOv2 spatial patch features 之后的 latent world model：
 
 ```text
-image latent + language latent + action history
-  -> temporal adapter: MLP / GRU / SNN
-  -> future action chunk + future visual latent chunk
+DINOv2 patch latent + action sequence
+  -> ANN/GRU/SNN world model
+  -> future patch latent
+  -> planning by action sequence optimization
 ```
 
 ## Stage 1 Boundaries
@@ -20,20 +36,20 @@ image latent + language latent + action history
 - 不直接上 OpenVLA 7B。
 - 不直接上真实 Unitree。
 - 不先写论文故事。
-- 不从零用 ES 训练 SNN-WAM。
+- 不从零训练完整 VLA/WAM；但本路线允许在小 SNN latent world model 上研究 direct ES / EGGROLL-style optimization，因为这是用户明确指定的核心目标。
 - 不声称 SNN 天然低功耗；第一阶段只报告 spike rate / SynOps proxy。
 
 ## Recommended Research Path
 
-1. 建立可复现仓库、项目契约和实验协议。
-2. 后续安装 LIBERO 主环境，并先复现官方 demo。
-3. 后续读取 LIBERO demonstration trajectory，建立 trajectory window dataset。
-4. 后续先跑 MLP/GRU baseline。
-5. 后续加入 future latent prediction，形成最小 WAM adapter。
-6. 后续把 GRU 替换为 SNN-LIF/PLIF adapter。
-7. 后续进入 closed-loop evaluation，报告 success rate。
-8. 后续加入 noise、delay、frame drop 和 horizon robustness。
-9. 后续再考虑 surrogate warmup + EGGROLL-style ES post-training。
+1. 冻结 direct action BC 旧路线，保留诊断证据。
+2. 复现最小 DINO-WM-style latent world model。
+3. 从 CLS latent 切换到 DINOv2 spatial patch features。
+4. 建立 patch-latent transition dataset。
+5. 训练 ANN/GRU latent world model baseline。
+6. 实现直接训练的 SNN latent world model。
+7. 研究 EGGROLL-style / low-rank ES 是否能直接优化 SNN world model。
+8. 在 latent prediction 通过后，再做 action sequence optimization / planning。
+9. 最后再评估 closed-loop planning、robustness 和 spike-rate proxy。
 
 ## Required Evidence
 
@@ -50,21 +66,20 @@ image latent + language latent + action history
 
 ## First Reportable Experiment Shape
 
-第一批可汇报结果应比较：
+第一批新路线可汇报结果应比较：
 
-- BC-MLP
-- BC-GRU
-- WAM-GRU
-- WAM-SNN-LIF
-- WAM-SNN-PLIF 或 ALIF
+- copy-last-latent baseline
+- ANN/Transformer DINO-WM-style predictor
+- GRU latent world model
+- directly trained SNN latent world model
+- random/untrained SNN baseline
 
 必要指标：
 
-- action MSE / L1
-- future latent cosine error
-- multi-step latent error curve
-- closed-loop success rate
-- completion steps
+- future patch latent cosine / MSE
+- multi-step latent drift
+- nearest-neighbor future-frame retrieval
+- planning objective reduction
+- closed-loop planning success if planning is evaluated
 - spike rate / SynOps proxy
-- inference latency
-- robustness under noise, delay, and frame drop
+- ES population/generation metrics if direct ES is used

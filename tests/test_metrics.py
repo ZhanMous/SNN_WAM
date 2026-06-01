@@ -12,6 +12,8 @@ Every metric is a scientific claim in code. These tests verify:
 from __future__ import annotations
 
 import pytest
+
+pytest.importorskip("torch")
 import torch
 
 from src.train.metrics import (

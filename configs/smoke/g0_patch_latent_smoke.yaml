@@ -1,0 +1,49 @@
+experiment:
+  name: g0_patch_latent_smoke
+  seed: 0
+  tags:
+    - g0_patch_latent
+    - smoke
+    - patch_pool_compatibility
+  notes: >
+    G0 patch-latent smoke config. Uses smoke_time_index encoder for CLS latents
+    plus synthetic patch latents via mock dataset. WAM-GRU consumes mean-pooled
+    patch latents [B, D]. This is the compatibility smoke path, NOT full
+    DINO-WM spatial patch modeling.
+
+data:
+  suite: libero_spatial
+  dataset_root: env:LIBERO_DATASET_ROOT
+  history_len: 4
+  action_horizon: 4
+  future_horizon: 4
+  image_size: 128
+  latent_type: patch
+  patch_num_patches: 6
+  split:
+    source: split.json
+    unit: trajectory
+    train: []
+    val: []
+    test: []
+
+model:
+  visual_encoder: smoke_time_index
+  visual_latent_dim: 8
+  text_encoder: stub
+  temporal_adapter: wam_gru
+  hidden_dim: 256
+
+training:
+  batch_size: 8
+  epochs: 0
+  optimizer: adamw
+  lr: 0.0003
+  lambda_action: 1.0
+  lambda_future: 1.0
+  lambda_spike: 0.0
+  grad_clip_norm: null
+
+output:
+  output_dir: results/smoke/g0_patch_latent
+  save_best_by: val/action_mse

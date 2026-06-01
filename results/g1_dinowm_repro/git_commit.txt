@@ -1,0 +1,4 @@
+commit: da7afb19a7831192ab78a852dc13022911d45625
+branch: dinowm_snn_worldmodel
+dirty: true
+dirty_reason: untracked files (CLAUDE.md, configs/smoke/g0_patch_latent_smoke.yaml, docs/PROJECT_CONTEXT.md, docs/STOP_RULES.md, docs/repo_reconnaissance.md, scripts/cache_dinov2_patch_latents.py, scripts/check_artifacts.py, scripts/check_claims.py, tests/test_artifact_and_claim_checks.py, tests/test_g0_patch_latent.py) and modified files (27 tracked files)

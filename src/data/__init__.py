@@ -1,4 +1,8 @@
-"""Data utilities for SNN-WAM."""
+"""Data utilities for SNN-WAM.
+
+Supports both CLS latents ``[T, D]`` and patch latents ``[T, N, D]``
+through the ``RawTrajectory`` and ``TrajectoryWindowDataset`` interfaces.
+"""
 
 from src.data.trajectory_window import (
     ACTION_FROM_CURRENT_OBS,

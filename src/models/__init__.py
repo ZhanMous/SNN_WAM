@@ -1,8 +1,10 @@
 """Model components for SNN-WAM baselines."""
 
 from src.models.encoders import (
+    DINOv2PatchEncoder,
     FrozenVisualEncoder,
     FrozenVisualEncoderAdapter,
+    PatchLatentMetadata,
     RealVisualEncoderPlaceholder,
     SmokeTimeIndexVisualEncoder,
     build_frozen_visual_encoder,
@@ -25,10 +27,12 @@ from src.models.temporal_mlp import TemporalMLP, TemporalMLPActionModel
 
 __all__ = [
     "ActionChunkHead",
+    "DINOv2PatchEncoder",
     "FutureLatentChunkHead",
     "FrozenVisualEncoder",
     "FrozenVisualEncoderAdapter",
     "LatentProprioTaskGRUActionModel",
+    "PatchLatentMetadata",
     "RealVisualEncoderPlaceholder",
     "SmokeTimeIndexVisualEncoder",
     "SplitActionGripperHead",

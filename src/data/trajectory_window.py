@@ -32,21 +32,24 @@ FORBIDDEN_INPUT_KEY_TOKENS = ("target", "future")
 
 @dataclass(frozen=True)
 class RawTrajectory:
-    """One LIBERO-like trajectory with explicit `[T, ...]` arrays.
+    """One LIBERO-like trajectory with explicit ``[T, ...]`` arrays.
 
     Args:
-        images: Raw image observations with shape `[T, H, W, C]`.
-        actions: Robot actions with shape `[T, action_dim]`.
+        images: Raw image observations with shape ``[T, H, W, C]``.
+        actions: Robot actions with shape ``[T, action_dim]``.
         language: Language instruction string for the trajectory.
-        states: Optional state/proprio array with shape `[T, state_dim]`.
-        visual_latents: Optional frozen visual latents with shape
-            `[T, latent_dim]`.
+        states: Optional state/proprio array with shape ``[T, state_dim]``.
+        visual_latents: Optional frozen visual CLS latents with shape
+            ``[T, latent_dim]``.
+        patch_latents: Optional frozen visual patch latents with shape
+            ``[T, N, D]`` where ``N`` is the number of spatial patches and
+            ``D`` is the patch feature dimension.
         task_id: Optional integer task id for task-conditioned baselines.
         task_name: Optional stable task name used for diagnostics.
-        frame_refs: Optional frame references with shape `[T]`, such as
+        frame_refs: Optional frame references with shape ``[T]``, such as
             HDF5 dataset paths or integer frame ids.
         trajectory_id: Stable id used only for sample metadata.
-        split: Split label such as `train`, `val`, or `test`.
+        split: Split label such as ``train``, ``val``, or ``test``.
     """
 
     images: Sequence[Any]
@@ -54,6 +57,7 @@ class RawTrajectory:
     language: str
     states: Sequence[Any] | None = None
     visual_latents: Sequence[Any] | None = None
+    patch_latents: Sequence[Any] | None = None
     task_id: int | None = None
     task_name: str = ""
     frame_refs: Sequence[Any] | None = None
@@ -83,6 +87,11 @@ class RawTrajectory:
             raise ValueError(
                 "visual_latents length "
                 f"{len(self.visual_latents)} does not match images length {self.length}"
+            )
+        if self.patch_latents is not None and len(self.patch_latents) != self.length:
+            raise ValueError(
+                "patch_latents length "
+                f"{len(self.patch_latents)} does not match images length {self.length}"
             )
         if self.task_id is not None and self.task_id < 0:
             raise ValueError("task_id must be non-negative when set")
@@ -136,6 +145,8 @@ class TrajectoryWindowDataset:
         future_horizon: int = 0,
         include_current_latent: bool = False,
         include_future_latents: bool = False,
+        include_current_patch_latents: bool = False,
+        include_future_patch_latents: bool = False,
         include_future_images: bool = False,
         include_future_frame_refs: bool = False,
         split: str | None = None,
@@ -149,6 +160,8 @@ class TrajectoryWindowDataset:
             raise ValueError("future_horizon must be non-negative")
         if include_future_latents and future_horizon <= 0:
             raise ValueError("include_future_latents requires future_horizon > 0")
+        if include_future_patch_latents and future_horizon <= 0:
+            raise ValueError("include_future_patch_latents requires future_horizon > 0")
         if action_convention not in VALID_ACTION_CONVENTIONS:
             raise ValueError(
                 f"action_convention must be one of {sorted(VALID_ACTION_CONVENTIONS)}"
@@ -159,6 +172,8 @@ class TrajectoryWindowDataset:
         self.future_horizon = future_horizon
         self.include_current_latent = include_current_latent
         self.include_future_latents = include_future_latents
+        self.include_current_patch_latents = include_current_patch_latents
+        self.include_future_patch_latents = include_future_patch_latents
         self.include_future_images = include_future_images
         self.include_future_frame_refs = include_future_frame_refs
         self.split = split
@@ -177,6 +192,12 @@ class TrajectoryWindowDataset:
             ):
                 raise ValueError(
                     "visual_latents are required when latent fields are requested"
+                )
+            if (include_current_patch_latents or include_future_patch_latents) and (
+                trajectory.patch_latents is None
+            ):
+                raise ValueError(
+                    "patch_latents are required when patch latent fields are requested"
                 )
 
         self._index: list[tuple[int, int]] = []
@@ -228,6 +249,12 @@ class TrajectoryWindowDataset:
                 raise RuntimeError("visual_latents unexpectedly missing")
             z_t = trajectory.visual_latents[t]
             input_keys.append("z_t")
+        z_t_patch = None
+        if self.include_current_patch_latents:
+            if trajectory.patch_latents is None:
+                raise RuntimeError("patch_latents unexpectedly missing")
+            z_t_patch = trajectory.patch_latents[t]
+            input_keys.append("z_t_patch")
 
         sample: dict[str, Any] = {
             "trajectory_index": trajectory_index,
@@ -241,6 +268,7 @@ class TrajectoryWindowDataset:
             "action_history": slice_sequence(trajectory.actions, history_start, history_stop),
             "optional_state_t": optional_state_t,
             "z_t": z_t,
+            "z_t_patch": z_t_patch,
             "target_actions": slice_sequence(trajectory.actions, target_start, action_end),
             "action_history_indices": list(range(history_start, history_stop)),
             "target_action_indices": list(range(target_start, action_end)),
@@ -262,6 +290,15 @@ class TrajectoryWindowDataset:
                     future_end,
                 )
                 target_keys.append("target_future_latents")
+            if self.include_future_patch_latents:
+                if trajectory.patch_latents is None:
+                    raise RuntimeError("patch_latents unexpectedly missing")
+                sample["target_future_patch_latents"] = slice_sequence(
+                    trajectory.patch_latents,
+                    future_start,
+                    future_end,
+                )
+                target_keys.append("target_future_patch_latents")
             if self.include_future_images:
                 sample["target_future_images"] = slice_sequence(
                     trajectory.images,
@@ -313,6 +350,7 @@ def coerce_trajectory(item: RawTrajectory | Mapping[str, Any], index: int) -> Ra
         language=item["language"],
         states=item.get("states"),
         visual_latents=item.get("visual_latents"),
+        patch_latents=item.get("patch_latents"),
         task_id=item.get("task_id"),
         task_name=item.get("task_name", ""),
         frame_refs=item.get("frame_refs"),
@@ -411,7 +449,10 @@ def make_mock_trajectory_dataset(
     state_dim: int | None = 2,
     include_current_latent: bool = False,
     include_future_latents: bool = False,
+    include_current_patch_latents: bool = False,
+    include_future_patch_latents: bool = False,
     latent_dim: int = 4,
+    num_patches: int = 6,
     include_future_images: bool = True,
     include_future_frame_refs: bool = True,
     split: str = "train",
@@ -420,13 +461,15 @@ def make_mock_trajectory_dataset(
 
     Mock arrays use these shapes:
 
-    - images: `[T, H, W, C]`, every scalar in `images[t]` equals `t`.
-    - actions: `[T, action_dim]`, every scalar in `actions[t]` equals `t`.
-    - states: `[T, state_dim]` when `state_dim` is not `None`, every scalar
-      in `states[t]` equals `t`.
-    - visual_latents: `[T, latent_dim]` when requested, with each scalar in
-      `visual_latents[t]` equal to `t` plus a small dimension offset.
-    - frame references: `[T]`, with integer reference `t`.
+    - images: ``[T, H, W, C]``, every scalar in ``images[t]`` equals ``t``.
+    - actions: ``[T, action_dim]``, every scalar in ``actions[t]`` equals ``t``.
+    - states: ``[T, state_dim]`` when ``state_dim`` is not ``None``, every scalar
+      in ``states[t]`` equals ``t``.
+    - visual_latents: ``[T, latent_dim]`` when requested, with each scalar in
+      ``visual_latents[t]`` equal to ``t`` plus a small dimension offset.
+    - patch_latents: ``[T, num_patches, latent_dim]`` when requested, with
+      each scalar encoding ``t`` plus spatial and feature offsets.
+    - frame references: ``[T]``, with integer reference ``t``.
     """
 
     images = [filled_image(t, image_shape) for t in range(length)]
@@ -440,12 +483,22 @@ def make_mock_trajectory_dataset(
             [float(t) + 0.01 * float(dim) for dim in range(latent_dim)]
             for t in range(length)
         ]
+    patch_latents = None
+    if include_current_patch_latents or include_future_patch_latents:
+        patch_latents = [
+            [
+                [float(t) + 0.01 * float(p) + 0.001 * float(d) for d in range(latent_dim)]
+                for p in range(num_patches)
+            ]
+            for t in range(length)
+        ]
 
     trajectory = RawTrajectory(
         images=images,
         actions=actions,
         states=states,
         visual_latents=visual_latents,
+        patch_latents=patch_latents,
         frame_refs=list(range(length)),
         language="mock instruction",
         trajectory_id="mock_trajectory_0",
@@ -458,6 +511,8 @@ def make_mock_trajectory_dataset(
         future_horizon=future_horizon,
         include_current_latent=include_current_latent,
         include_future_latents=include_future_latents,
+        include_current_patch_latents=include_current_patch_latents,
+        include_future_patch_latents=include_future_patch_latents,
         include_future_images=include_future_images,
         include_future_frame_refs=include_future_frame_refs,
         split=split,

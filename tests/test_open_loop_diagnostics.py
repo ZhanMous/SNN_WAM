@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip("torch")
 import torch
 
 from src.eval.open_loop_diagnostics import (
