@@ -1,0 +1,6 @@
+variant,teacher_forced_mse
+baseline,0.01424364373087883
+history_noise_aug,0.009913524612784386
+history_dropout_aug,0.010671366937458515
+diagnostic_regularization,0.014240054413676262
+offline_multistep_loss,0.015084147453308105

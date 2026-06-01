@@ -1,0 +1,1 @@
+/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python -m src.eval.g11_autoregressive_stabilization --config configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml --output_dir results/g11_autoregressive_stabilization --epochs 300 --device cpu --seed 0 --hidden_dim 256

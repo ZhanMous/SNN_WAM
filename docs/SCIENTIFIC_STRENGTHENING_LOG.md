@@ -2,6 +2,57 @@
 
 This log tracks the progressive strengthening of diagnostic evidence and methodological rigor.
 
+## 2026-06-01: G11 Autoregressive Stabilization and Closed-Loop Readiness Gate
+
+**Stage:** G11 offline autoregressive stabilization
+**Status:** Code implemented, tests pass (22/22), experiments completed
+
+### What was implemented
+
+1. **Three-mode autoregressive evaluator** (`run_single_trajectory_autoregressive`):
+   - `teacher_forced_h1`: Ground-truth history at every step (baseline).
+   - `autoregressive_open_loop`: Predicted actions fed back into history, over recorded observation/state sequence. No environment interaction.
+   - `corrupted_history_robustness`: Ground-truth history with controlled Gaussian noise perturbations.
+
+2. **Five stabilization training variants**:
+   - `history_noise_aug`: Perturb action_history with noise from empirical residual distribution during training. Best variant: teacher_forced_mse=0.0099 (1.4x over baseline), autoregressive full-sequence MSE=0.99 (8.9x reduction).
+   - `history_dropout_aug`: Randomly replace 20% of history entries with last_action. teacher_forced_mse=0.0107, autoregressive MSE=1.46.
+   - `offline_multistep_loss`: Multi-step unrolled loss with smoothness regularization. teacher_forced_mse=0.0151, autoregressive MSE=1.89.
+   - `diagnostic_regularization`: Temporal smoothness regularization. teacher_forced_mse=0.0142, autoregressive MSE=3.88.
+   - `baseline`: No augmentation (standard residual training).
+
+3. **Baseline ladder comparison**: Evaluated last_action, direct_action_action_history_gru, residual_action_action_history_gru, residual_action_full_state_plus_history, and residual_action_full_state_plus_history_separate_heads under both teacher-forced and autoregressive modes.
+
+4. **Multi-demo autoregressive evaluation**: Trained on one demo, evaluated autoregressively on 5 held-out demos from the same task. Held-out demo mean MSE=9.30.
+
+5. **Failure mode analysis**: Worst demo identified, worst continuous dimension is delta_pos_z (not delta_rot_x as in G9 teacher-forced), gripper accuracy drops to 52% under autoregressive rollout.
+
+6. **Closed-loop readiness gate**: Predeclared criteria assessed. Gate does NOT pass: (1) error growth not fully resolved, (2) severe phase blowup above 0.5, (3) gripper accuracy collapses, (4) held-out demo error high.
+
+### Key findings
+
+- **History noise augmentation is the best stabilization variant**: Reduces autoregressive full-sequence MSE from 8.86 to 0.99 (8.9x reduction) and error growth slope from 0.57 to 0.05.
+- **delta_pos_z is the dominant autoregressive failure dimension** (MSE=192.1), not delta_rot_x (MSE=2.1). This differs from G9 teacher-forced findings.
+- **Gripper accuracy collapses** from 100% to 52% under autoregressive rollout, even with stabilization.
+- **Offline closed-loop readiness gate does NOT pass**: Compounding error is reduced but not eliminated. No closed-loop experiment should be attempted.
+
+### Design decisions
+
+- **Offline-only**: No environment interaction. All evaluation uses recorded observation/state sequences.
+- **Residual action preserved**: All variants use residual continuous + gripper classification.
+- **Predeclared gate criteria**: Readiness gate criteria defined before running experiments.
+- **Conservative claims**: No closed-loop success claim, no architecture claim, no future-latent claim.
+
+### What is NOT claimed
+
+- Closed-loop success
+- Future-latent improves/harms/no-effect on performance
+- WAM-GRU architecture is valid or invalid
+- DINOv2 or DINO-WM is unsuitable
+- Offline autoregressive improvement guarantees closed-loop improvement
+- full_state_92d is true oracle state
+- The readiness gate passing would guarantee closed-loop success
+
 ## 2026-05-29: G6 Representation Bottleneck Diagnostic
 
 **Stage:** G6 representation bottleneck diagnostics

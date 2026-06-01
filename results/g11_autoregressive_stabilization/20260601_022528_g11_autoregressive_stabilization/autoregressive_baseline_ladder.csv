@@ -1,0 +1,12 @@
+model,mode,horizon,continuous_normalized_mse,continuous_raw_mae,gripper_sign_accuracy
+last_action,teacher_forced_h1,val_split,0.036254312843084335,0.024056918919086456,0.9791666865348816
+direct_action_action_history_gru,teacher_forced_h1,val_split,0.03140413388609886,0.02332349307835102,0.96875
+residual_action_action_history_gru,teacher_forced_h1,val_split,0.01424364373087883,0.014186950400471687,0.9791666865348816
+residual_action_full_state_plus_history,teacher_forced_h1,val_split,0.012664121575653553,0.014012164436280727,0.9791666865348816
+residual_action_full_state_plus_history_separate_heads,teacher_forced_h1,val_split,0.013017797842621803,0.01563403196632862,0.9791666865348816
+last_action,autoregressive_open_loop,1,0.04311244562268257,0.0312500037252903,1.0
+last_action,autoregressive_open_loop,5,0.13915380835533142,0.053357142955064774,1.0
+last_action,autoregressive_open_loop,10,0.177061066031456,0.07737500220537186,1.0
+last_action,autoregressive_open_loop,20,0.6645084619522095,0.1271696537733078,1.0
+last_action,autoregressive_open_loop,40,0.8407895565032959,0.16839508712291718,0.7749999761581421
+last_action,autoregressive_open_loop,60,0.8604430556297302,0.17680951952934265,0.5166666507720947

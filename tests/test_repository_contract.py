@@ -368,6 +368,7 @@ def test_only_phase1_offline_model_training_code_is_present_for_model_gate() -> 
         "src/eval/g8_mixed_action_metrics.py",
         "src/eval/g9_residual_action_repair.py",
         "src/eval/g10_residual_action_head.py",
+        "src/eval/g11_autoregressive_stabilization.py",
         "src/eval/open_loop_diagnostics.py",
         "src/eval/single_demo_overfit.py",
         "src/eval/overfit_diagnostics.py",
