@@ -1,0 +1,1444 @@
+Opening: /home/zhan_shaoji/data/libero/datasets/libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5
+Exists: True
+
+=== TOP-LEVEL KEYS ===
+  data: <class 'h5py._hl.group.Group'>
+
+=== data/ GROUP ===
+  demo_0/ (group)
+    actions: shape=(103, 7), dtype=float64
+    dones: shape=(103,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(103, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(103, 3), dtype=float64
+      ee_pos: shape=(103, 3), dtype=float64
+      ee_states: shape=(103, 6), dtype=float64
+      eye_in_hand_rgb: shape=(103, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(103, 2), dtype=float64
+      joint_states: shape=(103, 7), dtype=float64
+    rewards: shape=(103,), dtype=uint8
+    robot_states: shape=(103, 9), dtype=float64
+    states: shape=(103, 92), dtype=float64
+  demo_1/ (group)
+    actions: shape=(123, 7), dtype=float64
+    dones: shape=(123,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(123, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(123, 3), dtype=float64
+      ee_pos: shape=(123, 3), dtype=float64
+      ee_states: shape=(123, 6), dtype=float64
+      eye_in_hand_rgb: shape=(123, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(123, 2), dtype=float64
+      joint_states: shape=(123, 7), dtype=float64
+    rewards: shape=(123,), dtype=uint8
+    robot_states: shape=(123, 9), dtype=float64
+    states: shape=(123, 92), dtype=float64
+  demo_10/ (group)
+    actions: shape=(109, 7), dtype=float64
+    dones: shape=(109,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(109, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(109, 3), dtype=float64
+      ee_pos: shape=(109, 3), dtype=float64
+      ee_states: shape=(109, 6), dtype=float64
+      eye_in_hand_rgb: shape=(109, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(109, 2), dtype=float64
+      joint_states: shape=(109, 7), dtype=float64
+    rewards: shape=(109,), dtype=uint8
+    robot_states: shape=(109, 9), dtype=float64
+    states: shape=(109, 92), dtype=float64
+  demo_11/ (group)
+    actions: shape=(101, 7), dtype=float64
+    dones: shape=(101,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(101, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(101, 3), dtype=float64
+      ee_pos: shape=(101, 3), dtype=float64
+      ee_states: shape=(101, 6), dtype=float64
+      eye_in_hand_rgb: shape=(101, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(101, 2), dtype=float64
+      joint_states: shape=(101, 7), dtype=float64
+    rewards: shape=(101,), dtype=uint8
+    robot_states: shape=(101, 9), dtype=float64
+    states: shape=(101, 92), dtype=float64
+  demo_12/ (group)
+    actions: shape=(124, 7), dtype=float64
+    dones: shape=(124,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(124, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(124, 3), dtype=float64
+      ee_pos: shape=(124, 3), dtype=float64
+      ee_states: shape=(124, 6), dtype=float64
+      eye_in_hand_rgb: shape=(124, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(124, 2), dtype=float64
+      joint_states: shape=(124, 7), dtype=float64
+    rewards: shape=(124,), dtype=uint8
+    robot_states: shape=(124, 9), dtype=float64
+    states: shape=(124, 92), dtype=float64
+  demo_13/ (group)
+    actions: shape=(122, 7), dtype=float64
+    dones: shape=(122,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(122, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(122, 3), dtype=float64
+      ee_pos: shape=(122, 3), dtype=float64
+      ee_states: shape=(122, 6), dtype=float64
+      eye_in_hand_rgb: shape=(122, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(122, 2), dtype=float64
+      joint_states: shape=(122, 7), dtype=float64
+    rewards: shape=(122,), dtype=uint8
+    robot_states: shape=(122, 9), dtype=float64
+    states: shape=(122, 92), dtype=float64
+  demo_14/ (group)
+    actions: shape=(114, 7), dtype=float64
+    dones: shape=(114,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(114, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(114, 3), dtype=float64
+      ee_pos: shape=(114, 3), dtype=float64
+      ee_states: shape=(114, 6), dtype=float64
+      eye_in_hand_rgb: shape=(114, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(114, 2), dtype=float64
+      joint_states: shape=(114, 7), dtype=float64
+    rewards: shape=(114,), dtype=uint8
+    robot_states: shape=(114, 9), dtype=float64
+    states: shape=(114, 92), dtype=float64
+  demo_15/ (group)
+    actions: shape=(136, 7), dtype=float64
+    dones: shape=(136,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(136, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(136, 3), dtype=float64
+      ee_pos: shape=(136, 3), dtype=float64
+      ee_states: shape=(136, 6), dtype=float64
+      eye_in_hand_rgb: shape=(136, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(136, 2), dtype=float64
+      joint_states: shape=(136, 7), dtype=float64
+    rewards: shape=(136,), dtype=uint8
+    robot_states: shape=(136, 9), dtype=float64
+    states: shape=(136, 92), dtype=float64
+  demo_16/ (group)
+    actions: shape=(105, 7), dtype=float64
+    dones: shape=(105,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(105, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(105, 3), dtype=float64
+      ee_pos: shape=(105, 3), dtype=float64
+      ee_states: shape=(105, 6), dtype=float64
+      eye_in_hand_rgb: shape=(105, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(105, 2), dtype=float64
+      joint_states: shape=(105, 7), dtype=float64
+    rewards: shape=(105,), dtype=uint8
+    robot_states: shape=(105, 9), dtype=float64
+    states: shape=(105, 92), dtype=float64
+  demo_17/ (group)
+    actions: shape=(164, 7), dtype=float64
+    dones: shape=(164,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(164, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(164, 3), dtype=float64
+      ee_pos: shape=(164, 3), dtype=float64
+      ee_states: shape=(164, 6), dtype=float64
+      eye_in_hand_rgb: shape=(164, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(164, 2), dtype=float64
+      joint_states: shape=(164, 7), dtype=float64
+    rewards: shape=(164,), dtype=uint8
+    robot_states: shape=(164, 9), dtype=float64
+    states: shape=(164, 92), dtype=float64
+  demo_18/ (group)
+    actions: shape=(107, 7), dtype=float64
+    dones: shape=(107,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(107, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(107, 3), dtype=float64
+      ee_pos: shape=(107, 3), dtype=float64
+      ee_states: shape=(107, 6), dtype=float64
+      eye_in_hand_rgb: shape=(107, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(107, 2), dtype=float64
+      joint_states: shape=(107, 7), dtype=float64
+    rewards: shape=(107,), dtype=uint8
+    robot_states: shape=(107, 9), dtype=float64
+    states: shape=(107, 92), dtype=float64
+  demo_19/ (group)
+    actions: shape=(98, 7), dtype=float64
+    dones: shape=(98,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(98, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(98, 3), dtype=float64
+      ee_pos: shape=(98, 3), dtype=float64
+      ee_states: shape=(98, 6), dtype=float64
+      eye_in_hand_rgb: shape=(98, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(98, 2), dtype=float64
+      joint_states: shape=(98, 7), dtype=float64
+    rewards: shape=(98,), dtype=uint8
+    robot_states: shape=(98, 9), dtype=float64
+    states: shape=(98, 92), dtype=float64
+  demo_2/ (group)
+    actions: shape=(122, 7), dtype=float64
+    dones: shape=(122,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(122, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(122, 3), dtype=float64
+      ee_pos: shape=(122, 3), dtype=float64
+      ee_states: shape=(122, 6), dtype=float64
+      eye_in_hand_rgb: shape=(122, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(122, 2), dtype=float64
+      joint_states: shape=(122, 7), dtype=float64
+    rewards: shape=(122,), dtype=uint8
+    robot_states: shape=(122, 9), dtype=float64
+    states: shape=(122, 92), dtype=float64
+  demo_20/ (group)
+    actions: shape=(117, 7), dtype=float64
+    dones: shape=(117,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(117, 3), dtype=float64
+      ee_pos: shape=(117, 3), dtype=float64
+      ee_states: shape=(117, 6), dtype=float64
+      eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(117, 2), dtype=float64
+      joint_states: shape=(117, 7), dtype=float64
+    rewards: shape=(117,), dtype=uint8
+    robot_states: shape=(117, 9), dtype=float64
+    states: shape=(117, 92), dtype=float64
+  demo_21/ (group)
+    actions: shape=(108, 7), dtype=float64
+    dones: shape=(108,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(108, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(108, 3), dtype=float64
+      ee_pos: shape=(108, 3), dtype=float64
+      ee_states: shape=(108, 6), dtype=float64
+      eye_in_hand_rgb: shape=(108, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(108, 2), dtype=float64
+      joint_states: shape=(108, 7), dtype=float64
+    rewards: shape=(108,), dtype=uint8
+    robot_states: shape=(108, 9), dtype=float64
+    states: shape=(108, 92), dtype=float64
+  demo_22/ (group)
+    actions: shape=(117, 7), dtype=float64
+    dones: shape=(117,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(117, 3), dtype=float64
+      ee_pos: shape=(117, 3), dtype=float64
+      ee_states: shape=(117, 6), dtype=float64
+      eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(117, 2), dtype=float64
+      joint_states: shape=(117, 7), dtype=float64
+    rewards: shape=(117,), dtype=uint8
+    robot_states: shape=(117, 9), dtype=float64
+    states: shape=(117, 92), dtype=float64
+  demo_23/ (group)
+    actions: shape=(117, 7), dtype=float64
+    dones: shape=(117,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(117, 3), dtype=float64
+      ee_pos: shape=(117, 3), dtype=float64
+      ee_states: shape=(117, 6), dtype=float64
+      eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(117, 2), dtype=float64
+      joint_states: shape=(117, 7), dtype=float64
+    rewards: shape=(117,), dtype=uint8
+    robot_states: shape=(117, 9), dtype=float64
+    states: shape=(117, 92), dtype=float64
+  demo_24/ (group)
+    actions: shape=(106, 7), dtype=float64
+    dones: shape=(106,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(106, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(106, 3), dtype=float64
+      ee_pos: shape=(106, 3), dtype=float64
+      ee_states: shape=(106, 6), dtype=float64
+      eye_in_hand_rgb: shape=(106, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(106, 2), dtype=float64
+      joint_states: shape=(106, 7), dtype=float64
+    rewards: shape=(106,), dtype=uint8
+    robot_states: shape=(106, 9), dtype=float64
+    states: shape=(106, 92), dtype=float64
+  demo_25/ (group)
+    actions: shape=(117, 7), dtype=float64
+    dones: shape=(117,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(117, 3), dtype=float64
+      ee_pos: shape=(117, 3), dtype=float64
+      ee_states: shape=(117, 6), dtype=float64
+      eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(117, 2), dtype=float64
+      joint_states: shape=(117, 7), dtype=float64
+    rewards: shape=(117,), dtype=uint8
+    robot_states: shape=(117, 9), dtype=float64
+    states: shape=(117, 92), dtype=float64
+  demo_26/ (group)
+    actions: shape=(143, 7), dtype=float64
+    dones: shape=(143,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(143, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(143, 3), dtype=float64
+      ee_pos: shape=(143, 3), dtype=float64
+      ee_states: shape=(143, 6), dtype=float64
+      eye_in_hand_rgb: shape=(143, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(143, 2), dtype=float64
+      joint_states: shape=(143, 7), dtype=float64
+    rewards: shape=(143,), dtype=uint8
+    robot_states: shape=(143, 9), dtype=float64
+    states: shape=(143, 92), dtype=float64
+  demo_27/ (group)
+    actions: shape=(125, 7), dtype=float64
+    dones: shape=(125,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(125, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(125, 3), dtype=float64
+      ee_pos: shape=(125, 3), dtype=float64
+      ee_states: shape=(125, 6), dtype=float64
+      eye_in_hand_rgb: shape=(125, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(125, 2), dtype=float64
+      joint_states: shape=(125, 7), dtype=float64
+    rewards: shape=(125,), dtype=uint8
+    robot_states: shape=(125, 9), dtype=float64
+    states: shape=(125, 92), dtype=float64
+  demo_28/ (group)
+    actions: shape=(111, 7), dtype=float64
+    dones: shape=(111,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(111, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(111, 3), dtype=float64
+      ee_pos: shape=(111, 3), dtype=float64
+      ee_states: shape=(111, 6), dtype=float64
+      eye_in_hand_rgb: shape=(111, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(111, 2), dtype=float64
+      joint_states: shape=(111, 7), dtype=float64
+    rewards: shape=(111,), dtype=uint8
+    robot_states: shape=(111, 9), dtype=float64
+    states: shape=(111, 92), dtype=float64
+  demo_29/ (group)
+    actions: shape=(110, 7), dtype=float64
+    dones: shape=(110,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(110, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(110, 3), dtype=float64
+      ee_pos: shape=(110, 3), dtype=float64
+      ee_states: shape=(110, 6), dtype=float64
+      eye_in_hand_rgb: shape=(110, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(110, 2), dtype=float64
+      joint_states: shape=(110, 7), dtype=float64
+    rewards: shape=(110,), dtype=uint8
+    robot_states: shape=(110, 9), dtype=float64
+    states: shape=(110, 92), dtype=float64
+  demo_3/ (group)
+    actions: shape=(102, 7), dtype=float64
+    dones: shape=(102,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(102, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(102, 3), dtype=float64
+      ee_pos: shape=(102, 3), dtype=float64
+      ee_states: shape=(102, 6), dtype=float64
+      eye_in_hand_rgb: shape=(102, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(102, 2), dtype=float64
+      joint_states: shape=(102, 7), dtype=float64
+    rewards: shape=(102,), dtype=uint8
+    robot_states: shape=(102, 9), dtype=float64
+    states: shape=(102, 92), dtype=float64
+  demo_30/ (group)
+    actions: shape=(115, 7), dtype=float64
+    dones: shape=(115,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(115, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(115, 3), dtype=float64
+      ee_pos: shape=(115, 3), dtype=float64
+      ee_states: shape=(115, 6), dtype=float64
+      eye_in_hand_rgb: shape=(115, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(115, 2), dtype=float64
+      joint_states: shape=(115, 7), dtype=float64
+    rewards: shape=(115,), dtype=uint8
+    robot_states: shape=(115, 9), dtype=float64
+    states: shape=(115, 92), dtype=float64
+  demo_31/ (group)
+    actions: shape=(122, 7), dtype=float64
+    dones: shape=(122,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(122, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(122, 3), dtype=float64
+      ee_pos: shape=(122, 3), dtype=float64
+      ee_states: shape=(122, 6), dtype=float64
+      eye_in_hand_rgb: shape=(122, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(122, 2), dtype=float64
+      joint_states: shape=(122, 7), dtype=float64
+    rewards: shape=(122,), dtype=uint8
+    robot_states: shape=(122, 9), dtype=float64
+    states: shape=(122, 92), dtype=float64
+  demo_32/ (group)
+    actions: shape=(119, 7), dtype=float64
+    dones: shape=(119,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(119, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(119, 3), dtype=float64
+      ee_pos: shape=(119, 3), dtype=float64
+      ee_states: shape=(119, 6), dtype=float64
+      eye_in_hand_rgb: shape=(119, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(119, 2), dtype=float64
+      joint_states: shape=(119, 7), dtype=float64
+    rewards: shape=(119,), dtype=uint8
+    robot_states: shape=(119, 9), dtype=float64
+    states: shape=(119, 92), dtype=float64
+  demo_33/ (group)
+    actions: shape=(121, 7), dtype=float64
+    dones: shape=(121,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(121, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(121, 3), dtype=float64
+      ee_pos: shape=(121, 3), dtype=float64
+      ee_states: shape=(121, 6), dtype=float64
+      eye_in_hand_rgb: shape=(121, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(121, 2), dtype=float64
+      joint_states: shape=(121, 7), dtype=float64
+    rewards: shape=(121,), dtype=uint8
+    robot_states: shape=(121, 9), dtype=float64
+    states: shape=(121, 92), dtype=float64
+  demo_34/ (group)
+    actions: shape=(131, 7), dtype=float64
+    dones: shape=(131,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(131, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(131, 3), dtype=float64
+      ee_pos: shape=(131, 3), dtype=float64
+      ee_states: shape=(131, 6), dtype=float64
+      eye_in_hand_rgb: shape=(131, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(131, 2), dtype=float64
+      joint_states: shape=(131, 7), dtype=float64
+    rewards: shape=(131,), dtype=uint8
+    robot_states: shape=(131, 9), dtype=float64
+    states: shape=(131, 92), dtype=float64
+  demo_35/ (group)
+    actions: shape=(140, 7), dtype=float64
+    dones: shape=(140,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(140, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(140, 3), dtype=float64
+      ee_pos: shape=(140, 3), dtype=float64
+      ee_states: shape=(140, 6), dtype=float64
+      eye_in_hand_rgb: shape=(140, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(140, 2), dtype=float64
+      joint_states: shape=(140, 7), dtype=float64
+    rewards: shape=(140,), dtype=uint8
+    robot_states: shape=(140, 9), dtype=float64
+    states: shape=(140, 92), dtype=float64
+  demo_36/ (group)
+    actions: shape=(121, 7), dtype=float64
+    dones: shape=(121,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(121, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(121, 3), dtype=float64
+      ee_pos: shape=(121, 3), dtype=float64
+      ee_states: shape=(121, 6), dtype=float64
+      eye_in_hand_rgb: shape=(121, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(121, 2), dtype=float64
+      joint_states: shape=(121, 7), dtype=float64
+    rewards: shape=(121,), dtype=uint8
+    robot_states: shape=(121, 9), dtype=float64
+    states: shape=(121, 92), dtype=float64
+  demo_37/ (group)
+    actions: shape=(129, 7), dtype=float64
+    dones: shape=(129,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(129, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(129, 3), dtype=float64
+      ee_pos: shape=(129, 3), dtype=float64
+      ee_states: shape=(129, 6), dtype=float64
+      eye_in_hand_rgb: shape=(129, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(129, 2), dtype=float64
+      joint_states: shape=(129, 7), dtype=float64
+    rewards: shape=(129,), dtype=uint8
+    robot_states: shape=(129, 9), dtype=float64
+    states: shape=(129, 92), dtype=float64
+  demo_38/ (group)
+    actions: shape=(114, 7), dtype=float64
+    dones: shape=(114,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(114, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(114, 3), dtype=float64
+      ee_pos: shape=(114, 3), dtype=float64
+      ee_states: shape=(114, 6), dtype=float64
+      eye_in_hand_rgb: shape=(114, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(114, 2), dtype=float64
+      joint_states: shape=(114, 7), dtype=float64
+    rewards: shape=(114,), dtype=uint8
+    robot_states: shape=(114, 9), dtype=float64
+    states: shape=(114, 92), dtype=float64
+  demo_39/ (group)
+    actions: shape=(115, 7), dtype=float64
+    dones: shape=(115,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(115, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(115, 3), dtype=float64
+      ee_pos: shape=(115, 3), dtype=float64
+      ee_states: shape=(115, 6), dtype=float64
+      eye_in_hand_rgb: shape=(115, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(115, 2), dtype=float64
+      joint_states: shape=(115, 7), dtype=float64
+    rewards: shape=(115,), dtype=uint8
+    robot_states: shape=(115, 9), dtype=float64
+    states: shape=(115, 92), dtype=float64
+  demo_4/ (group)
+    actions: shape=(111, 7), dtype=float64
+    dones: shape=(111,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(111, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(111, 3), dtype=float64
+      ee_pos: shape=(111, 3), dtype=float64
+      ee_states: shape=(111, 6), dtype=float64
+      eye_in_hand_rgb: shape=(111, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(111, 2), dtype=float64
+      joint_states: shape=(111, 7), dtype=float64
+    rewards: shape=(111,), dtype=uint8
+    robot_states: shape=(111, 9), dtype=float64
+    states: shape=(111, 92), dtype=float64
+  demo_40/ (group)
+    actions: shape=(108, 7), dtype=float64
+    dones: shape=(108,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(108, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(108, 3), dtype=float64
+      ee_pos: shape=(108, 3), dtype=float64
+      ee_states: shape=(108, 6), dtype=float64
+      eye_in_hand_rgb: shape=(108, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(108, 2), dtype=float64
+      joint_states: shape=(108, 7), dtype=float64
+    rewards: shape=(108,), dtype=uint8
+    robot_states: shape=(108, 9), dtype=float64
+    states: shape=(108, 92), dtype=float64
+  demo_41/ (group)
+    actions: shape=(106, 7), dtype=float64
+    dones: shape=(106,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(106, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(106, 3), dtype=float64
+      ee_pos: shape=(106, 3), dtype=float64
+      ee_states: shape=(106, 6), dtype=float64
+      eye_in_hand_rgb: shape=(106, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(106, 2), dtype=float64
+      joint_states: shape=(106, 7), dtype=float64
+    rewards: shape=(106,), dtype=uint8
+    robot_states: shape=(106, 9), dtype=float64
+    states: shape=(106, 92), dtype=float64
+  demo_42/ (group)
+    actions: shape=(138, 7), dtype=float64
+    dones: shape=(138,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(138, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(138, 3), dtype=float64
+      ee_pos: shape=(138, 3), dtype=float64
+      ee_states: shape=(138, 6), dtype=float64
+      eye_in_hand_rgb: shape=(138, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(138, 2), dtype=float64
+      joint_states: shape=(138, 7), dtype=float64
+    rewards: shape=(138,), dtype=uint8
+    robot_states: shape=(138, 9), dtype=float64
+    states: shape=(138, 92), dtype=float64
+  demo_43/ (group)
+    actions: shape=(93, 7), dtype=float64
+    dones: shape=(93,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(93, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(93, 3), dtype=float64
+      ee_pos: shape=(93, 3), dtype=float64
+      ee_states: shape=(93, 6), dtype=float64
+      eye_in_hand_rgb: shape=(93, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(93, 2), dtype=float64
+      joint_states: shape=(93, 7), dtype=float64
+    rewards: shape=(93,), dtype=uint8
+    robot_states: shape=(93, 9), dtype=float64
+    states: shape=(93, 92), dtype=float64
+  demo_44/ (group)
+    actions: shape=(100, 7), dtype=float64
+    dones: shape=(100,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(100, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(100, 3), dtype=float64
+      ee_pos: shape=(100, 3), dtype=float64
+      ee_states: shape=(100, 6), dtype=float64
+      eye_in_hand_rgb: shape=(100, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(100, 2), dtype=float64
+      joint_states: shape=(100, 7), dtype=float64
+    rewards: shape=(100,), dtype=uint8
+    robot_states: shape=(100, 9), dtype=float64
+    states: shape=(100, 92), dtype=float64
+  demo_45/ (group)
+    actions: shape=(126, 7), dtype=float64
+    dones: shape=(126,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(126, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(126, 3), dtype=float64
+      ee_pos: shape=(126, 3), dtype=float64
+      ee_states: shape=(126, 6), dtype=float64
+      eye_in_hand_rgb: shape=(126, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(126, 2), dtype=float64
+      joint_states: shape=(126, 7), dtype=float64
+    rewards: shape=(126,), dtype=uint8
+    robot_states: shape=(126, 9), dtype=float64
+    states: shape=(126, 92), dtype=float64
+  demo_46/ (group)
+    actions: shape=(125, 7), dtype=float64
+    dones: shape=(125,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(125, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(125, 3), dtype=float64
+      ee_pos: shape=(125, 3), dtype=float64
+      ee_states: shape=(125, 6), dtype=float64
+      eye_in_hand_rgb: shape=(125, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(125, 2), dtype=float64
+      joint_states: shape=(125, 7), dtype=float64
+    rewards: shape=(125,), dtype=uint8
+    robot_states: shape=(125, 9), dtype=float64
+    states: shape=(125, 92), dtype=float64
+  demo_47/ (group)
+    actions: shape=(117, 7), dtype=float64
+    dones: shape=(117,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(117, 3), dtype=float64
+      ee_pos: shape=(117, 3), dtype=float64
+      ee_states: shape=(117, 6), dtype=float64
+      eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(117, 2), dtype=float64
+      joint_states: shape=(117, 7), dtype=float64
+    rewards: shape=(117,), dtype=uint8
+    robot_states: shape=(117, 9), dtype=float64
+    states: shape=(117, 92), dtype=float64
+  demo_48/ (group)
+    actions: shape=(131, 7), dtype=float64
+    dones: shape=(131,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(131, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(131, 3), dtype=float64
+      ee_pos: shape=(131, 3), dtype=float64
+      ee_states: shape=(131, 6), dtype=float64
+      eye_in_hand_rgb: shape=(131, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(131, 2), dtype=float64
+      joint_states: shape=(131, 7), dtype=float64
+    rewards: shape=(131,), dtype=uint8
+    robot_states: shape=(131, 9), dtype=float64
+    states: shape=(131, 92), dtype=float64
+  demo_49/ (group)
+    actions: shape=(135, 7), dtype=float64
+    dones: shape=(135,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(135, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(135, 3), dtype=float64
+      ee_pos: shape=(135, 3), dtype=float64
+      ee_states: shape=(135, 6), dtype=float64
+      eye_in_hand_rgb: shape=(135, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(135, 2), dtype=float64
+      joint_states: shape=(135, 7), dtype=float64
+    rewards: shape=(135,), dtype=uint8
+    robot_states: shape=(135, 9), dtype=float64
+    states: shape=(135, 92), dtype=float64
+  demo_5/ (group)
+    actions: shape=(111, 7), dtype=float64
+    dones: shape=(111,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(111, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(111, 3), dtype=float64
+      ee_pos: shape=(111, 3), dtype=float64
+      ee_states: shape=(111, 6), dtype=float64
+      eye_in_hand_rgb: shape=(111, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(111, 2), dtype=float64
+      joint_states: shape=(111, 7), dtype=float64
+    rewards: shape=(111,), dtype=uint8
+    robot_states: shape=(111, 9), dtype=float64
+    states: shape=(111, 92), dtype=float64
+  demo_6/ (group)
+    actions: shape=(109, 7), dtype=float64
+    dones: shape=(109,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(109, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(109, 3), dtype=float64
+      ee_pos: shape=(109, 3), dtype=float64
+      ee_states: shape=(109, 6), dtype=float64
+      eye_in_hand_rgb: shape=(109, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(109, 2), dtype=float64
+      joint_states: shape=(109, 7), dtype=float64
+    rewards: shape=(109,), dtype=uint8
+    robot_states: shape=(109, 9), dtype=float64
+    states: shape=(109, 92), dtype=float64
+  demo_7/ (group)
+    actions: shape=(123, 7), dtype=float64
+    dones: shape=(123,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(123, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(123, 3), dtype=float64
+      ee_pos: shape=(123, 3), dtype=float64
+      ee_states: shape=(123, 6), dtype=float64
+      eye_in_hand_rgb: shape=(123, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(123, 2), dtype=float64
+      joint_states: shape=(123, 7), dtype=float64
+    rewards: shape=(123,), dtype=uint8
+    robot_states: shape=(123, 9), dtype=float64
+    states: shape=(123, 92), dtype=float64
+  demo_8/ (group)
+    actions: shape=(111, 7), dtype=float64
+    dones: shape=(111,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(111, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(111, 3), dtype=float64
+      ee_pos: shape=(111, 3), dtype=float64
+      ee_states: shape=(111, 6), dtype=float64
+      eye_in_hand_rgb: shape=(111, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(111, 2), dtype=float64
+      joint_states: shape=(111, 7), dtype=float64
+    rewards: shape=(111,), dtype=uint8
+    robot_states: shape=(111, 9), dtype=float64
+    states: shape=(111, 92), dtype=float64
+  demo_9/ (group)
+    actions: shape=(110, 7), dtype=float64
+    dones: shape=(110,), dtype=uint8
+    obs/ (group)
+      agentview_rgb: shape=(110, 128, 128, 3), dtype=uint8
+      ee_ori: shape=(110, 3), dtype=float64
+      ee_pos: shape=(110, 3), dtype=float64
+      ee_states: shape=(110, 6), dtype=float64
+      eye_in_hand_rgb: shape=(110, 128, 128, 3), dtype=uint8
+      gripper_states: shape=(110, 2), dtype=float64
+      joint_states: shape=(110, 7), dtype=float64
+    rewards: shape=(110,), dtype=uint8
+    robot_states: shape=(110, 9), dtype=float64
+    states: shape=(110, 92), dtype=float64
+
+=== ATTRS on data/demo_0 ===
+  init_state: array([ 2.50000000e-01, -2.30872374e-03, -1.40661534e-01, -2.05152336e-03,
+       -2.42226009e+00,  3.85765689e-03,  2.22675850e+00,  7.88590084e-01,
+        3.40580917e-02, -3.40542795e-02, -7.50002934e-02,  6.21231088e-04,
+        8.98158515e-01,  7.07106778e-01, -1.07245372e-05, -1.43106170e-06,
+
+  model_file: '<mujoco model="base">\n  <compiler angle="radian" meshdir="meshes/" autolimits="true"/>\n  <option impratio="20" density="1.2" viscosity="2e-05" cone="elliptic"/>\n  <size njmax="5000" nconmax="5000"/>\n  <visual>\n    <map znear="0.001"/>\n  </visual>\n  <default class="main"/>\n  <asset>\n    <te
+  num_samples: 103
+
+=== ATTRS on data/demo_0/obs ===
+  obs/agentview_rgb: shape=(103, 128, 128, 3), dtype=uint8
+  obs/ee_ori: shape=(103, 3), dtype=float64
+  obs/ee_pos: shape=(103, 3), dtype=float64
+  obs/ee_states: shape=(103, 6), dtype=float64
+  obs/eye_in_hand_rgb: shape=(103, 128, 128, 3), dtype=uint8
+  obs/gripper_states: shape=(103, 2), dtype=float64
+  obs/joint_states: shape=(103, 7), dtype=float64
+
+=== ACTION SAMPLE (first 5 timesteps) ===
+  shape: (103, 7), dtype: float64
+  t=0: [0.024107142857142858, 0.0, -0.0, 0.0, 0.0, -0.0, -1.0]
+  t=1: [0.12053571428571427, 0.0, -0.0, 0.0, 0.0, -0.004285714285714286, -1.0]
+  t=2: [0.24107142857142855, 0.06964285714285715, 0.005357142857142857, 0.0, 0.0, -0.010714285714285714, -1.0]
+  t=3: [0.3803571428571429, 0.13660714285714284, 0.018750000000000003, -0.011785714285714287, 0.0, -0.0, -1.0]
+  t=4: [0.50625, 0.17142857142857143, 0.029464285714285717, -0.02035714285714286, 0.007500000000000001, -0.0, -1.0]
+
+=== STATE/ROBOT_STATES SAMPLE (first 5 timesteps) ===
+  shape: (103, 9), dtype: float64
+  t=0: [0.03623152579658026, -0.03622647659904931, -0.20098051507915582, -0.0015624755936505608, 1.1733799894221408, 0.9996138057286191, -0.004752976905281092, -0.02732853747805321, -0.001673214449887368]
+  t=1: [0.03745265058423908, -0.03744701845089345, -0.2003027983984096, -0.001577719392811584, 1.1732506335006176, 0.9996319949533653, -0.004836463578900386, -0.026639923000327012, -0.001672659003473413]
+  t=2: [0.03814649054886695, -0.038119805658201375, -0.1986101073467301, -0.0012280327239441583, 1.1729234642612405, 0.9996700427669745, -0.005058772546469026, -0.02512106468632296, -0.0017738443066548717]
+  t=3: [0.038538557535683485, -0.03849152501058033, -0.19563388225747866, -0.00019531932846668327, 1.1724163062713993, 0.9997266039468096, -0.005032867662408514, -0.022774677922224675, -0.0016436695564945006]
+  t=4: [0.038754742635395904, -0.038702203233386745, -0.19136341336230162, 0.0014353838741360733, 1.171711392032492, 0.9997883951670172, -0.004767416871648223, -0.019985824788179535, -0.0010017151634575847]
+
+=== ALL KEYS (recursive) ===
+  data/ (group)
+  data/demo_0/ (group)
+  data/demo_0/actions: shape=(103, 7), dtype=float64
+  data/demo_0/dones: shape=(103,), dtype=uint8
+  data/demo_0/obs/ (group)
+  data/demo_0/obs/agentview_rgb: shape=(103, 128, 128, 3), dtype=uint8
+  data/demo_0/obs/ee_ori: shape=(103, 3), dtype=float64
+  data/demo_0/obs/ee_pos: shape=(103, 3), dtype=float64
+  data/demo_0/obs/ee_states: shape=(103, 6), dtype=float64
+  data/demo_0/obs/eye_in_hand_rgb: shape=(103, 128, 128, 3), dtype=uint8
+  data/demo_0/obs/gripper_states: shape=(103, 2), dtype=float64
+  data/demo_0/obs/joint_states: shape=(103, 7), dtype=float64
+  data/demo_0/rewards: shape=(103,), dtype=uint8
+  data/demo_0/robot_states: shape=(103, 9), dtype=float64
+  data/demo_0/states: shape=(103, 92), dtype=float64
+  data/demo_1/ (group)
+  data/demo_1/actions: shape=(123, 7), dtype=float64
+  data/demo_1/dones: shape=(123,), dtype=uint8
+  data/demo_1/obs/ (group)
+  data/demo_1/obs/agentview_rgb: shape=(123, 128, 128, 3), dtype=uint8
+  data/demo_1/obs/ee_ori: shape=(123, 3), dtype=float64
+  data/demo_1/obs/ee_pos: shape=(123, 3), dtype=float64
+  data/demo_1/obs/ee_states: shape=(123, 6), dtype=float64
+  data/demo_1/obs/eye_in_hand_rgb: shape=(123, 128, 128, 3), dtype=uint8
+  data/demo_1/obs/gripper_states: shape=(123, 2), dtype=float64
+  data/demo_1/obs/joint_states: shape=(123, 7), dtype=float64
+  data/demo_1/rewards: shape=(123,), dtype=uint8
+  data/demo_1/robot_states: shape=(123, 9), dtype=float64
+  data/demo_1/states: shape=(123, 92), dtype=float64
+  data/demo_10/ (group)
+  data/demo_10/actions: shape=(109, 7), dtype=float64
+  data/demo_10/dones: shape=(109,), dtype=uint8
+  data/demo_10/obs/ (group)
+  data/demo_10/obs/agentview_rgb: shape=(109, 128, 128, 3), dtype=uint8
+  data/demo_10/obs/ee_ori: shape=(109, 3), dtype=float64
+  data/demo_10/obs/ee_pos: shape=(109, 3), dtype=float64
+  data/demo_10/obs/ee_states: shape=(109, 6), dtype=float64
+  data/demo_10/obs/eye_in_hand_rgb: shape=(109, 128, 128, 3), dtype=uint8
+  data/demo_10/obs/gripper_states: shape=(109, 2), dtype=float64
+  data/demo_10/obs/joint_states: shape=(109, 7), dtype=float64
+  data/demo_10/rewards: shape=(109,), dtype=uint8
+  data/demo_10/robot_states: shape=(109, 9), dtype=float64
+  data/demo_10/states: shape=(109, 92), dtype=float64
+  data/demo_11/ (group)
+  data/demo_11/actions: shape=(101, 7), dtype=float64
+  data/demo_11/dones: shape=(101,), dtype=uint8
+  data/demo_11/obs/ (group)
+  data/demo_11/obs/agentview_rgb: shape=(101, 128, 128, 3), dtype=uint8
+  data/demo_11/obs/ee_ori: shape=(101, 3), dtype=float64
+  data/demo_11/obs/ee_pos: shape=(101, 3), dtype=float64
+  data/demo_11/obs/ee_states: shape=(101, 6), dtype=float64
+  data/demo_11/obs/eye_in_hand_rgb: shape=(101, 128, 128, 3), dtype=uint8
+  data/demo_11/obs/gripper_states: shape=(101, 2), dtype=float64
+  data/demo_11/obs/joint_states: shape=(101, 7), dtype=float64
+  data/demo_11/rewards: shape=(101,), dtype=uint8
+  data/demo_11/robot_states: shape=(101, 9), dtype=float64
+  data/demo_11/states: shape=(101, 92), dtype=float64
+  data/demo_12/ (group)
+  data/demo_12/actions: shape=(124, 7), dtype=float64
+  data/demo_12/dones: shape=(124,), dtype=uint8
+  data/demo_12/obs/ (group)
+  data/demo_12/obs/agentview_rgb: shape=(124, 128, 128, 3), dtype=uint8
+  data/demo_12/obs/ee_ori: shape=(124, 3), dtype=float64
+  data/demo_12/obs/ee_pos: shape=(124, 3), dtype=float64
+  data/demo_12/obs/ee_states: shape=(124, 6), dtype=float64
+  data/demo_12/obs/eye_in_hand_rgb: shape=(124, 128, 128, 3), dtype=uint8
+  data/demo_12/obs/gripper_states: shape=(124, 2), dtype=float64
+  data/demo_12/obs/joint_states: shape=(124, 7), dtype=float64
+  data/demo_12/rewards: shape=(124,), dtype=uint8
+  data/demo_12/robot_states: shape=(124, 9), dtype=float64
+  data/demo_12/states: shape=(124, 92), dtype=float64
+  data/demo_13/ (group)
+  data/demo_13/actions: shape=(122, 7), dtype=float64
+  data/demo_13/dones: shape=(122,), dtype=uint8
+  data/demo_13/obs/ (group)
+  data/demo_13/obs/agentview_rgb: shape=(122, 128, 128, 3), dtype=uint8
+  data/demo_13/obs/ee_ori: shape=(122, 3), dtype=float64
+  data/demo_13/obs/ee_pos: shape=(122, 3), dtype=float64
+  data/demo_13/obs/ee_states: shape=(122, 6), dtype=float64
+  data/demo_13/obs/eye_in_hand_rgb: shape=(122, 128, 128, 3), dtype=uint8
+  data/demo_13/obs/gripper_states: shape=(122, 2), dtype=float64
+  data/demo_13/obs/joint_states: shape=(122, 7), dtype=float64
+  data/demo_13/rewards: shape=(122,), dtype=uint8
+  data/demo_13/robot_states: shape=(122, 9), dtype=float64
+  data/demo_13/states: shape=(122, 92), dtype=float64
+  data/demo_14/ (group)
+  data/demo_14/actions: shape=(114, 7), dtype=float64
+  data/demo_14/dones: shape=(114,), dtype=uint8
+  data/demo_14/obs/ (group)
+  data/demo_14/obs/agentview_rgb: shape=(114, 128, 128, 3), dtype=uint8
+  data/demo_14/obs/ee_ori: shape=(114, 3), dtype=float64
+  data/demo_14/obs/ee_pos: shape=(114, 3), dtype=float64
+  data/demo_14/obs/ee_states: shape=(114, 6), dtype=float64
+  data/demo_14/obs/eye_in_hand_rgb: shape=(114, 128, 128, 3), dtype=uint8
+  data/demo_14/obs/gripper_states: shape=(114, 2), dtype=float64
+  data/demo_14/obs/joint_states: shape=(114, 7), dtype=float64
+  data/demo_14/rewards: shape=(114,), dtype=uint8
+  data/demo_14/robot_states: shape=(114, 9), dtype=float64
+  data/demo_14/states: shape=(114, 92), dtype=float64
+  data/demo_15/ (group)
+  data/demo_15/actions: shape=(136, 7), dtype=float64
+  data/demo_15/dones: shape=(136,), dtype=uint8
+  data/demo_15/obs/ (group)
+  data/demo_15/obs/agentview_rgb: shape=(136, 128, 128, 3), dtype=uint8
+  data/demo_15/obs/ee_ori: shape=(136, 3), dtype=float64
+  data/demo_15/obs/ee_pos: shape=(136, 3), dtype=float64
+  data/demo_15/obs/ee_states: shape=(136, 6), dtype=float64
+  data/demo_15/obs/eye_in_hand_rgb: shape=(136, 128, 128, 3), dtype=uint8
+  data/demo_15/obs/gripper_states: shape=(136, 2), dtype=float64
+  data/demo_15/obs/joint_states: shape=(136, 7), dtype=float64
+  data/demo_15/rewards: shape=(136,), dtype=uint8
+  data/demo_15/robot_states: shape=(136, 9), dtype=float64
+  data/demo_15/states: shape=(136, 92), dtype=float64
+  data/demo_16/ (group)
+  data/demo_16/actions: shape=(105, 7), dtype=float64
+  data/demo_16/dones: shape=(105,), dtype=uint8
+  data/demo_16/obs/ (group)
+  data/demo_16/obs/agentview_rgb: shape=(105, 128, 128, 3), dtype=uint8
+  data/demo_16/obs/ee_ori: shape=(105, 3), dtype=float64
+  data/demo_16/obs/ee_pos: shape=(105, 3), dtype=float64
+  data/demo_16/obs/ee_states: shape=(105, 6), dtype=float64
+  data/demo_16/obs/eye_in_hand_rgb: shape=(105, 128, 128, 3), dtype=uint8
+  data/demo_16/obs/gripper_states: shape=(105, 2), dtype=float64
+  data/demo_16/obs/joint_states: shape=(105, 7), dtype=float64
+  data/demo_16/rewards: shape=(105,), dtype=uint8
+  data/demo_16/robot_states: shape=(105, 9), dtype=float64
+  data/demo_16/states: shape=(105, 92), dtype=float64
+  data/demo_17/ (group)
+  data/demo_17/actions: shape=(164, 7), dtype=float64
+  data/demo_17/dones: shape=(164,), dtype=uint8
+  data/demo_17/obs/ (group)
+  data/demo_17/obs/agentview_rgb: shape=(164, 128, 128, 3), dtype=uint8
+  data/demo_17/obs/ee_ori: shape=(164, 3), dtype=float64
+  data/demo_17/obs/ee_pos: shape=(164, 3), dtype=float64
+  data/demo_17/obs/ee_states: shape=(164, 6), dtype=float64
+  data/demo_17/obs/eye_in_hand_rgb: shape=(164, 128, 128, 3), dtype=uint8
+  data/demo_17/obs/gripper_states: shape=(164, 2), dtype=float64
+  data/demo_17/obs/joint_states: shape=(164, 7), dtype=float64
+  data/demo_17/rewards: shape=(164,), dtype=uint8
+  data/demo_17/robot_states: shape=(164, 9), dtype=float64
+  data/demo_17/states: shape=(164, 92), dtype=float64
+  data/demo_18/ (group)
+  data/demo_18/actions: shape=(107, 7), dtype=float64
+  data/demo_18/dones: shape=(107,), dtype=uint8
+  data/demo_18/obs/ (group)
+  data/demo_18/obs/agentview_rgb: shape=(107, 128, 128, 3), dtype=uint8
+  data/demo_18/obs/ee_ori: shape=(107, 3), dtype=float64
+  data/demo_18/obs/ee_pos: shape=(107, 3), dtype=float64
+  data/demo_18/obs/ee_states: shape=(107, 6), dtype=float64
+  data/demo_18/obs/eye_in_hand_rgb: shape=(107, 128, 128, 3), dtype=uint8
+  data/demo_18/obs/gripper_states: shape=(107, 2), dtype=float64
+  data/demo_18/obs/joint_states: shape=(107, 7), dtype=float64
+  data/demo_18/rewards: shape=(107,), dtype=uint8
+  data/demo_18/robot_states: shape=(107, 9), dtype=float64
+  data/demo_18/states: shape=(107, 92), dtype=float64
+  data/demo_19/ (group)
+  data/demo_19/actions: shape=(98, 7), dtype=float64
+  data/demo_19/dones: shape=(98,), dtype=uint8
+  data/demo_19/obs/ (group)
+  data/demo_19/obs/agentview_rgb: shape=(98, 128, 128, 3), dtype=uint8
+  data/demo_19/obs/ee_ori: shape=(98, 3), dtype=float64
+  data/demo_19/obs/ee_pos: shape=(98, 3), dtype=float64
+  data/demo_19/obs/ee_states: shape=(98, 6), dtype=float64
+  data/demo_19/obs/eye_in_hand_rgb: shape=(98, 128, 128, 3), dtype=uint8
+  data/demo_19/obs/gripper_states: shape=(98, 2), dtype=float64
+  data/demo_19/obs/joint_states: shape=(98, 7), dtype=float64
+  data/demo_19/rewards: shape=(98,), dtype=uint8
+  data/demo_19/robot_states: shape=(98, 9), dtype=float64
+  data/demo_19/states: shape=(98, 92), dtype=float64
+  data/demo_2/ (group)
+  data/demo_2/actions: shape=(122, 7), dtype=float64
+  data/demo_2/dones: shape=(122,), dtype=uint8
+  data/demo_2/obs/ (group)
+  data/demo_2/obs/agentview_rgb: shape=(122, 128, 128, 3), dtype=uint8
+  data/demo_2/obs/ee_ori: shape=(122, 3), dtype=float64
+  data/demo_2/obs/ee_pos: shape=(122, 3), dtype=float64
+  data/demo_2/obs/ee_states: shape=(122, 6), dtype=float64
+  data/demo_2/obs/eye_in_hand_rgb: shape=(122, 128, 128, 3), dtype=uint8
+  data/demo_2/obs/gripper_states: shape=(122, 2), dtype=float64
+  data/demo_2/obs/joint_states: shape=(122, 7), dtype=float64
+  data/demo_2/rewards: shape=(122,), dtype=uint8
+  data/demo_2/robot_states: shape=(122, 9), dtype=float64
+  data/demo_2/states: shape=(122, 92), dtype=float64
+  data/demo_20/ (group)
+  data/demo_20/actions: shape=(117, 7), dtype=float64
+  data/demo_20/dones: shape=(117,), dtype=uint8
+  data/demo_20/obs/ (group)
+  data/demo_20/obs/agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_20/obs/ee_ori: shape=(117, 3), dtype=float64
+  data/demo_20/obs/ee_pos: shape=(117, 3), dtype=float64
+  data/demo_20/obs/ee_states: shape=(117, 6), dtype=float64
+  data/demo_20/obs/eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_20/obs/gripper_states: shape=(117, 2), dtype=float64
+  data/demo_20/obs/joint_states: shape=(117, 7), dtype=float64
+  data/demo_20/rewards: shape=(117,), dtype=uint8
+  data/demo_20/robot_states: shape=(117, 9), dtype=float64
+  data/demo_20/states: shape=(117, 92), dtype=float64
+  data/demo_21/ (group)
+  data/demo_21/actions: shape=(108, 7), dtype=float64
+  data/demo_21/dones: shape=(108,), dtype=uint8
+  data/demo_21/obs/ (group)
+  data/demo_21/obs/agentview_rgb: shape=(108, 128, 128, 3), dtype=uint8
+  data/demo_21/obs/ee_ori: shape=(108, 3), dtype=float64
+  data/demo_21/obs/ee_pos: shape=(108, 3), dtype=float64
+  data/demo_21/obs/ee_states: shape=(108, 6), dtype=float64
+  data/demo_21/obs/eye_in_hand_rgb: shape=(108, 128, 128, 3), dtype=uint8
+  data/demo_21/obs/gripper_states: shape=(108, 2), dtype=float64
+  data/demo_21/obs/joint_states: shape=(108, 7), dtype=float64
+  data/demo_21/rewards: shape=(108,), dtype=uint8
+  data/demo_21/robot_states: shape=(108, 9), dtype=float64
+  data/demo_21/states: shape=(108, 92), dtype=float64
+  data/demo_22/ (group)
+  data/demo_22/actions: shape=(117, 7), dtype=float64
+  data/demo_22/dones: shape=(117,), dtype=uint8
+  data/demo_22/obs/ (group)
+  data/demo_22/obs/agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_22/obs/ee_ori: shape=(117, 3), dtype=float64
+  data/demo_22/obs/ee_pos: shape=(117, 3), dtype=float64
+  data/demo_22/obs/ee_states: shape=(117, 6), dtype=float64
+  data/demo_22/obs/eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_22/obs/gripper_states: shape=(117, 2), dtype=float64
+  data/demo_22/obs/joint_states: shape=(117, 7), dtype=float64
+  data/demo_22/rewards: shape=(117,), dtype=uint8
+  data/demo_22/robot_states: shape=(117, 9), dtype=float64
+  data/demo_22/states: shape=(117, 92), dtype=float64
+  data/demo_23/ (group)
+  data/demo_23/actions: shape=(117, 7), dtype=float64
+  data/demo_23/dones: shape=(117,), dtype=uint8
+  data/demo_23/obs/ (group)
+  data/demo_23/obs/agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_23/obs/ee_ori: shape=(117, 3), dtype=float64
+  data/demo_23/obs/ee_pos: shape=(117, 3), dtype=float64
+  data/demo_23/obs/ee_states: shape=(117, 6), dtype=float64
+  data/demo_23/obs/eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_23/obs/gripper_states: shape=(117, 2), dtype=float64
+  data/demo_23/obs/joint_states: shape=(117, 7), dtype=float64
+  data/demo_23/rewards: shape=(117,), dtype=uint8
+  data/demo_23/robot_states: shape=(117, 9), dtype=float64
+  data/demo_23/states: shape=(117, 92), dtype=float64
+  data/demo_24/ (group)
+  data/demo_24/actions: shape=(106, 7), dtype=float64
+  data/demo_24/dones: shape=(106,), dtype=uint8
+  data/demo_24/obs/ (group)
+  data/demo_24/obs/agentview_rgb: shape=(106, 128, 128, 3), dtype=uint8
+  data/demo_24/obs/ee_ori: shape=(106, 3), dtype=float64
+  data/demo_24/obs/ee_pos: shape=(106, 3), dtype=float64
+  data/demo_24/obs/ee_states: shape=(106, 6), dtype=float64
+  data/demo_24/obs/eye_in_hand_rgb: shape=(106, 128, 128, 3), dtype=uint8
+  data/demo_24/obs/gripper_states: shape=(106, 2), dtype=float64
+  data/demo_24/obs/joint_states: shape=(106, 7), dtype=float64
+  data/demo_24/rewards: shape=(106,), dtype=uint8
+  data/demo_24/robot_states: shape=(106, 9), dtype=float64
+  data/demo_24/states: shape=(106, 92), dtype=float64
+  data/demo_25/ (group)
+  data/demo_25/actions: shape=(117, 7), dtype=float64
+  data/demo_25/dones: shape=(117,), dtype=uint8
+  data/demo_25/obs/ (group)
+  data/demo_25/obs/agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_25/obs/ee_ori: shape=(117, 3), dtype=float64
+  data/demo_25/obs/ee_pos: shape=(117, 3), dtype=float64
+  data/demo_25/obs/ee_states: shape=(117, 6), dtype=float64
+  data/demo_25/obs/eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_25/obs/gripper_states: shape=(117, 2), dtype=float64
+  data/demo_25/obs/joint_states: shape=(117, 7), dtype=float64
+  data/demo_25/rewards: shape=(117,), dtype=uint8
+  data/demo_25/robot_states: shape=(117, 9), dtype=float64
+  data/demo_25/states: shape=(117, 92), dtype=float64
+  data/demo_26/ (group)
+  data/demo_26/actions: shape=(143, 7), dtype=float64
+  data/demo_26/dones: shape=(143,), dtype=uint8
+  data/demo_26/obs/ (group)
+  data/demo_26/obs/agentview_rgb: shape=(143, 128, 128, 3), dtype=uint8
+  data/demo_26/obs/ee_ori: shape=(143, 3), dtype=float64
+  data/demo_26/obs/ee_pos: shape=(143, 3), dtype=float64
+  data/demo_26/obs/ee_states: shape=(143, 6), dtype=float64
+  data/demo_26/obs/eye_in_hand_rgb: shape=(143, 128, 128, 3), dtype=uint8
+  data/demo_26/obs/gripper_states: shape=(143, 2), dtype=float64
+  data/demo_26/obs/joint_states: shape=(143, 7), dtype=float64
+  data/demo_26/rewards: shape=(143,), dtype=uint8
+  data/demo_26/robot_states: shape=(143, 9), dtype=float64
+  data/demo_26/states: shape=(143, 92), dtype=float64
+  data/demo_27/ (group)
+  data/demo_27/actions: shape=(125, 7), dtype=float64
+  data/demo_27/dones: shape=(125,), dtype=uint8
+  data/demo_27/obs/ (group)
+  data/demo_27/obs/agentview_rgb: shape=(125, 128, 128, 3), dtype=uint8
+  data/demo_27/obs/ee_ori: shape=(125, 3), dtype=float64
+  data/demo_27/obs/ee_pos: shape=(125, 3), dtype=float64
+  data/demo_27/obs/ee_states: shape=(125, 6), dtype=float64
+  data/demo_27/obs/eye_in_hand_rgb: shape=(125, 128, 128, 3), dtype=uint8
+  data/demo_27/obs/gripper_states: shape=(125, 2), dtype=float64
+  data/demo_27/obs/joint_states: shape=(125, 7), dtype=float64
+  data/demo_27/rewards: shape=(125,), dtype=uint8
+  data/demo_27/robot_states: shape=(125, 9), dtype=float64
+  data/demo_27/states: shape=(125, 92), dtype=float64
+  data/demo_28/ (group)
+  data/demo_28/actions: shape=(111, 7), dtype=float64
+  data/demo_28/dones: shape=(111,), dtype=uint8
+  data/demo_28/obs/ (group)
+  data/demo_28/obs/agentview_rgb: shape=(111, 128, 128, 3), dtype=uint8
+  data/demo_28/obs/ee_ori: shape=(111, 3), dtype=float64
+  data/demo_28/obs/ee_pos: shape=(111, 3), dtype=float64
+  data/demo_28/obs/ee_states: shape=(111, 6), dtype=float64
+  data/demo_28/obs/eye_in_hand_rgb: shape=(111, 128, 128, 3), dtype=uint8
+  data/demo_28/obs/gripper_states: shape=(111, 2), dtype=float64
+  data/demo_28/obs/joint_states: shape=(111, 7), dtype=float64
+  data/demo_28/rewards: shape=(111,), dtype=uint8
+  data/demo_28/robot_states: shape=(111, 9), dtype=float64
+  data/demo_28/states: shape=(111, 92), dtype=float64
+  data/demo_29/ (group)
+  data/demo_29/actions: shape=(110, 7), dtype=float64
+  data/demo_29/dones: shape=(110,), dtype=uint8
+  data/demo_29/obs/ (group)
+  data/demo_29/obs/agentview_rgb: shape=(110, 128, 128, 3), dtype=uint8
+  data/demo_29/obs/ee_ori: shape=(110, 3), dtype=float64
+  data/demo_29/obs/ee_pos: shape=(110, 3), dtype=float64
+  data/demo_29/obs/ee_states: shape=(110, 6), dtype=float64
+  data/demo_29/obs/eye_in_hand_rgb: shape=(110, 128, 128, 3), dtype=uint8
+  data/demo_29/obs/gripper_states: shape=(110, 2), dtype=float64
+  data/demo_29/obs/joint_states: shape=(110, 7), dtype=float64
+  data/demo_29/rewards: shape=(110,), dtype=uint8
+  data/demo_29/robot_states: shape=(110, 9), dtype=float64
+  data/demo_29/states: shape=(110, 92), dtype=float64
+  data/demo_3/ (group)
+  data/demo_3/actions: shape=(102, 7), dtype=float64
+  data/demo_3/dones: shape=(102,), dtype=uint8
+  data/demo_3/obs/ (group)
+  data/demo_3/obs/agentview_rgb: shape=(102, 128, 128, 3), dtype=uint8
+  data/demo_3/obs/ee_ori: shape=(102, 3), dtype=float64
+  data/demo_3/obs/ee_pos: shape=(102, 3), dtype=float64
+  data/demo_3/obs/ee_states: shape=(102, 6), dtype=float64
+  data/demo_3/obs/eye_in_hand_rgb: shape=(102, 128, 128, 3), dtype=uint8
+  data/demo_3/obs/gripper_states: shape=(102, 2), dtype=float64
+  data/demo_3/obs/joint_states: shape=(102, 7), dtype=float64
+  data/demo_3/rewards: shape=(102,), dtype=uint8
+  data/demo_3/robot_states: shape=(102, 9), dtype=float64
+  data/demo_3/states: shape=(102, 92), dtype=float64
+  data/demo_30/ (group)
+  data/demo_30/actions: shape=(115, 7), dtype=float64
+  data/demo_30/dones: shape=(115,), dtype=uint8
+  data/demo_30/obs/ (group)
+  data/demo_30/obs/agentview_rgb: shape=(115, 128, 128, 3), dtype=uint8
+  data/demo_30/obs/ee_ori: shape=(115, 3), dtype=float64
+  data/demo_30/obs/ee_pos: shape=(115, 3), dtype=float64
+  data/demo_30/obs/ee_states: shape=(115, 6), dtype=float64
+  data/demo_30/obs/eye_in_hand_rgb: shape=(115, 128, 128, 3), dtype=uint8
+  data/demo_30/obs/gripper_states: shape=(115, 2), dtype=float64
+  data/demo_30/obs/joint_states: shape=(115, 7), dtype=float64
+  data/demo_30/rewards: shape=(115,), dtype=uint8
+  data/demo_30/robot_states: shape=(115, 9), dtype=float64
+  data/demo_30/states: shape=(115, 92), dtype=float64
+  data/demo_31/ (group)
+  data/demo_31/actions: shape=(122, 7), dtype=float64
+  data/demo_31/dones: shape=(122,), dtype=uint8
+  data/demo_31/obs/ (group)
+  data/demo_31/obs/agentview_rgb: shape=(122, 128, 128, 3), dtype=uint8
+  data/demo_31/obs/ee_ori: shape=(122, 3), dtype=float64
+  data/demo_31/obs/ee_pos: shape=(122, 3), dtype=float64
+  data/demo_31/obs/ee_states: shape=(122, 6), dtype=float64
+  data/demo_31/obs/eye_in_hand_rgb: shape=(122, 128, 128, 3), dtype=uint8
+  data/demo_31/obs/gripper_states: shape=(122, 2), dtype=float64
+  data/demo_31/obs/joint_states: shape=(122, 7), dtype=float64
+  data/demo_31/rewards: shape=(122,), dtype=uint8
+  data/demo_31/robot_states: shape=(122, 9), dtype=float64
+  data/demo_31/states: shape=(122, 92), dtype=float64
+  data/demo_32/ (group)
+  data/demo_32/actions: shape=(119, 7), dtype=float64
+  data/demo_32/dones: shape=(119,), dtype=uint8
+  data/demo_32/obs/ (group)
+  data/demo_32/obs/agentview_rgb: shape=(119, 128, 128, 3), dtype=uint8
+  data/demo_32/obs/ee_ori: shape=(119, 3), dtype=float64
+  data/demo_32/obs/ee_pos: shape=(119, 3), dtype=float64
+  data/demo_32/obs/ee_states: shape=(119, 6), dtype=float64
+  data/demo_32/obs/eye_in_hand_rgb: shape=(119, 128, 128, 3), dtype=uint8
+  data/demo_32/obs/gripper_states: shape=(119, 2), dtype=float64
+  data/demo_32/obs/joint_states: shape=(119, 7), dtype=float64
+  data/demo_32/rewards: shape=(119,), dtype=uint8
+  data/demo_32/robot_states: shape=(119, 9), dtype=float64
+  data/demo_32/states: shape=(119, 92), dtype=float64
+  data/demo_33/ (group)
+  data/demo_33/actions: shape=(121, 7), dtype=float64
+  data/demo_33/dones: shape=(121,), dtype=uint8
+  data/demo_33/obs/ (group)
+  data/demo_33/obs/agentview_rgb: shape=(121, 128, 128, 3), dtype=uint8
+  data/demo_33/obs/ee_ori: shape=(121, 3), dtype=float64
+  data/demo_33/obs/ee_pos: shape=(121, 3), dtype=float64
+  data/demo_33/obs/ee_states: shape=(121, 6), dtype=float64
+  data/demo_33/obs/eye_in_hand_rgb: shape=(121, 128, 128, 3), dtype=uint8
+  data/demo_33/obs/gripper_states: shape=(121, 2), dtype=float64
+  data/demo_33/obs/joint_states: shape=(121, 7), dtype=float64
+  data/demo_33/rewards: shape=(121,), dtype=uint8
+  data/demo_33/robot_states: shape=(121, 9), dtype=float64
+  data/demo_33/states: shape=(121, 92), dtype=float64
+  data/demo_34/ (group)
+  data/demo_34/actions: shape=(131, 7), dtype=float64
+  data/demo_34/dones: shape=(131,), dtype=uint8
+  data/demo_34/obs/ (group)
+  data/demo_34/obs/agentview_rgb: shape=(131, 128, 128, 3), dtype=uint8
+  data/demo_34/obs/ee_ori: shape=(131, 3), dtype=float64
+  data/demo_34/obs/ee_pos: shape=(131, 3), dtype=float64
+  data/demo_34/obs/ee_states: shape=(131, 6), dtype=float64
+  data/demo_34/obs/eye_in_hand_rgb: shape=(131, 128, 128, 3), dtype=uint8
+  data/demo_34/obs/gripper_states: shape=(131, 2), dtype=float64
+  data/demo_34/obs/joint_states: shape=(131, 7), dtype=float64
+  data/demo_34/rewards: shape=(131,), dtype=uint8
+  data/demo_34/robot_states: shape=(131, 9), dtype=float64
+  data/demo_34/states: shape=(131, 92), dtype=float64
+  data/demo_35/ (group)
+  data/demo_35/actions: shape=(140, 7), dtype=float64
+  data/demo_35/dones: shape=(140,), dtype=uint8
+  data/demo_35/obs/ (group)
+  data/demo_35/obs/agentview_rgb: shape=(140, 128, 128, 3), dtype=uint8
+  data/demo_35/obs/ee_ori: shape=(140, 3), dtype=float64
+  data/demo_35/obs/ee_pos: shape=(140, 3), dtype=float64
+  data/demo_35/obs/ee_states: shape=(140, 6), dtype=float64
+  data/demo_35/obs/eye_in_hand_rgb: shape=(140, 128, 128, 3), dtype=uint8
+  data/demo_35/obs/gripper_states: shape=(140, 2), dtype=float64
+  data/demo_35/obs/joint_states: shape=(140, 7), dtype=float64
+  data/demo_35/rewards: shape=(140,), dtype=uint8
+  data/demo_35/robot_states: shape=(140, 9), dtype=float64
+  data/demo_35/states: shape=(140, 92), dtype=float64
+  data/demo_36/ (group)
+  data/demo_36/actions: shape=(121, 7), dtype=float64
+  data/demo_36/dones: shape=(121,), dtype=uint8
+  data/demo_36/obs/ (group)
+  data/demo_36/obs/agentview_rgb: shape=(121, 128, 128, 3), dtype=uint8
+  data/demo_36/obs/ee_ori: shape=(121, 3), dtype=float64
+  data/demo_36/obs/ee_pos: shape=(121, 3), dtype=float64
+  data/demo_36/obs/ee_states: shape=(121, 6), dtype=float64
+  data/demo_36/obs/eye_in_hand_rgb: shape=(121, 128, 128, 3), dtype=uint8
+  data/demo_36/obs/gripper_states: shape=(121, 2), dtype=float64
+  data/demo_36/obs/joint_states: shape=(121, 7), dtype=float64
+  data/demo_36/rewards: shape=(121,), dtype=uint8
+  data/demo_36/robot_states: shape=(121, 9), dtype=float64
+  data/demo_36/states: shape=(121, 92), dtype=float64
+  data/demo_37/ (group)
+  data/demo_37/actions: shape=(129, 7), dtype=float64
+  data/demo_37/dones: shape=(129,), dtype=uint8
+  data/demo_37/obs/ (group)
+  data/demo_37/obs/agentview_rgb: shape=(129, 128, 128, 3), dtype=uint8
+  data/demo_37/obs/ee_ori: shape=(129, 3), dtype=float64
+  data/demo_37/obs/ee_pos: shape=(129, 3), dtype=float64
+  data/demo_37/obs/ee_states: shape=(129, 6), dtype=float64
+  data/demo_37/obs/eye_in_hand_rgb: shape=(129, 128, 128, 3), dtype=uint8
+  data/demo_37/obs/gripper_states: shape=(129, 2), dtype=float64
+  data/demo_37/obs/joint_states: shape=(129, 7), dtype=float64
+  data/demo_37/rewards: shape=(129,), dtype=uint8
+  data/demo_37/robot_states: shape=(129, 9), dtype=float64
+  data/demo_37/states: shape=(129, 92), dtype=float64
+  data/demo_38/ (group)
+  data/demo_38/actions: shape=(114, 7), dtype=float64
+  data/demo_38/dones: shape=(114,), dtype=uint8
+  data/demo_38/obs/ (group)
+  data/demo_38/obs/agentview_rgb: shape=(114, 128, 128, 3), dtype=uint8
+  data/demo_38/obs/ee_ori: shape=(114, 3), dtype=float64
+  data/demo_38/obs/ee_pos: shape=(114, 3), dtype=float64
+  data/demo_38/obs/ee_states: shape=(114, 6), dtype=float64
+  data/demo_38/obs/eye_in_hand_rgb: shape=(114, 128, 128, 3), dtype=uint8
+  data/demo_38/obs/gripper_states: shape=(114, 2), dtype=float64
+  data/demo_38/obs/joint_states: shape=(114, 7), dtype=float64
+  data/demo_38/rewards: shape=(114,), dtype=uint8
+  data/demo_38/robot_states: shape=(114, 9), dtype=float64
+  data/demo_38/states: shape=(114, 92), dtype=float64
+  data/demo_39/ (group)
+  data/demo_39/actions: shape=(115, 7), dtype=float64
+  data/demo_39/dones: shape=(115,), dtype=uint8
+  data/demo_39/obs/ (group)
+  data/demo_39/obs/agentview_rgb: shape=(115, 128, 128, 3), dtype=uint8
+  data/demo_39/obs/ee_ori: shape=(115, 3), dtype=float64
+  data/demo_39/obs/ee_pos: shape=(115, 3), dtype=float64
+  data/demo_39/obs/ee_states: shape=(115, 6), dtype=float64
+  data/demo_39/obs/eye_in_hand_rgb: shape=(115, 128, 128, 3), dtype=uint8
+  data/demo_39/obs/gripper_states: shape=(115, 2), dtype=float64
+  data/demo_39/obs/joint_states: shape=(115, 7), dtype=float64
+  data/demo_39/rewards: shape=(115,), dtype=uint8
+  data/demo_39/robot_states: shape=(115, 9), dtype=float64
+  data/demo_39/states: shape=(115, 92), dtype=float64
+  data/demo_4/ (group)
+  data/demo_4/actions: shape=(111, 7), dtype=float64
+  data/demo_4/dones: shape=(111,), dtype=uint8
+  data/demo_4/obs/ (group)
+  data/demo_4/obs/agentview_rgb: shape=(111, 128, 128, 3), dtype=uint8
+  data/demo_4/obs/ee_ori: shape=(111, 3), dtype=float64
+  data/demo_4/obs/ee_pos: shape=(111, 3), dtype=float64
+  data/demo_4/obs/ee_states: shape=(111, 6), dtype=float64
+  data/demo_4/obs/eye_in_hand_rgb: shape=(111, 128, 128, 3), dtype=uint8
+  data/demo_4/obs/gripper_states: shape=(111, 2), dtype=float64
+  data/demo_4/obs/joint_states: shape=(111, 7), dtype=float64
+  data/demo_4/rewards: shape=(111,), dtype=uint8
+  data/demo_4/robot_states: shape=(111, 9), dtype=float64
+  data/demo_4/states: shape=(111, 92), dtype=float64
+  data/demo_40/ (group)
+  data/demo_40/actions: shape=(108, 7), dtype=float64
+  data/demo_40/dones: shape=(108,), dtype=uint8
+  data/demo_40/obs/ (group)
+  data/demo_40/obs/agentview_rgb: shape=(108, 128, 128, 3), dtype=uint8
+  data/demo_40/obs/ee_ori: shape=(108, 3), dtype=float64
+  data/demo_40/obs/ee_pos: shape=(108, 3), dtype=float64
+  data/demo_40/obs/ee_states: shape=(108, 6), dtype=float64
+  data/demo_40/obs/eye_in_hand_rgb: shape=(108, 128, 128, 3), dtype=uint8
+  data/demo_40/obs/gripper_states: shape=(108, 2), dtype=float64
+  data/demo_40/obs/joint_states: shape=(108, 7), dtype=float64
+  data/demo_40/rewards: shape=(108,), dtype=uint8
+  data/demo_40/robot_states: shape=(108, 9), dtype=float64
+  data/demo_40/states: shape=(108, 92), dtype=float64
+  data/demo_41/ (group)
+  data/demo_41/actions: shape=(106, 7), dtype=float64
+  data/demo_41/dones: shape=(106,), dtype=uint8
+  data/demo_41/obs/ (group)
+  data/demo_41/obs/agentview_rgb: shape=(106, 128, 128, 3), dtype=uint8
+  data/demo_41/obs/ee_ori: shape=(106, 3), dtype=float64
+  data/demo_41/obs/ee_pos: shape=(106, 3), dtype=float64
+  data/demo_41/obs/ee_states: shape=(106, 6), dtype=float64
+  data/demo_41/obs/eye_in_hand_rgb: shape=(106, 128, 128, 3), dtype=uint8
+  data/demo_41/obs/gripper_states: shape=(106, 2), dtype=float64
+  data/demo_41/obs/joint_states: shape=(106, 7), dtype=float64
+  data/demo_41/rewards: shape=(106,), dtype=uint8
+  data/demo_41/robot_states: shape=(106, 9), dtype=float64
+  data/demo_41/states: shape=(106, 92), dtype=float64
+  data/demo_42/ (group)
+  data/demo_42/actions: shape=(138, 7), dtype=float64
+  data/demo_42/dones: shape=(138,), dtype=uint8
+  data/demo_42/obs/ (group)
+  data/demo_42/obs/agentview_rgb: shape=(138, 128, 128, 3), dtype=uint8
+  data/demo_42/obs/ee_ori: shape=(138, 3), dtype=float64
+  data/demo_42/obs/ee_pos: shape=(138, 3), dtype=float64
+  data/demo_42/obs/ee_states: shape=(138, 6), dtype=float64
+  data/demo_42/obs/eye_in_hand_rgb: shape=(138, 128, 128, 3), dtype=uint8
+  data/demo_42/obs/gripper_states: shape=(138, 2), dtype=float64
+  data/demo_42/obs/joint_states: shape=(138, 7), dtype=float64
+  data/demo_42/rewards: shape=(138,), dtype=uint8
+  data/demo_42/robot_states: shape=(138, 9), dtype=float64
+  data/demo_42/states: shape=(138, 92), dtype=float64
+  data/demo_43/ (group)
+  data/demo_43/actions: shape=(93, 7), dtype=float64
+  data/demo_43/dones: shape=(93,), dtype=uint8
+  data/demo_43/obs/ (group)
+  data/demo_43/obs/agentview_rgb: shape=(93, 128, 128, 3), dtype=uint8
+  data/demo_43/obs/ee_ori: shape=(93, 3), dtype=float64
+  data/demo_43/obs/ee_pos: shape=(93, 3), dtype=float64
+  data/demo_43/obs/ee_states: shape=(93, 6), dtype=float64
+  data/demo_43/obs/eye_in_hand_rgb: shape=(93, 128, 128, 3), dtype=uint8
+  data/demo_43/obs/gripper_states: shape=(93, 2), dtype=float64
+  data/demo_43/obs/joint_states: shape=(93, 7), dtype=float64
+  data/demo_43/rewards: shape=(93,), dtype=uint8
+  data/demo_43/robot_states: shape=(93, 9), dtype=float64
+  data/demo_43/states: shape=(93, 92), dtype=float64
+  data/demo_44/ (group)
+  data/demo_44/actions: shape=(100, 7), dtype=float64
+  data/demo_44/dones: shape=(100,), dtype=uint8
+  data/demo_44/obs/ (group)
+  data/demo_44/obs/agentview_rgb: shape=(100, 128, 128, 3), dtype=uint8
+  data/demo_44/obs/ee_ori: shape=(100, 3), dtype=float64
+  data/demo_44/obs/ee_pos: shape=(100, 3), dtype=float64
+  data/demo_44/obs/ee_states: shape=(100, 6), dtype=float64
+  data/demo_44/obs/eye_in_hand_rgb: shape=(100, 128, 128, 3), dtype=uint8
+  data/demo_44/obs/gripper_states: shape=(100, 2), dtype=float64
+  data/demo_44/obs/joint_states: shape=(100, 7), dtype=float64
+  data/demo_44/rewards: shape=(100,), dtype=uint8
+  data/demo_44/robot_states: shape=(100, 9), dtype=float64
+  data/demo_44/states: shape=(100, 92), dtype=float64
+  data/demo_45/ (group)
+  data/demo_45/actions: shape=(126, 7), dtype=float64
+  data/demo_45/dones: shape=(126,), dtype=uint8
+  data/demo_45/obs/ (group)
+  data/demo_45/obs/agentview_rgb: shape=(126, 128, 128, 3), dtype=uint8
+  data/demo_45/obs/ee_ori: shape=(126, 3), dtype=float64
+  data/demo_45/obs/ee_pos: shape=(126, 3), dtype=float64
+  data/demo_45/obs/ee_states: shape=(126, 6), dtype=float64
+  data/demo_45/obs/eye_in_hand_rgb: shape=(126, 128, 128, 3), dtype=uint8
+  data/demo_45/obs/gripper_states: shape=(126, 2), dtype=float64
+  data/demo_45/obs/joint_states: shape=(126, 7), dtype=float64
+  data/demo_45/rewards: shape=(126,), dtype=uint8
+  data/demo_45/robot_states: shape=(126, 9), dtype=float64
+  data/demo_45/states: shape=(126, 92), dtype=float64
+  data/demo_46/ (group)
+  data/demo_46/actions: shape=(125, 7), dtype=float64
+  data/demo_46/dones: shape=(125,), dtype=uint8
+  data/demo_46/obs/ (group)
+  data/demo_46/obs/agentview_rgb: shape=(125, 128, 128, 3), dtype=uint8
+  data/demo_46/obs/ee_ori: shape=(125, 3), dtype=float64
+  data/demo_46/obs/ee_pos: shape=(125, 3), dtype=float64
+  data/demo_46/obs/ee_states: shape=(125, 6), dtype=float64
+  data/demo_46/obs/eye_in_hand_rgb: shape=(125, 128, 128, 3), dtype=uint8
+  data/demo_46/obs/gripper_states: shape=(125, 2), dtype=float64
+  data/demo_46/obs/joint_states: shape=(125, 7), dtype=float64
+  data/demo_46/rewards: shape=(125,), dtype=uint8
+  data/demo_46/robot_states: shape=(125, 9), dtype=float64
+  data/demo_46/states: shape=(125, 92), dtype=float64
+  data/demo_47/ (group)
+  data/demo_47/actions: shape=(117, 7), dtype=float64
+  data/demo_47/dones: shape=(117,), dtype=uint8
+  data/demo_47/obs/ (group)
+  data/demo_47/obs/agentview_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_47/obs/ee_ori: shape=(117, 3), dtype=float64
+  data/demo_47/obs/ee_pos: shape=(117, 3), dtype=float64
+  data/demo_47/obs/ee_states: shape=(117, 6), dtype=float64
+  data/demo_47/obs/eye_in_hand_rgb: shape=(117, 128, 128, 3), dtype=uint8
+  data/demo_47/obs/gripper_states: shape=(117, 2), dtype=float64
+  data/demo_47/obs/joint_states: shape=(117, 7), dtype=float64
+  data/demo_47/rewards: shape=(117,), dtype=uint8
+  data/demo_47/robot_states: shape=(117, 9), dtype=float64
+  data/demo_47/states: shape=(117, 92), dtype=float64
+  data/demo_48/ (group)
+  data/demo_48/actions: shape=(131, 7), dtype=float64
+  data/demo_48/dones: shape=(131,), dtype=uint8
+  data/demo_48/obs/ (group)
+  data/demo_48/obs/agentview_rgb: shape=(131, 128, 128, 3), dtype=uint8
+  data/demo_48/obs/ee_ori: shape=(131, 3), dtype=float64
+  data/demo_48/obs/ee_pos: shape=(131, 3), dtype=float64
+  data/demo_48/obs/ee_states: shape=(131, 6), dtype=float64
+  data/demo_48/obs/eye_in_hand_rgb: shape=(131, 128, 128, 3), dtype=uint8
+  data/demo_48/obs/gripper_states: shape=(131, 2), dtype=float64
+  data/demo_48/obs/joint_states: shape=(131, 7), dtype=float64
+  data/demo_48/rewards: shape=(131,), dtype=uint8
+  data/demo_48/robot_states: shape=(131, 9), dtype=float64
+  data/demo_48/states: shape=(131, 92), dtype=float64
+  data/demo_49/ (group)
+  data/demo_49/actions: shape=(135, 7), dtype=float64
+  data/demo_49/dones: shape=(135,), dtype=uint8
+  data/demo_49/obs/ (group)
+  data/demo_49/obs/agentview_rgb: shape=(135, 128, 128, 3), dtype=uint8
+  data/demo_49/obs/ee_ori: shape=(135, 3), dtype=float64
+  data/demo_49/obs/ee_pos: shape=(135, 3), dtype=float64
+  data/demo_49/obs/ee_states: shape=(135, 6), dtype=float64
+  data/demo_49/obs/eye_in_hand_rgb: shape=(135, 128, 128, 3), dtype=uint8
+  data/demo_49/obs/gripper_states: shape=(135, 2), dtype=float64
+  data/demo_49/obs/joint_states: shape=(135, 7), dtype=float64
+  data/demo_49/rewards: shape=(135,), dtype=uint8
+  data/demo_49/robot_states: shape=(135, 9), dtype=float64
+  data/demo_49/states: shape=(135, 92), dtype=float64
+  data/demo_5/ (group)
+  data/demo_5/actions: shape=(111, 7), dtype=float64
+  data/demo_5/dones: shape=(111,), dtype=uint8
+  data/demo_5/obs/ (group)
+  data/demo_5/obs/agentview_rgb: shape=(111, 128, 128, 3), dtype=uint8
+  data/demo_5/obs/ee_ori: shape=(111, 3), dtype=float64
+  data/demo_5/obs/ee_pos: shape=(111, 3), dtype=float64
+  data/demo_5/obs/ee_states: shape=(111, 6), dtype=float64
+  data/demo_5/obs/eye_in_hand_rgb: shape=(111, 128, 128, 3), dtype=uint8
+  data/demo_5/obs/gripper_states: shape=(111, 2), dtype=float64
+  data/demo_5/obs/joint_states: shape=(111, 7), dtype=float64
+  data/demo_5/rewards: shape=(111,), dtype=uint8
+  data/demo_5/robot_states: shape=(111, 9), dtype=float64
+  data/demo_5/states: shape=(111, 92), dtype=float64
+  data/demo_6/ (group)
+  data/demo_6/actions: shape=(109, 7), dtype=float64
+  data/demo_6/dones: shape=(109,), dtype=uint8
+  data/demo_6/obs/ (group)
+  data/demo_6/obs/agentview_rgb: shape=(109, 128, 128, 3), dtype=uint8
+  data/demo_6/obs/ee_ori: shape=(109, 3), dtype=float64
+  data/demo_6/obs/ee_pos: shape=(109, 3), dtype=float64
+  data/demo_6/obs/ee_states: shape=(109, 6), dtype=float64
+  data/demo_6/obs/eye_in_hand_rgb: shape=(109, 128, 128, 3), dtype=uint8
+  data/demo_6/obs/gripper_states: shape=(109, 2), dtype=float64
+  data/demo_6/obs/joint_states: shape=(109, 7), dtype=float64
+  data/demo_6/rewards: shape=(109,), dtype=uint8
+  data/demo_6/robot_states: shape=(109, 9), dtype=float64
+  data/demo_6/states: shape=(109, 92), dtype=float64
+  data/demo_7/ (group)
+  data/demo_7/actions: shape=(123, 7), dtype=float64
+  data/demo_7/dones: shape=(123,), dtype=uint8
+  data/demo_7/obs/ (group)
+  data/demo_7/obs/agentview_rgb: shape=(123, 128, 128, 3), dtype=uint8
+  data/demo_7/obs/ee_ori: shape=(123, 3), dtype=float64
+  data/demo_7/obs/ee_pos: shape=(123, 3), dtype=float64
+  data/demo_7/obs/ee_states: shape=(123, 6), dtype=float64
+  data/demo_7/obs/eye_in_hand_rgb: shape=(123, 128, 128, 3), dtype=uint8
+  data/demo_7/obs/gripper_states: shape=(123, 2), dtype=float64
+  data/demo_7/obs/joint_states: shape=(123, 7), dtype=float64
+  data/demo_7/rewards: shape=(123,), dtype=uint8
+  data/demo_7/robot_states: shape=(123, 9), dtype=float64
+  data/demo_7/states: shape=(123, 92), dtype=float64
+  data/demo_8/ (group)
+  data/demo_8/actions: shape=(111, 7), dtype=float64
+  data/demo_8/dones: shape=(111,), dtype=uint8
+  data/demo_8/obs/ (group)
+  data/demo_8/obs/agentview_rgb: shape=(111, 128, 128, 3), dtype=uint8
+  data/demo_8/obs/ee_ori: shape=(111, 3), dtype=float64
+  data/demo_8/obs/ee_pos: shape=(111, 3), dtype=float64
+  data/demo_8/obs/ee_states: shape=(111, 6), dtype=float64
+  data/demo_8/obs/eye_in_hand_rgb: shape=(111, 128, 128, 3), dtype=uint8
+  data/demo_8/obs/gripper_states: shape=(111, 2), dtype=float64
+  data/demo_8/obs/joint_states: shape=(111, 7), dtype=float64
+  data/demo_8/rewards: shape=(111,), dtype=uint8
+  data/demo_8/robot_states: shape=(111, 9), dtype=float64
+  data/demo_8/states: shape=(111, 92), dtype=float64
+  data/demo_9/ (group)
+  data/demo_9/actions: shape=(110, 7), dtype=float64
+  data/demo_9/dones: shape=(110,), dtype=uint8
+  data/demo_9/obs/ (group)
+  data/demo_9/obs/agentview_rgb: shape=(110, 128, 128, 3), dtype=uint8
+  data/demo_9/obs/ee_ori: shape=(110, 3), dtype=float64
+  data/demo_9/obs/ee_pos: shape=(110, 3), dtype=float64
+  data/demo_9/obs/ee_states: shape=(110, 6), dtype=float64
+  data/demo_9/obs/eye_in_hand_rgb: shape=(110, 128, 128, 3), dtype=uint8
+  data/demo_9/obs/gripper_states: shape=(110, 2), dtype=float64
+  data/demo_9/obs/joint_states: shape=(110, 7), dtype=float64
+  data/demo_9/rewards: shape=(110,), dtype=uint8
+  data/demo_9/robot_states: shape=(110, 9), dtype=float64
+  data/demo_9/states: shape=(110, 92), dtype=float64

@@ -1,0 +1,4 @@
+target_shift,label,is_leaking,is_causal,target_index_offset
+-1,leakage_diagnostic_only,True,False,-1
+0,causal,False,True,0
+1,future_target,False,False,1

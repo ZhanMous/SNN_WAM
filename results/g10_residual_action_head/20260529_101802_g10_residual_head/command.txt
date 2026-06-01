@@ -1,0 +1,1 @@
+/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python -m src.eval.g10_residual_action_head --config configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml --output_dir results/g10_residual_action_head --epochs 300 --seed 0 --device cpu

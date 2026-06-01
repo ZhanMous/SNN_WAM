@@ -1,0 +1,50 @@
+{
+  "full_horizon": 4,
+  "full_best_mse": 0.004939639852160499,
+  "full_best_epoch": 296,
+  "full_passed": false,
+  "continuous_dims_mean_mse": 0.0008107725831602389,
+  "gripper_mse": 0.031759511679410934,
+  "gripper_fraction_of_total": 6.429519687659003,
+  "h1_best_mse": 0.004045350122309867,
+  "h1_passed": false,
+  "lookup_table_best_mse": Infinity,
+  "lookup_table_passed": false,
+  "loss_threshold": 0.0001,
+  "gripper_diagnostics": {
+    "gripper_mse": 0.03175951540470123,
+    "gripper_mae": 0.10147017985582352,
+    "sign_accuracy_active": 0.9973958134651184,
+    "open_accuracy": 1.0,
+    "close_accuracy": 0.9921875,
+    "transition_precision": 1.0,
+    "transition_recall": 0.8,
+    "transition_f1": 0.888888888888889,
+    "close_timing_error_steps": 1.8,
+    "sign_correlation": 0.9832441210746765,
+    "n_open": 256,
+    "n_close": 128,
+    "n_neutral": 0,
+    "n_transitions_true": 10,
+    "n_transitions_pred": 8
+  },
+  "mask_audit": {
+    "issues": [],
+    "details": {
+      "gripper_unique_values": [
+        -1.0,
+        1.0
+      ],
+      "gripper_range": [
+        -1.0,
+        1.0
+      ],
+      "trajectory_length": 103,
+      "valid_windows": 96,
+      "excluded_edge_timesteps": 7,
+      "episode_boundary_crossing": false
+    },
+    "has_issues": false
+  },
+  "diagnosis": "CRITICAL: lookup-table baseline fails. Basic pipeline/metric/loader problem. Check data loading, loss computation, and optimizer."
+}

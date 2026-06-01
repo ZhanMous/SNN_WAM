@@ -1,0 +1,263 @@
+{
+  "status": "g8_mixed_action_metrics",
+  "config": "configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml",
+  "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+  "trajectory_length": 103,
+  "task_id": 0,
+  "task_name": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+  "dataset": "libero_spatial",
+  "git_commit": "b99fbe7",
+  "git_dirty": "True",
+  "seed": 0,
+  "epochs": 300,
+  "hidden_dim": 256,
+  "action_contract": {
+    "action_dim": 7,
+    "continuous_dims": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "continuous_dim_count": 6,
+    "gripper_dim": 6,
+    "gripper_encoding": "binary_sign",
+    "gripper_unique_values": [
+      -1.0,
+      1.0
+    ],
+    "gripper_threshold_for_class": 0.0,
+    "gripper_open_command": 1.0,
+    "gripper_close_command": -1.0,
+    "continuous_action_stats": {
+      "mean": [
+        0.16973818838596344,
+        0.1542649269104004,
+        -0.23085123300552368,
+        0.005117892287671566,
+        -0.02491331472992897,
+        -0.02874133177101612
+      ],
+      "std": [
+        0.31940263509750366,
+        0.25302523374557495,
+        0.514065682888031,
+        0.03063085302710533,
+        0.099857397377491,
+        0.03037232905626297
+      ],
+      "std_safe": [
+        0.31940263509750366,
+        0.25302523374557495,
+        0.514065682888031,
+        0.03063085302710533,
+        0.099857397377491,
+        0.03037232905626297
+      ],
+      "min": [
+        -0.2946428656578064,
+        -0.25982141494750977,
+        -0.9375,
+        -0.04821428656578064,
+        -0.1971428543329239,
+        -0.09321428835391998
+      ],
+      "max": [
+        0.7232142686843872,
+        0.7446428537368774,
+        0.7633928656578064,
+        0.09000000357627869,
+        0.1842857152223587,
+        -0.0
+      ]
+    },
+    "gripper_stats": {
+      "n_open": 64,
+      "n_close": 39,
+      "fraction_open": 0.6213592233009708,
+      "fraction_close": 0.3786407766990291
+    },
+    "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+    "dataset": "libero_spatial",
+    "task_name": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+    "git_commit": "b99fbe7",
+    "git_dirty": "True",
+    "n_samples": 103
+  },
+  "baseline_ladder": [
+    {
+      "variant": "last_action",
+      "model_type": "copy",
+      "param_count": 0,
+      "continuous_normalized_mse": 0.036254312843084335,
+      "continuous_raw_mse": 0.001462372369132936,
+      "continuous_raw_mae": 0.024056918919086456,
+      "gripper_sign_accuracy": 0.9791666865348816,
+      "gripper_transition_f1": 0.6666666666666666,
+      "global_raw_mse": 0.0131582235917449,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": null,
+      "beat_last_action_gripper_f1": null,
+      "best_epoch": -1
+    },
+    {
+      "variant": "mean_action",
+      "model_type": "constant",
+      "param_count": 0,
+      "continuous_normalized_mse": 1.0431830883026123,
+      "continuous_raw_mse": 0.07794898748397827,
+      "continuous_raw_mae": 0.1795678436756134,
+      "gripper_sign_accuracy": 0.6666666865348816,
+      "gripper_transition_f1": 0.0,
+      "global_raw_mse": 0.19379755854606628,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": null,
+      "beat_last_action_gripper_f1": null,
+      "best_epoch": -1
+    },
+    {
+      "variant": "linear_ar",
+      "model_type": "linear_ar",
+      "param_count": 28,
+      "continuous_normalized_mse": 0.3357379138469696,
+      "continuous_raw_mse": 0.012281098403036594,
+      "continuous_raw_mae": 0.06998340785503387,
+      "gripper_sign_accuracy": 0.96875,
+      "gripper_transition_f1": 0.6666666666666666,
+      "global_raw_mse": 0.028383800759911537,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": false,
+      "beat_last_action_gripper_f1": false,
+      "best_epoch": 299
+    },
+    {
+      "variant": "action_history_gru",
+      "model_type": "action_history_gru",
+      "param_count": 256,
+      "continuous_normalized_mse": 0.032682325690984726,
+      "continuous_raw_mse": 0.0013722229050472379,
+      "continuous_raw_mae": 0.024045731872320175,
+      "gripper_sign_accuracy": 0.96875,
+      "gripper_transition_f1": 0.6666666666666666,
+      "global_raw_mse": 0.019033333286643028,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": true,
+      "beat_last_action_gripper_f1": false,
+      "best_epoch": 298
+    },
+    {
+      "variant": "proprio_only_state",
+      "model_type": "proprio_mlp",
+      "param_count": 9,
+      "continuous_normalized_mse": 0.2728770077228546,
+      "continuous_raw_mse": 0.037808530032634735,
+      "continuous_raw_mae": 0.10209179669618607,
+      "gripper_sign_accuracy": 0.90625,
+      "gripper_transition_f1": 0.0,
+      "global_raw_mse": 0.08597873151302338,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": false,
+      "beat_last_action_gripper_f1": false,
+      "best_epoch": 299
+    },
+    {
+      "variant": "proprio_plus_history",
+      "model_type": "proprio_history_gru",
+      "param_count": 265,
+      "continuous_normalized_mse": 0.01955101452767849,
+      "continuous_raw_mse": 0.0011071786284446716,
+      "continuous_raw_mae": 0.02088618464767933,
+      "gripper_sign_accuracy": 0.9791666865348816,
+      "gripper_transition_f1": 0.6666666666666666,
+      "global_raw_mse": 0.012853771448135376,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": true,
+      "beat_last_action_gripper_f1": false,
+      "best_epoch": 270
+    },
+    {
+      "variant": "full_state_92d",
+      "model_type": "full_state_mlp",
+      "param_count": 92,
+      "continuous_normalized_mse": 0.024974901229143143,
+      "continuous_raw_mse": 0.0018637010361999273,
+      "continuous_raw_mae": 0.02679738588631153,
+      "gripper_sign_accuracy": 0.9791666865348816,
+      "gripper_transition_f1": 0.6666666666666666,
+      "global_raw_mse": 0.013502220623195171,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": true,
+      "beat_last_action_gripper_f1": false,
+      "best_epoch": 291
+    },
+    {
+      "variant": "full_state_plus_history",
+      "model_type": "full_state_history_gru",
+      "param_count": 348,
+      "continuous_normalized_mse": 0.017023690044879913,
+      "continuous_raw_mse": 0.001184700638987124,
+      "continuous_raw_mae": 0.021224787458777428,
+      "gripper_sign_accuracy": 0.9791666865348816,
+      "gripper_transition_f1": 0.6666666666666666,
+      "global_raw_mse": 0.012920219451189041,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": true,
+      "beat_last_action_gripper_f1": false,
+      "best_epoch": 254
+    },
+    {
+      "variant": "dino_cls",
+      "model_type": "dino_cls_mlp",
+      "param_count": 384,
+      "continuous_normalized_mse": 0.23636123538017273,
+      "continuous_raw_mse": 0.034197550266981125,
+      "continuous_raw_mae": 0.09502916783094406,
+      "gripper_sign_accuracy": 0.8958333134651184,
+      "gripper_transition_f1": 0.0,
+      "global_raw_mse": 0.08883599936962128,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": false,
+      "beat_last_action_gripper_f1": false,
+      "best_epoch": 295
+    },
+    {
+      "variant": "dino_cls_plus_history",
+      "model_type": "dino_cls_history_gru",
+      "param_count": 640,
+      "continuous_normalized_mse": 0.02295714244246483,
+      "continuous_raw_mse": 0.0013778159627690911,
+      "continuous_raw_mae": 0.02339010499417782,
+      "gripper_sign_accuracy": 0.9791666865348816,
+      "gripper_transition_f1": 0.6666666666666666,
+      "global_raw_mse": 0.013085747137665749,
+      "old_1e4_gate": false,
+      "beat_last_action_continuous": true,
+      "beat_last_action_gripper_f1": false,
+      "best_epoch": 283
+    }
+  ],
+  "full_state_decomposition": {
+    "state_dim": 92,
+    "is_qpos_qvel": true,
+    "decomposition_status": "uncertain",
+    "known_components": {
+      "robot_qpos": "7 DOF (Panda arm joints)",
+      "gripper_qpos": "2 DOF (Panda gripper joints)",
+      "object_qpos": "7 DOF per object (position 3 + quaternion 4)",
+      "robot_qvel": "7 DOF (velocity)",
+      "gripper_qvel": "2 DOF (velocity)",
+      "object_qvel": "7 DOF per object (velocity)"
+    },
+    "estimated_breakdown": "qpos: robot(7) + gripper(2) + object(7) = 16; qvel: robot(7) + gripper(2) + object(7) = 16; Total = 32. But we have 92 dims, suggesting multiple objects or additional DOF (e.g., joints, contact forces). Exact decomposition requires the MuJoCo model XML from LIBERO.",
+    "recommendation": "Keep conservative label 'full_state_92d'. Do not claim 'true oracle' or decompose into named features without verifying against the MuJoCo model XML.",
+    "goal_pose_in_state": "Unknown. Goal may be task-conditioned, not in state vector."
+  },
+  "non_claims": [
+    "not_closed_loop_success",
+    "not_future_latent_benefit_evidence",
+    "not_architecture_claim_evidence",
+    "not_policy_validity_evidence"
+  ]
+}

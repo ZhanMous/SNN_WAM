@@ -1,0 +1,16 @@
+metric,value
+gripper_mse,0.027909457683563232
+gripper_mae,0.08849474042654037
+sign_accuracy_active,0.9947916865348816
+open_accuracy,0.99609375
+close_accuracy,0.9921875
+transition_precision,1.0
+transition_recall,0.6
+transition_f1,0.7499999999999999
+close_timing_error_steps,1.6
+sign_correlation,0.9850628972053528
+n_open,256
+n_close,128
+n_neutral,0
+n_transitions_true,10
+n_transitions_pred,6

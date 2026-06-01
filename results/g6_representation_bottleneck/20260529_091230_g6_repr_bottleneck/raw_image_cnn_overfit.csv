@@ -1,0 +1,2 @@
+variant,model_type,feature_dim,eval_mse,continuous_mse,gripper_mse,gripper_sign_accuracy,best_epoch,passed,error,git_commit,git_dirty,threshold
+raw_image_cnn,cnn_128,0,nan,nan,nan,nan,-1,False,raw_images_not_available,b99fbe7,True,0.0001

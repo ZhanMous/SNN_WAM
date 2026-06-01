@@ -1,0 +1,2 @@
+variant,model_type,feature_dim,eval_mse,continuous_mse,gripper_mse,gripper_sign_accuracy,best_epoch,passed,error,git_commit,git_dirty,threshold
+dino_cls,mlp_384,384,0.03986751288175583,0.02567877061665058,0.125,0.96875,275,False,,b99fbe7,True,0.0001

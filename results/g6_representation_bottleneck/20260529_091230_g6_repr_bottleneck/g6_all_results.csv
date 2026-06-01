@@ -1,0 +1,5 @@
+variant,model_type,feature_dim,eval_mse,continuous_mse,gripper_mse,gripper_sign_accuracy,best_epoch,passed,error,git_commit,git_dirty,threshold
+proprio_only_state,proprio,9,0.035335734486579895,0.034280579537153244,0.0416666679084301,0.9895833134651184,299,False,,b99fbe7,True,0.0001
+raw_image_cnn,cnn_128,0,nan,nan,nan,nan,-1,False,raw_images_not_available,b99fbe7,True,0.0001
+dino_cls,mlp_384,384,0.03986751288175583,0.02567877061665058,0.125,0.96875,275,False,,b99fbe7,True,0.0001
+action_history_gru,gru,256,0.0023997779935598373,0.002799740992486477,0.0,1.0,299,False,,b99fbe7,True,0.0001

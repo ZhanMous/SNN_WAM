@@ -1,0 +1,12 @@
+dim_index,dim_label,mse,type
+0,delta_pos_x,0.0019763787277042866,continuous
+1,delta_pos_y,0.0013326341286301613,continuous
+2,delta_pos_z,0.0013734210515394807,continuous
+3,delta_rot_x,0.0006896904087625444,continuous
+4,delta_rot_y,0.0005489189061336219,continuous
+5,delta_rot_z,0.0003556708397809416,continuous
+6,gripper,0.02816692739725113,gripper
+horizon_0,horizon_0,0.005432503763586283,horizon
+horizon_1,horizon_1,0.003886060556396842,horizon
+horizon_2,horizon_2,0.004205162171274424,horizon
+horizon_3,horizon_3,0.006158353295177221,horizon

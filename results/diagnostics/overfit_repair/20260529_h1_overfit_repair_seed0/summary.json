@@ -1,0 +1,25 @@
+{
+  "status": "h1_overfit_repair_diagnostic",
+  "config": "configs/diagnostics/libero_spatial_wam_gru_h1_overfit_debug.yaml",
+  "trajectory_id": "datasets/libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+  "best_target_shift": -1,
+  "nonzero_shift_clearly_best": true,
+  "loss_threshold": 0.0001,
+  "timestep_embedding_mlp_passed": true,
+  "dinov2_latent_mlp_passed": false,
+  "wam_gru_split_gripper_passed": false,
+  "wam_gru_split_gripper_eval_mse": 0.0002281805209349841,
+  "wam_gru_split_gripper_continuous_mse": 0.00026621061260811985,
+  "wam_gru_split_gripper_gripper_sign_accuracy": 1.0,
+  "pipeline_valid_for_architecture_claims": false,
+  "required_csvs": {
+    "timestep_shift_train_sweep": "results/diagnostics/overfit_repair/20260529_h1_overfit_repair_seed0/timestep_shift_train_sweep.csv",
+    "split_head_gripper_diagnostics": "results/diagnostics/overfit_repair/20260529_h1_overfit_repair_seed0/split_head_gripper_diagnostics.csv",
+    "overfit_debug_curves": "results/diagnostics/overfit_repair/20260529_h1_overfit_repair_seed0/overfit_debug_curves.csv"
+  },
+  "non_claims": [
+    "not_closed_loop_success",
+    "not_future_latent_benefit_evidence",
+    "not_architecture_claim_evidence"
+  ]
+}

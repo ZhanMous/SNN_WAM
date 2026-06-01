@@ -1,0 +1,18 @@
+{
+  "issues": [],
+  "details": {
+    "gripper_unique_values": [
+      -1.0,
+      1.0
+    ],
+    "gripper_range": [
+      -1.0,
+      1.0
+    ],
+    "trajectory_length": 103,
+    "valid_windows": 96,
+    "excluded_edge_timesteps": 7,
+    "episode_boundary_crossing": false
+  },
+  "has_issues": false
+}

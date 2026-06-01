@@ -1,0 +1,2 @@
+variant,model_type,feature_dim,eval_mse,continuous_mse,gripper_mse,gripper_sign_accuracy,best_epoch,passed,error,git_commit,git_dirty,threshold
+proprio_only_state,proprio,9,0.035335734486579895,0.034280579537153244,0.0416666679084301,0.9895833134651184,299,False,,b99fbe7,True,0.0001

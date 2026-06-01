@@ -1,0 +1,2 @@
+variant,label,continuous_normalized_mse,gripper_sign_accuracy,best_epoch
+timestep_embedding_mlp,diagnostic_only_not_causal,5.578722993959673e-05,1.0,199

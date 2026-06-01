@@ -1,0 +1,166 @@
+{
+  "status": "g10_residual_action_head",
+  "config": "configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml",
+  "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+  "trajectory_length": 103,
+  "task_id": 0,
+  "task_name": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+  "dataset": "libero_spatial",
+  "git_commit": "b99fbe7",
+  "git_dirty": "True",
+  "seed": 0,
+  "epochs": 300,
+  "hidden_dim": 256,
+  "best_direct_continuous_normalized_mse": 0.01833021454513073,
+  "best_residual_continuous_normalized_mse": 0.013269737362861633,
+  "residual_improvement": 1.381354735507576,
+  "comparison": [
+    {
+      "variant": "action_history_gru",
+      "direct_continuous_normalized_mse": 0.03209516033530235,
+      "direct_continuous_raw_mse": 0.0012989791575819254,
+      "direct_gripper_sign_accuracy": 0.96875,
+      "residual_continuous_normalized_mse": 0.013269737362861633,
+      "residual_continuous_raw_mse": 0.0004677722754422575,
+      "residual_gripper_sign_accuracy": 0.9791666865348816,
+      "improvement_ratio": 2.4186733661457334,
+      "direct_beat_last_action": true,
+      "residual_beat_last_action": null,
+      "direct_best_epoch": 292,
+      "residual_best_epoch": 298
+    },
+    {
+      "variant": "full_state_plus_history",
+      "direct_continuous_normalized_mse": 0.01833021454513073,
+      "direct_continuous_raw_mse": 0.001170958043076098,
+      "direct_gripper_sign_accuracy": 0.9791666865348816,
+      "residual_continuous_normalized_mse": 0.01420524250715971,
+      "residual_continuous_raw_mse": 0.000523707247339189,
+      "residual_gripper_sign_accuracy": 0.9791666865348816,
+      "improvement_ratio": 1.2903837816138624,
+      "direct_beat_last_action": true,
+      "residual_beat_last_action": null,
+      "direct_best_epoch": 292,
+      "residual_best_epoch": 201
+    }
+  ],
+  "orientation_ladder": [
+    {
+      "variant": "baseline_no_weight",
+      "rotation_weight": 1.0,
+      "continuous_normalized_mse": 0.020110782235860825,
+      "per_dim_mse": [
+        0.002390344627201557,
+        0.0020150516647845507,
+        0.002796980319544673,
+        2.370259608142078e-05,
+        0.00016638463421259075,
+        1.2201577192172408e-05
+      ]
+    },
+    {
+      "variant": "rotation_weight_2.0",
+      "rotation_weight": 2.0,
+      "continuous_normalized_mse": 0.019285541027784348,
+      "per_dim_mse": [
+        0.002174735302105546,
+        0.002623060019686818,
+        0.0031772730872035027,
+        1.659181907598395e-05,
+        0.00013581663370132446,
+        9.31453087105183e-06
+      ]
+    },
+    {
+      "variant": "rotation_weight_5.0",
+      "rotation_weight": 5.0,
+      "continuous_normalized_mse": 0.016819003969430923,
+      "per_dim_mse": [
+        0.002226500539109111,
+        0.0022973220329731703,
+        0.004560358356684446,
+        1.0685183042369317e-05,
+        7.579946395708248e-05,
+        6.4196224229817744e-06
+      ]
+    },
+    {
+      "variant": "rotation_weight_10.0",
+      "rotation_weight": 10.0,
+      "continuous_normalized_mse": 0.020079422742128372,
+      "per_dim_mse": [
+        0.0023772199638187885,
+        0.002994512440636754,
+        0.0058850874193012714,
+        1.2450999747670721e-05,
+        7.5929106969852e-05,
+        6.684633262921125e-06
+      ]
+    },
+    {
+      "variant": "separate_pos_rot_heads",
+      "rotation_weight": 1.0,
+      "continuous_normalized_mse": 0.015383115969598293,
+      "per_dim_mse": [
+        0.001353115658275783,
+        0.0009140802430920303,
+        0.0013357935240492225,
+        2.8016251235385425e-05,
+        0.00014789559645578265,
+        1.3847144145984203e-05
+      ]
+    }
+  ],
+  "multidemo": [
+    {
+      "variant": "multidemo_offline",
+      "val_demo": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_1",
+      "direct_continuous_normalized_mse": 0.7204433083534241,
+      "residual_continuous_normalized_mse": 0.05284111946821213,
+      "improvement_ratio": 13.634141660962054,
+      "n_train_windows": 96,
+      "n_val_windows": 116
+    },
+    {
+      "variant": "multidemo_offline",
+      "val_demo": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_10",
+      "direct_continuous_normalized_mse": 0.2634701728820801,
+      "residual_continuous_normalized_mse": 0.0337899886071682,
+      "improvement_ratio": 7.797285046322496,
+      "n_train_windows": 96,
+      "n_val_windows": 102
+    },
+    {
+      "variant": "multidemo_offline",
+      "val_demo": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_11",
+      "direct_continuous_normalized_mse": 0.2708914577960968,
+      "residual_continuous_normalized_mse": 0.022062379866838455,
+      "improvement_ratio": 12.278433216684325,
+      "n_train_windows": 96,
+      "n_val_windows": 94
+    },
+    {
+      "variant": "multidemo_offline",
+      "val_demo": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_12",
+      "direct_continuous_normalized_mse": 0.9613243341445923,
+      "residual_continuous_normalized_mse": 0.04353959485888481,
+      "improvement_ratio": 22.079312801607795,
+      "n_train_windows": 96,
+      "n_val_windows": 117
+    },
+    {
+      "variant": "multidemo_offline",
+      "val_demo": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_13",
+      "direct_continuous_normalized_mse": 0.5297002196311951,
+      "residual_continuous_normalized_mse": 0.049108609557151794,
+      "improvement_ratio": 10.786300496142914,
+      "n_train_windows": 96,
+      "n_val_windows": 115
+    }
+  ],
+  "non_claims": [
+    "not_closed_loop_success",
+    "not_future_latent_benefit_evidence",
+    "not_architecture_claim_evidence"
+  ]
+}

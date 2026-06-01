@@ -1,0 +1,6 @@
+{
+  "python_version": "3.10.20",
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "torch_version": "2.12.0+cu130",
+  "timestamp": "2026-05-29T17:38:45+0800"
+}

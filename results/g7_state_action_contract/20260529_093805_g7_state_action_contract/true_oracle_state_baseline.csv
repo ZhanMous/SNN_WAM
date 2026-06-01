@@ -1,0 +1,3 @@
+variant,model_type,param_count,eval_mse,continuous_mse,gripper_mse,gripper_sign_accuracy,passed,best_epoch,error
+full_state_92d_oracle,mlp,92,0.00872616097331047,0.0032360779587179422,0.0416666679084301,0.9895833134651184,False,298,
+full_state_plus_history,gru+mlp,348,0.0013358121505007148,0.0015584472566843033,0.0,1.0,False,273,

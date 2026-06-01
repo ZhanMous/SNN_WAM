@@ -1,0 +1,100 @@
+{
+  "action_convention": "action_to_current_obs",
+  "nominal_target": "actions[t+1] for obs/latent at t",
+  "best_target_shift": -1,
+  "shift_definition": "H=1 target index is t + 1 + target_shift",
+  "output_activation": {
+    "continuous_dims_0_to_5": "linear",
+    "regression_gripper_baseline": "linear",
+    "split_gripper_head": "binary logits thresholded to -1/+1 env command"
+  },
+  "target_scaling": "raw_action_units",
+  "action_normalization": "none",
+  "masking": "no masks; windows that would cross boundaries are excluded",
+  "padding": "none",
+  "action_dimension_order": [
+    "delta_pos_x",
+    "delta_pos_y",
+    "delta_pos_z",
+    "delta_rot_x",
+    "delta_rot_y",
+    "delta_rot_z",
+    "gripper"
+  ],
+  "gripper_convention": {
+    "open_command": 1.0,
+    "close_command": -1.0,
+    "classification_target": "target_gripper > 0"
+  },
+  "trajectory_id": "datasets/libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+  "trajectory_length": 103,
+  "history_len": 4,
+  "action_horizon": 1,
+  "future_horizon": 4,
+  "shift_rows": [
+    {
+      "target_shift": -1,
+      "train_mse": 6.628200208069757e-05,
+      "eval_mse": 6.628210394410416e-05,
+      "continuous_mse": 7.262115832418203e-05,
+      "gripper_mse": 2.8247799491509795e-05,
+      "gripper_sign_accuracy": 1.0,
+      "gripper_open_accuracy": 1.0,
+      "gripper_close_accuracy": 1.0,
+      "gripper_transition_f1": 1.0,
+      "action_trace_correlation": 0.9998544454574585,
+      "continuous_trace_correlation": 0.9996292591094971,
+      "gripper_trace_correlation": 0.9999929666519165,
+      "best_epoch": 887,
+      "passed": true
+    },
+    {
+      "target_shift": 0,
+      "train_mse": 0.0001031135325320065,
+      "eval_mse": 0.00010311337246093899,
+      "continuous_mse": 9.677201160229743e-05,
+      "gripper_mse": 0.0001411615521647036,
+      "gripper_sign_accuracy": 1.0,
+      "gripper_open_accuracy": 1.0,
+      "gripper_close_accuracy": 1.0,
+      "gripper_transition_f1": 1.0,
+      "action_trace_correlation": 0.9997729063034058,
+      "continuous_trace_correlation": 0.9995089173316956,
+      "gripper_trace_correlation": 0.9999362230300903,
+      "best_epoch": 999,
+      "passed": false
+    },
+    {
+      "target_shift": 1,
+      "train_mse": 0.0001457594335079193,
+      "eval_mse": 0.00014575946261174977,
+      "continuous_mse": 0.00013973268505651504,
+      "gripper_mse": 0.00018191993876826018,
+      "gripper_sign_accuracy": 1.0,
+      "gripper_open_accuracy": 1.0,
+      "gripper_close_accuracy": 1.0,
+      "gripper_transition_f1": 1.0,
+      "action_trace_correlation": 0.9996899962425232,
+      "continuous_trace_correlation": 0.999312162399292,
+      "gripper_trace_correlation": 0.999916672706604,
+      "best_epoch": 838,
+      "passed": false
+    },
+    {
+      "target_shift": 2,
+      "train_mse": 0.0001678186672506854,
+      "eval_mse": 0.0001678189728409052,
+      "continuous_mse": 0.00015858950791880488,
+      "gripper_mse": 0.00022319583513308316,
+      "gripper_sign_accuracy": 1.0,
+      "gripper_open_accuracy": 1.0,
+      "gripper_close_accuracy": 1.0,
+      "gripper_transition_f1": 1.0,
+      "action_trace_correlation": 0.9996248483657837,
+      "continuous_trace_correlation": 0.9991823434829712,
+      "gripper_trace_correlation": 0.9998771548271179,
+      "best_epoch": 783,
+      "passed": false
+    }
+  ]
+}

@@ -1,0 +1,424 @@
+{
+  "status": "g7_state_action_contract",
+  "config": "configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml",
+  "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+  "trajectory_length": 103,
+  "task_id": 0,
+  "task_name": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+  "dataset": "libero_spatial",
+  "git_commit": "b99fbe7",
+  "git_dirty": "True",
+  "seed": 0,
+  "epochs": 300,
+  "loss_threshold": 0.0001,
+  "hidden_dim": 256,
+  "has_full_state": true,
+  "full_state_dim": 92,
+  "has_proprio": true,
+  "proprio_dim": 9,
+  "action_dim": 7,
+  "schema": {
+    "source_file": "/home/zhan_shaoji/data/libero/datasets/libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5",
+    "suite": "libero_spatial",
+    "fields": {
+      "data/demo_0/actions": {
+        "shape": [
+          103,
+          7
+        ],
+        "dtype": "float64",
+        "category": "action"
+      },
+      "data/demo_0/dones": {
+        "shape": [
+          103
+        ],
+        "dtype": "uint8",
+        "category": "done_flag"
+      },
+      "data/demo_0/rewards": {
+        "shape": [
+          103
+        ],
+        "dtype": "uint8",
+        "category": "reward"
+      },
+      "data/demo_0/robot_states": {
+        "shape": [
+          103,
+          9
+        ],
+        "dtype": "float64",
+        "category": "robot_state_proprioceptive"
+      },
+      "data/demo_0/states": {
+        "shape": [
+          103,
+          92
+        ],
+        "dtype": "float64",
+        "category": "full_mujoco_state"
+      },
+      "data/demo_0/obs/agentview_rgb": {
+        "shape": [
+          103,
+          128,
+          128,
+          3
+        ],
+        "dtype": "uint8",
+        "category": "image"
+      },
+      "data/demo_0/obs/ee_ori": {
+        "shape": [
+          103,
+          3
+        ],
+        "dtype": "float64",
+        "category": "end_effector_pose"
+      },
+      "data/demo_0/obs/ee_pos": {
+        "shape": [
+          103,
+          3
+        ],
+        "dtype": "float64",
+        "category": "end_effector_pose"
+      },
+      "data/demo_0/obs/ee_states": {
+        "shape": [
+          103,
+          6
+        ],
+        "dtype": "float64",
+        "category": "end_effector_states"
+      },
+      "data/demo_0/obs/eye_in_hand_rgb": {
+        "shape": [
+          103,
+          128,
+          128,
+          3
+        ],
+        "dtype": "uint8",
+        "category": "image"
+      },
+      "data/demo_0/obs/gripper_states": {
+        "shape": [
+          103,
+          2
+        ],
+        "dtype": "float64",
+        "category": "gripper_state"
+      },
+      "data/demo_0/obs/joint_states": {
+        "shape": [
+          103,
+          7
+        ],
+        "dtype": "float64",
+        "category": "joint_state"
+      }
+    },
+    "attributes": {
+      "init_state": "array([ 2.50000000e-01, -2.30872374e-03, -1.40661534e-01, -2.05152336e-03,\n       -2.42226009e+00,  3.85765689e-03,  2.22675850e+00,  7.88590084e-01,\n        3.40580917e-02, -3.40542795e-02, -7.500029",
+      "model_file": "'<mujoco model=\"base\">\\n  <compiler angle=\"radian\" meshdir=\"meshes/\" autolimits=\"true\"/>\\n  <option impratio=\"20\" density=\"1.2\" viscosity=\"2e-05\" cone=\"elliptic\"/>\\n  <size njmax=\"5000\" nconmax=\"5000\"",
+      "num_samples": "103"
+    },
+    "available_fields": {
+      "image_agentview": true,
+      "image_eye_in_hand": true,
+      "ee_pos": true,
+      "ee_ori": true,
+      "ee_states": true,
+      "gripper_states": true,
+      "joint_states": true,
+      "robot_states": true,
+      "states_92d": true,
+      "actions": true
+    },
+    "object_goal_fields": {
+      "object_pos": false,
+      "object_ori": false,
+      "goal_pos": false,
+      "goal_ori": false
+    },
+    "has_object_pose_in_fields": false,
+    "has_full_mujoco_state": true,
+    "notes": "The 92-dim 'states' field is likely the full MuJoCo qpos+qvel vector, which contains object poses. However, the exact decomposition into object position/orientation requires knowing the model DOF counts. The current pipeline loads only 'robot_states' (9-dim), which is proprioceptive (gripper_states + ee/robot joint info), NOT a true oracle state with object and goal poses."
+  },
+  "action_audit": {
+    "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+    "trajectory_length": 103,
+    "action_dim": 7,
+    "per_dim_stats": [
+      {
+        "dim": 0,
+        "label": "delta_pos_x",
+        "min": -0.2946428656578064,
+        "max": 0.7232142686843872,
+        "mean": 0.16973818838596344,
+        "std": 0.31940263509750366,
+        "var": 0.10201805084943771
+      },
+      {
+        "dim": 1,
+        "label": "delta_pos_y",
+        "min": -0.25982141494750977,
+        "max": 0.7446428537368774,
+        "mean": 0.1542649269104004,
+        "std": 0.25302523374557495,
+        "var": 0.0640217736363411
+      },
+      {
+        "dim": 2,
+        "label": "delta_pos_z",
+        "min": -0.9375,
+        "max": 0.7633928656578064,
+        "mean": -0.23085123300552368,
+        "std": 0.514065682888031,
+        "var": 0.2642635405063629
+      },
+      {
+        "dim": 3,
+        "label": "delta_rot_x",
+        "min": -0.04821428656578064,
+        "max": 0.09000000357627869,
+        "mean": 0.005117892287671566,
+        "std": 0.03063085302710533,
+        "var": 0.0009382491698488593
+      },
+      {
+        "dim": 4,
+        "label": "delta_rot_y",
+        "min": -0.1971428543329239,
+        "max": 0.1842857152223587,
+        "mean": -0.02491331472992897,
+        "std": 0.099857397377491,
+        "var": 0.009971500374376774
+      },
+      {
+        "dim": 5,
+        "label": "delta_rot_z",
+        "min": -0.09321428835391998,
+        "max": -0.0,
+        "mean": -0.02874133177101612,
+        "std": 0.03037232905626297,
+        "var": 0.0009224783862009645
+      },
+      {
+        "dim": 6,
+        "label": "gripper",
+        "min": -1.0,
+        "max": 1.0,
+        "mean": 0.24271844327449799,
+        "std": 0.9700967669487,
+        "var": 0.9410877227783203
+      }
+    ],
+    "gripper": {
+      "unique_values": [
+        -1.0,
+        1.0
+      ],
+      "n_open": 64,
+      "n_close": 39,
+      "n_neutral": 0,
+      "open_fraction": 0.6213592233009708,
+      "close_fraction": 0.3786407766990291,
+      "n_transitions": 2,
+      "transition_times": [
+        35,
+        99
+      ],
+      "is_binary": true,
+      "is_sign_coded": true
+    },
+    "continuous_dims_mean_std": 0.20789235519866148,
+    "gripper_dim_std": 0.9700967669487,
+    "action_autocorrelation_lag1": [
+      0.9935875535011292,
+      0.9927544593811035,
+      0.9995434880256653,
+      0.9748560190200806,
+      0.9945464730262756,
+      0.9519525766372681,
+      0.9520448446273804
+    ],
+    "is_delta_like": false,
+    "action_convention": "action_to_current_obs (confirmed by trajectory_window.py)",
+    "git_commit": "b99fbe7",
+    "git_dirty": "True",
+    "dataset": "libero_spatial"
+  },
+  "raw_image_audit": {
+    "n_images": 103,
+    "sample_type": "str",
+    "is_string_reference": true,
+    "is_raw_array": false,
+    "sample_reference": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0:obs/agentview_rgb:0",
+    "can_dereference": true,
+    "dereference_method": "hdf5_dataset_path",
+    "note": "Frame references are HDF5 paths that CAN be resolved to raw pixels by reading the original HDF5 files. The current pipeline does NOT resolve them because it loads latents (not raw images) by default. A lazy raw-image loader could resolve these references on demand."
+  },
+  "baseline_ladder": [
+    {
+      "variant": "zero_action",
+      "model_type": "constant",
+      "param_count": 0,
+      "eval_mse": 0.22659850120544434,
+      "continuous_mse": NaN,
+      "gripper_mse": NaN,
+      "gripper_sign_accuracy": NaN,
+      "passed": false,
+      "best_epoch": -1,
+      "error": ""
+    },
+    {
+      "variant": "mean_action",
+      "model_type": "constant",
+      "param_count": 0,
+      "eval_mse": 0.19379754577364242,
+      "continuous_mse": NaN,
+      "gripper_mse": NaN,
+      "gripper_sign_accuracy": NaN,
+      "passed": false,
+      "best_epoch": -1,
+      "error": ""
+    },
+    {
+      "variant": "last_action",
+      "model_type": "copy",
+      "param_count": 0,
+      "eval_mse": 0.013158224168277922,
+      "continuous_mse": NaN,
+      "gripper_mse": NaN,
+      "gripper_sign_accuracy": NaN,
+      "passed": false,
+      "best_epoch": -1,
+      "error": ""
+    },
+    {
+      "variant": "linear_ar",
+      "model_type": "linear",
+      "param_count": 28,
+      "eval_mse": 0.023591546341776848,
+      "continuous_mse": 0.006260336842387915,
+      "gripper_mse": 0.12757879495620728,
+      "gripper_sign_accuracy": 0.9583333134651184,
+      "passed": false,
+      "best_epoch": 299,
+      "error": ""
+    },
+    {
+      "variant": "action_history_gru",
+      "model_type": "gru",
+      "param_count": 256,
+      "eval_mse": 0.0023999917320907116,
+      "continuous_mse": 0.0027999896556138992,
+      "gripper_mse": 0.0,
+      "gripper_sign_accuracy": 1.0,
+      "passed": false,
+      "best_epoch": 290,
+      "error": ""
+    },
+    {
+      "variant": "proprio_only_state",
+      "model_type": "mlp",
+      "param_count": 9,
+      "eval_mse": 0.03866364434361458,
+      "continuous_mse": 0.038163140416145325,
+      "gripper_mse": 0.0416666679084301,
+      "gripper_sign_accuracy": 0.9895833134651184,
+      "passed": false,
+      "best_epoch": 297,
+      "error": ""
+    },
+    {
+      "variant": "proprio_plus_history",
+      "model_type": "gru+mlp",
+      "param_count": 265,
+      "eval_mse": 0.0021159653551876545,
+      "continuous_mse": 0.0024686260148882866,
+      "gripper_mse": 0.0,
+      "gripper_sign_accuracy": 1.0,
+      "passed": false,
+      "best_epoch": 270,
+      "error": ""
+    },
+    {
+      "variant": "full_state_92d_oracle",
+      "model_type": "mlp",
+      "param_count": 92,
+      "eval_mse": 0.00872616097331047,
+      "continuous_mse": 0.0032360779587179422,
+      "gripper_mse": 0.0416666679084301,
+      "gripper_sign_accuracy": 0.9895833134651184,
+      "passed": false,
+      "best_epoch": 298,
+      "error": ""
+    },
+    {
+      "variant": "full_state_plus_history",
+      "model_type": "gru+mlp",
+      "param_count": 348,
+      "eval_mse": 0.0013358121505007148,
+      "continuous_mse": 0.0015584472566843033,
+      "gripper_mse": 0.0,
+      "gripper_sign_accuracy": 1.0,
+      "passed": false,
+      "best_epoch": 273,
+      "error": ""
+    }
+  ],
+  "threshold_audit": {
+    "threshold": 0.0001,
+    "action_scale_mean_abs": 0.30036160349845886,
+    "action_variance_per_dim": [
+      0.10201803594827652,
+      0.0640217736363411,
+      0.2642635703086853,
+      0.0009382489952258766,
+      0.009971501305699348,
+      0.0009224783279933035,
+      0.941089391708374
+    ],
+    "action_std_per_dim": [
+      0.31940263509750366,
+      0.25302523374557495,
+      0.5140657424926758,
+      0.030630851164460182,
+      0.0998574048280716,
+      0.03037232905626297,
+      0.9700976014137268
+    ],
+    "last_action_mse": 0.012556679546833038,
+    "last_action_continuous_mse": 0.0015775641659274697,
+    "adjacent_action_var": 0.011836201883852482,
+    "gripper_variance": 0.9410877227783203,
+    "baseline_mses": {
+      "zero_action": 0.22659850120544434,
+      "mean_action": 0.19379754577364242,
+      "last_action": 0.013158224168277922,
+      "linear_ar": 0.023591546341776848,
+      "action_history_gru": 0.0023999917320907116,
+      "proprio_only_state": 0.03866364434361458,
+      "proprio_plus_history": 0.0021159653551876545,
+      "full_state_92d_oracle": 0.00872616097331047,
+      "full_state_plus_history": 0.0013358121505007148
+    },
+    "verdict_lines": [
+      "Threshold 1e-4 is NOT achieved by any baseline. Best baseline: full_state_plus_history at 1.335812e-03",
+      "Last-action continuous MSE (1.577564e-03) >= threshold. Even trivial baselines cannot achieve 1e-4 on continuous dims.",
+      "Action scale (mean |action|): 0.300362. Threshold represents 0.03% of action scale.",
+      "Recommendation: 1e-4 is a reasonable engineering overfit gate for continuous dims, but may be too strict when mixed with binary gripper MSE. Consider splitting: continuous regression gate at 1e-4, gripper classification gate at 0."
+    ]
+  },
+  "non_claims": [
+    "not_closed_loop_success",
+    "not_future_latent_benefit_evidence",
+    "not_architecture_claim_evidence",
+    "not_policy_validity_evidence",
+    "oracle_state_is_full_mujoco_state"
+  ]
+}

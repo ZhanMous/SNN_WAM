@@ -1,0 +1,1 @@
+/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python -m src.eval.g9_residual_action_repair --config configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml --output_dir results/g9_residual_action_repair --epochs 300 --ladder_epochs 200 --seed 0 --device cpu

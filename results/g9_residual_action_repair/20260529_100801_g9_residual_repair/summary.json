@@ -1,0 +1,228 @@
+{
+  "status": "g9_residual_action_repair",
+  "config": "configs/reportable/libero_spatial_wam_gru_dinov2s_no_future.yaml",
+  "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+  "trajectory_length": 103,
+  "task_id": 0,
+  "task_name": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+  "dataset": "libero_spatial",
+  "git_commit": "b99fbe7",
+  "git_dirty": "True",
+  "seed": 0,
+  "capacity_ladder": [
+    {
+      "variant": "full_state_linear",
+      "capacity": "linear",
+      "hidden_dim": 0,
+      "continuous_normalized_mse": 0.8272841572761536,
+      "continuous_raw_mse": 0.02578321471810341,
+      "gripper_sign_accuracy": 0.9583333134651184,
+      "global_raw_mse": 0.045909419655799866,
+      "best_epoch": 199
+    },
+    {
+      "variant": "full_state_small",
+      "capacity": "small",
+      "hidden_dim": 64,
+      "continuous_normalized_mse": 0.05426318943500519,
+      "continuous_raw_mse": 0.006510450970381498,
+      "gripper_sign_accuracy": 0.96875,
+      "global_raw_mse": 0.023437529802322388,
+      "best_epoch": 198
+    },
+    {
+      "variant": "full_state_medium",
+      "capacity": "medium",
+      "hidden_dim": 256,
+      "continuous_normalized_mse": 0.02329608052968979,
+      "continuous_raw_mse": 0.0015061420854181051,
+      "gripper_sign_accuracy": 0.9791666865348816,
+      "global_raw_mse": 0.013195740059018135,
+      "best_epoch": 199
+    },
+    {
+      "variant": "full_state_large",
+      "capacity": "large",
+      "hidden_dim": 512,
+      "continuous_normalized_mse": 0.024403074756264687,
+      "continuous_raw_mse": 0.0014037436340004206,
+      "gripper_sign_accuracy": 0.9791666865348816,
+      "global_raw_mse": 0.013107971288263798,
+      "best_epoch": 148
+    },
+    {
+      "variant": "action_history_linear",
+      "capacity": "linear",
+      "hidden_dim": 0,
+      "continuous_normalized_mse": 2.338676691055298,
+      "continuous_raw_mse": 0.019403263926506042,
+      "gripper_sign_accuracy": 0.96875,
+      "global_raw_mse": 0.03448851406574249,
+      "best_epoch": 199
+    },
+    {
+      "variant": "action_history_small",
+      "capacity": "small",
+      "hidden_dim": 64,
+      "continuous_normalized_mse": 0.08590371906757355,
+      "continuous_raw_mse": 0.006604058668017387,
+      "gripper_sign_accuracy": 0.9583333134651184,
+      "global_raw_mse": 0.029470141977071762,
+      "best_epoch": 199
+    },
+    {
+      "variant": "action_history_medium",
+      "capacity": "medium",
+      "hidden_dim": 256,
+      "continuous_normalized_mse": 0.04379637539386749,
+      "continuous_raw_mse": 0.0016158228972926736,
+      "gripper_sign_accuracy": 0.96875,
+      "global_raw_mse": 0.01924213394522667,
+      "best_epoch": 198
+    },
+    {
+      "variant": "action_history_large",
+      "capacity": "large",
+      "hidden_dim": 512,
+      "continuous_normalized_mse": 0.039470281451940536,
+      "continuous_raw_mse": 0.0015567285008728504,
+      "gripper_sign_accuracy": 0.96875,
+      "global_raw_mse": 0.019191481173038483,
+      "best_epoch": 184
+    }
+  ],
+  "upper_bounds": [
+    {
+      "variant": "timestep_embedding_mlp",
+      "label": "diagnostic_only_not_causal",
+      "continuous_normalized_mse": 5.578722993959673e-05,
+      "gripper_sign_accuracy": 1.0,
+      "best_epoch": 199
+    },
+    {
+      "variant": "lookup_table",
+      "label": "diagnostic_only_not_causal",
+      "continuous_normalized_mse": NaN,
+      "continuous_raw_mse": NaN,
+      "gripper_sign_accuracy": NaN,
+      "best_epoch": -1,
+      "global_raw_mse": 8.974913775485968e-14
+    }
+  ],
+  "target_variants": [
+    {
+      "variant": "residual_action_target",
+      "label": "target_repair_diagnostic",
+      "continuous_normalized_mse": 0.012068009935319424,
+      "continuous_raw_mse": 0.00026954407803714275,
+      "gripper_sign_accuracy": 0.9791666865348816,
+      "global_raw_mse": 0.1549929529428482,
+      "best_epoch": 199
+    }
+  ],
+  "gripper_audit": {
+    "n_demos": 50,
+    "total_transitions": 110,
+    "avg_transitions_per_demo": 2.2,
+    "demo_stats": [
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_0",
+        "length": 103,
+        "n_transitions": 2,
+        "n_open": 64,
+        "n_close": 39,
+        "fraction_open": 0.6213592233009708,
+        "fraction_close": 0.3786407766990291
+      },
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_1",
+        "length": 123,
+        "n_transitions": 2,
+        "n_open": 68,
+        "n_close": 55,
+        "fraction_open": 0.5528455284552846,
+        "fraction_close": 0.44715447154471544
+      },
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_10",
+        "length": 109,
+        "n_transitions": 2,
+        "n_open": 67,
+        "n_close": 42,
+        "fraction_open": 0.6146788990825688,
+        "fraction_close": 0.3853211009174312
+      },
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_11",
+        "length": 101,
+        "n_transitions": 1,
+        "n_open": 69,
+        "n_close": 32,
+        "fraction_open": 0.6831683168316832,
+        "fraction_close": 0.31683168316831684
+      },
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_12",
+        "length": 124,
+        "n_transitions": 2,
+        "n_open": 69,
+        "n_close": 55,
+        "fraction_open": 0.5564516129032258,
+        "fraction_close": 0.4435483870967742
+      },
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_13",
+        "length": 122,
+        "n_transitions": 4,
+        "n_open": 75,
+        "n_close": 47,
+        "fraction_open": 0.6147540983606558,
+        "fraction_close": 0.38524590163934425
+      },
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_14",
+        "length": 114,
+        "n_transitions": 2,
+        "n_open": 63,
+        "n_close": 51,
+        "fraction_open": 0.5526315789473685,
+        "fraction_close": 0.4473684210526316
+      },
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_15",
+        "length": 136,
+        "n_transitions": 2,
+        "n_open": 58,
+        "n_close": 78,
+        "fraction_open": 0.4264705882352941,
+        "fraction_close": 0.5735294117647058
+      },
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_16",
+        "length": 105,
+        "n_transitions": 2,
+        "n_open": 58,
+        "n_close": 47,
+        "fraction_open": 0.5523809523809524,
+        "fraction_close": 0.44761904761904764
+      },
+      {
+        "trajectory_id": "libero_spatial/pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate_demo.hdf5:data/demo_17",
+        "length": 164,
+        "n_transitions": 4,
+        "n_open": 82,
+        "n_close": 82,
+        "fraction_open": 0.5,
+        "fraction_close": 0.5
+      }
+    ],
+    "git_commit": "b99fbe7",
+    "git_dirty": "True",
+    "dataset": "libero_spatial"
+  },
+  "non_claims": [
+    "not_closed_loop_success",
+    "not_future_latent_benefit_evidence",
+    "not_architecture_claim_evidence"
+  ]
+}

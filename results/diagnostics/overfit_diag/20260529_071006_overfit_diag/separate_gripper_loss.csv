@@ -1,0 +1,3 @@
+variant,best_mse,best_epoch,continuous_loss_fn,gripper_loss_fn
+separate_loss,0.1460311696642921,7,smooth_l1,bce_with_logits
+pure_mse_baseline,0.004766213042395455,-1,mse,mse

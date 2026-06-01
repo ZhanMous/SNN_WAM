@@ -1,0 +1,2 @@
+variant,label,continuous_normalized_mse,continuous_raw_mse,gripper_sign_accuracy,global_raw_mse,best_epoch
+residual_action_target,target_repair_diagnostic,0.012068009935319424,0.00026954407803714275,0.9791666865348816,0.1549929529428482,199
