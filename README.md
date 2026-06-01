@@ -48,6 +48,7 @@ image_t
 ## Repository Map
 
 - `docs/project_plan.md`: 从 `SNN_WAM_plan.pdf` 提取的紧凑项目计划摘要。
+- `docs/TOP_LEVEL_SCIENTIFIC_PLAN.md`: 新路线总规划、阶段 gate、artifact schema、claim ledger schema、stop rules 和 Claude Code prompt。
 - `docs/DINOWM_SNN_WORLDMODEL_PLAN.md`: 2026-06-01 新路线计划，DINO-WM 复现到直接训练 SNN latent world model。
 - `docs/EXPERIMENT_REFLECTION_REPORT_2026-06-01.md`: direct action BC 旧路线反思报告。
 - `docs/WEEKLY_REPORT_2026-06-01.md`: 旧路线诊断周报。
