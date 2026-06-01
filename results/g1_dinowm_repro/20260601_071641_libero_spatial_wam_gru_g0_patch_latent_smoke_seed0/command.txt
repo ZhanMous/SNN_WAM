@@ -1,0 +1,1 @@
+/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python src/train/train_offline.py --config configs/smoke/g0_patch_latent_smoke.yaml --dry_run --max_steps 1 --output_dir results/g1_dinowm_repro/

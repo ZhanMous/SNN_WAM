@@ -305,7 +305,7 @@ def test_libero_real_data_contract_blocks_dataset_until_observed() -> None:
 def test_result_artifact_registry_has_reproducibility_columns() -> None:
     registry = read("docs/RESULT_ARTIFACTS.md")
     required_phrases = [
-        "| Artifact ID | Run ID | Result Files | Config | Commit | Environment | Seeds | Evaluation Split | Command | Notes |",
+        "| artifact_id | run_id | path | stage | config | git_commit | git_dirty | environment | seeds | evaluation_split | command | reportable | notes |",
         "environment.txt",
         "seeds.txt",
         "command.sh",

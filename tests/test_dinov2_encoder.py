@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
+pytest.importorskip("torch")
 import torch
 import yaml
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import torch
 import pytest
+
+pytest.importorskip("torch")
+import torch
 
 from src.data.trajectory_window import RawTrajectory
 from src.eval.overfit_diagnostics import (

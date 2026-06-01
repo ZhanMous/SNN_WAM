@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pytest
+
+pytest.importorskip("torch")
 import torch
 
 from src.models.registry import build_action_model, build_offline_model, count_parameters

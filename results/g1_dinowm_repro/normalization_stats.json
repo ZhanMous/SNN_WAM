@@ -1,0 +1,28 @@
+{
+  "actions": {
+    "mode": "none",
+    "note": "No action normalization is applied.",
+    "source_split": "train",
+    "units": "raw_action_units"
+  },
+  "images": {
+    "mode": "stub_encoder_no_image_stats"
+  },
+  "language": {
+    "mode": "stub_encoder_no_tokenizer_stats"
+  },
+  "visual_latents": {
+    "current_latent_input": true,
+    "encoder": {
+      "encoder_id": "smoke_time_index",
+      "frozen": true,
+      "input": "mock_numeric_image_or_frame_reference",
+      "latent_dim": 8,
+      "offset": 0.01,
+      "trainable_parameters": 0
+    },
+    "mode": "frozen_encoder_no_fitted_stats",
+    "source_split": "none",
+    "target_only_future": true
+  }
+}

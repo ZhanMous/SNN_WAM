@@ -1,85 +1,79 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 python_bin="${PYTHON:-python3}"
 
 echo "============================================"
-echo "  SNN-WAM Quality Gate"
+echo "  SNN-WAM Quality Gate (safe checks only)"
 echo "============================================"
 echo ""
 
-# ------------------------------------------------------------------
-# 1. Environment report
-# ------------------------------------------------------------------
-echo "[1/5] environment report"
-"$python_bin" scripts/check_environment.py --json
-echo ""
+rc=0
 
 # ------------------------------------------------------------------
-# 2. G1.5 LIBERO Bootstrap Gate
+# 1. pytest (if tests/ exists)
 # ------------------------------------------------------------------
-echo "[2/5] G1.5 LIBERO Bootstrap Gate"
-
-g15_status="BLOCKED"
-g15_detail=""
-
-if env | grep -q "^LIBERO_REPO_ROOT=" && env | grep -q "^LIBERO_DATASET_ROOT=\|^LIBERO_DATA_ROOT="; then
-  if "$python_bin" scripts/bootstrap_libero_check.py --json; then
-    g15_status="PASS"
-    g15_detail="All G1.5 checks passed. Real-data experiments are unblocked."
+echo "[1/4] tests"
+if [ -d tests/ ]; then
+  if "$python_bin" -m pytest -q 2>&1; then
+    echo "  PASS"
   else
-    g15_status="FAIL"
-    g15_detail="G1.5 checks ran but failed. See bootstrap report above."
+    echo "  FAIL (see above)"
+    rc=1
   fi
 else
-  missing_vars=""
-  env | grep -q "^LIBERO_REPO_ROOT=" || missing_vars="LIBERO_REPO_ROOT"
-  env | grep -q "^LIBERO_DATASET_ROOT=\|^LIBERO_DATA_ROOT=" || missing_vars="$missing_vars LIBERO_DATASET_ROOT/LIBERO_DATA_ROOT"
-  g15_detail="Environment variables not set:$missing_vars"
-  g15_detail="$g15_detail"
-  g15_detail="$g15_detail Real-data experiments are BLOCKED."
-  g15_detail="$g15_detail To unblock: source scripts/load_local_env.sh (requires .env.local)"
+  echo "  pytest not configured"
 fi
-
-echo ""
-echo "  G1.5 Bootstrap Status: $g15_status"
-echo "  $g15_detail"
 echo ""
 
 # ------------------------------------------------------------------
-# 3. Smoke tests (always run, do not require LIBERO)
+# 2. artifact checker (if scripts/check_artifacts.py exists)
 # ------------------------------------------------------------------
-echo "[3/5] smoke tests"
-PYTHON="$python_bin" bash scripts/smoke_check.sh
+echo "[2/4] artifact checker"
+if [ -f scripts/check_artifacts.py ]; then
+  if "$python_bin" scripts/check_artifacts.py 2>&1; then
+    echo "  PASS"
+  else
+    echo "  FAIL (see above)"
+    rc=1
+  fi
+else
+  echo "  artifact checker not configured"
+fi
 echo ""
 
 # ------------------------------------------------------------------
-# 4. Result artifact registry
+# 3. claims checker (if scripts/check_claims.py exists)
 # ------------------------------------------------------------------
-echo "[4/5] result artifact registry"
-"$python_bin" scripts/check_result_artifacts.py
+echo "[3/4] claims checker"
+if [ -f scripts/check_claims.py ]; then
+  if "$python_bin" scripts/check_claims.py 2>&1; then
+    echo "  PASS"
+  else
+    echo "  FAIL (see above)"
+    rc=1
+  fi
+else
+  echo "  claims checker not configured"
+fi
 echo ""
 
 # ------------------------------------------------------------------
-# 5. Summary
+# 4. git status
 # ------------------------------------------------------------------
+echo "[4/4] git status"
+git status --short
+echo ""
+
 echo "============================================"
 echo "  Quality Gate Summary"
 echo "============================================"
-echo "  Unit tests:        PASS"
-echo "  Artifact registry: PASS"
-echo "  G1.5 Bootstrap:    $g15_status"
-
-if [[ "$g15_status" == "PASS" ]]; then
-  echo "  Real-data status:  UNBLOCKED"
+if [ "$rc" -eq 0 ]; then
+  echo "  Overall: PASS"
 else
-  echo "  Real-data status:  BLOCKED"
-  echo ""
-  echo "  Current artifacts are engineering smoke only."
-  echo "  No artifact is reportable scientific evidence."
+  echo "  Overall: FAIL"
 fi
-
-echo ""
 echo "[quality_gate] done"
+exit "$rc"

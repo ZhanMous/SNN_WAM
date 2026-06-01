@@ -55,6 +55,26 @@
 | C-G11-STAB-REGULARIZATION-001 | supported | Temporal smoothness regularization (diagnostic_regularization) does not improve autoregressive stability: teacher_forced_mse=0.0142 (same as baseline), autoregressive full-sequence MSE=3.88 (worse than noise/dropout but better than baseline 8.86). Error growth slope=0.06 (comparable to noise_aug). | `R-G11-AUTOREG-STAB-001` | `results/g11_autoregressive_stabilization/20260601_023130_g11_autoregressive_stabilization/stabilization_variant_ladder.csv`; `results/g11_autoregressive_stabilization/20260601_023130_g11_autoregressive_stabilization/error_growth_by_horizon.csv` | stabilization variant comparison | `0` | Regularization penalizes residual norm. Improves error growth slope but not teacher-forced performance. |
 | C-G11-GATE-001 | supported | The offline closed-loop readiness gate does NOT pass. Criteria failed: (1) error growth not fully reduced (stabilized 0.99 vs baseline 8.86 — reduced but not below all thresholds), (2) severe phase blowup above 0.5 (max_ar_mse=20.6), (3) gripper accuracy drops to 52% under autoregressive rollout, (4) held-out demo mean MSE=9.30. Criteria passed: residual beats last_action on teacher_forced and autoregressive. | `R-G11-AUTOREG-STAB-001` | `results/g11_autoregressive_stabilization/20260601_023130_g11_autoregressive_stabilization/closed_loop_readiness_gate.md` | readiness gate assessment | `0` | Gate criteria are predeclared. Not passing means offline stabilization is insufficient for closed-loop smoke test. Does not prove closed-loop failure. |
 | C-G11-DOMAIN-001 | supported | Under autoregressive evaluation, delta_pos_z is the dominant failure dimension (total MSE=192.1), not delta_rot_x (MSE=2.1). This differs from G9 teacher-forced findings where delta_rot_x was dominant. Autoregressive error is dominated by position drift, not orientation error. | `R-G11-AUTOREG-STAB-001` | `results/g11_autoregressive_stabilization/20260601_023130_g11_autoregressive_stabilization/failure_mode_analysis.md`; `results/g11_autoregressive_stabilization/20260601_023130_g11_autoregressive_stabilization/per_dim_autoregressive_errors.csv` | failure mode analysis | `0` | Per-dim breakdown across all variants shows delta_pos_z dominant. This is offline evidence only. |
+| C-G0-PATCH-PIPELINE-001 | observation | The G0 spatial patch latent pipeline is implemented: DINOv2PatchEncoder returns [B, N, D] patch tokens, PatchLatentMetadata records cache provenance, trajectory dataset supports [T, N, D] patch latents without flattening, patch metrics (patch_mse, patch_cosine_error, patch_mean_cosine_error) are implemented, and a mean-pooling compatibility path allows existing WAM-GRU to consume patch latents. | None (code implementation only) | `src/models/encoders.py`; `src/train/metrics.py`; `src/data/trajectory_window.py`; `scripts/cache_dinov2_patch_latents.py`; `configs/smoke/g0_patch_latent_smoke.yaml`; `tests/test_g0_patch_latent.py` | code implementation | N/A | Allowed: "Spatial patch latents can be represented in the pipeline." "Patch latent cache format exists." "Patch metrics are implemented." "Existing CLS pipeline remains backward-compatible." Forbidden: "Patch latents improve performance." "DINO-WM is reproduced." "SNN works." "Planner works." "Closed-loop readiness." |
+| C-DWM-ROUTE-001 | hypothesis | The DINO-WM → SNN-WAM route is the main scientific direction. The legacy BC route is frozen as diagnostic evidence. | None (route plan only) | `docs/DINOWM_SNN_WORLDMODEL_PLAN.md`; `docs/PROJECT_CONTEXT.md` | route decision | N/A | Allowed: "The new route starts from DINO-WM-style latent dynamics." "The legacy BC route is frozen." "Direct SNN world-model training is the intended research target." Forbidden: "DINO-WM has been reproduced." "SNN works." "Planning works." |
+| C-DWM-ES-ROLE-001 | hypothesis | ES/EGGROLL-style methods are optional training-method comparisons after surrogate-gradient baselines are established. | None (methodology plan only) | `docs/DINOWM_SNN_WORLDMODEL_PLAN.md` | methodology positioning | N/A | Allowed: "ES/EGGROLL is a training-method comparison, not the primary method." "Surrogate gradient is the first training baseline." Forbidden: "ES trains SNN successfully." "ES is the main training method." |
+| C-G1-DINOWM-REPRO-SMOKE-001 | observation | The G1 DINO-WM minimal reproduction smoke attempt was executed successfully at smoke scale: the closest existing pipeline (`g0_patch_latent_smoke.yaml` with `--dry_run --max_steps 1`) completed with exit code 0, producing metrics.csv, checkpoint.pt, and summary.json. The training pipeline handles patch-latent-shaped tensors [B, T, P, D] end-to-end. No DINO-WM training loop exists in the codebase; this smoke validates plumbing only. | `R-G1-DINOWM-REPRO-SMOKE-001` | `results/g1_dinowm_repro/metrics.csv`; `results/g1_dinowm_repro/summary.json`; `results/g1_dinowm_repro/reproduction_report.md` | engineering smoke | `0` | Allowed: "The closest existing pipeline to DINO-WM runs end-to-end at smoke scale." "Patch-latent-shaped tensors pass through the training pipeline." "No DINO-WM training loop exists yet." Forbidden: "DINO-WM is reproduced." "DINO-WM results are validated." "DINO-WM works on robotics tasks." "This supports SNN-WAM." "This supports LIBERO transfer." "This improves robustness." "This is reportable benchmark evidence." "This demonstrates energy efficiency." |
+
+## Supported
+
+Claims with status `supported` in the claims table above are supported by result artifacts listed in `docs/RESULT_ARTIFACTS.md`. Each supported claim must reference one or more artifact IDs.
+
+## Diagnostic-only
+
+Claims with status `observation` or `preliminary` are diagnostic-only. They are based on limited evidence (single runs, smoke tests, or preliminary observations) and must not be cited as scientific conclusions.
+
+## Unsupported
+
+Claims with status `rejected` are not supported by current evidence. They may be revisited if new artifacts become available.
+
+## Forbidden
+
+Claims listed in the table with forbidden phrases (see checker) or listed under "Forbidden Current Claims" below must never appear in supported claims. The forbidden-phrase checker enforces this automatically.
 
 ## Status Values
 
@@ -116,3 +136,15 @@
 - `WAM-GRU architecture is valid or invalid based on G11.` (G11 evaluates residual-action models, not architecture claims)
 - `DINOv2 or DINO-WM is unsuitable based on G11.` (G11 does not evaluate visual encoder quality)
 - `full_state_92d is true oracle state.` (C-G8-DECOMP-001: decomposition uncertain)
+- `Patch latents improve action prediction performance.` (G0 is implementation-only, no performance evidence)
+- `DINO-WM spatial patch modeling is reproduced.` (G0 adds infrastructure only, no scientific validation)
+- `Patch mean pooling is full DINO-WM modeling.` (mean pooling is a compatibility smoke path, not spatial modeling)
+- `The patch latent cache script validates encoder quality.` (cache script produces format, not scientific evidence)
+- `DINO-WM has been reproduced in this repository.` (no DWM-G3 baseline results yet)
+- `Direct ES trains SNN world models successfully.` (no DWM-G6 or DWM-G7 results yet)
+- `SNN improves planning or robustness.` (no SNN world model implemented yet)
+- `The method is low-power.` (no neuromorphic hardware measurement)
+- `The method is a full VLA or foundation model.` (out of scope)
+- `Surrogate gradient is unnecessary for SNN world model training.` (ES not validated yet)
+- `ANN-to-SNN conversion is the training method.` (out of scope per route plan)
+- `ES/EGGROLL is the primary training method.` (optional comparison only, per C-DWM-ES-ROLE-001)

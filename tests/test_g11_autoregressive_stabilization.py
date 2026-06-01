@@ -20,8 +20,12 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import numpy as np
 import pytest
+
+pytest.importorskip("numpy")
+import numpy as np
+
+pytest.importorskip("torch")
 import torch
 
 if __package__ is None or __package__ == "":
