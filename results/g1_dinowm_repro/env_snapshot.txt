@@ -1,0 +1,37 @@
+# Environment Snapshot for G1 DINO-WM Smoke Reproduction
+# Generated: 2026-06-01
+
+## Python
+python_executable=/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python
+python_version=3.10.20
+conda_env=snnwam-libero
+
+## PyTorch
+torch_version=2.12.0+cu130
+cuda_available=True
+cuda_version=13.0
+
+## GPU
+gpu_name=NVIDIA GeForce RTX 5060 Ti
+gpu_memory=8151 MiB
+gpu_driver=595.79
+gpu_cuda_version=13.2
+
+## Platform
+platform=Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39
+hostname=(redacted)
+
+## Key Dependencies
+numpy=1.26.4
+h5py=3.16.0
+pyyaml=6.0.1
+tqdm=4.67.3
+
+## Environment Variables
+LIBERO_DATASET_ROOT=(not set)
+LIBERO_DATA_ROOT=(not set)
+
+## Notes
+- This is a WSL2 environment
+- CUDA is available but GPU memory usage is low (4327 MiB / 8151 MiB)
+- No LIBERO data installed (mock data used for smoke)

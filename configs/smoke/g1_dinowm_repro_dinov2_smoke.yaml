@@ -1,0 +1,52 @@
+experiment:
+  name: g1_dinowm_repro_dinov2_smoke
+  seed: 0
+  tags:
+    - g1_dinowm_repro
+    - smoke
+    - dinov2
+    - real_encoder
+  notes: >
+    G1 DINO-WM reproduction smoke with real DINOv2 ViT-S/14 encoder.
+    Uses dry_run mode with mock images processed through real DINOv2.
+    This validates that real DINOv2 features flow through the pipeline.
+
+data:
+  suite: libero_spatial
+  dataset_root: env:LIBERO_DATASET_ROOT
+  history_len: 4
+  action_horizon: 4
+  future_horizon: 4
+  image_size: 224
+  latent_type: patch
+  patch_num_patches: 256
+  split:
+    source: split.json
+    unit: trajectory
+    train: []
+    val: []
+    test: []
+
+model:
+  visual_encoder: dinov2_vits14
+  visual_latent_dim: 384
+  model_id: facebook/dinov2-small
+  revision: ed25f3a31f01632728cabb09d1542f84ab7b0056
+  output_token: cls
+  text_encoder: stub
+  temporal_adapter: wam_gru
+  hidden_dim: 256
+
+training:
+  batch_size: 4
+  epochs: 0
+  optimizer: adamw
+  lr: 0.0003
+  lambda_action: 1.0
+  lambda_future: 1.0
+  lambda_spike: 0.0
+  grad_clip_norm: null
+
+output:
+  output_dir: results/g1_dinowm_repro_dinov2
+  save_best_by: val/action_mse

@@ -161,6 +161,9 @@ def extract_patch_latents_from_file(
                 from torchvision.transforms.functional import to_pil_image
 
                 for img in batch_tensor:
+                    # to_pil_image expects [C, H, W] format
+                    if img.ndim == 3 and img.shape[-1] == 3:
+                        img = img.permute(2, 0, 1)
                     pil_images.append(to_pil_image(img.cpu()))
                 inputs = processor(images=pil_images, return_tensors="pt")
                 inputs = {k: v.to(device) for k, v in inputs.items()}

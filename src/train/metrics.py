@@ -352,6 +352,7 @@ def patch_cosine_error(
     )
     B, H, N, D = pred.shape
     cos_sim = F.cosine_similarity(pred, target, dim=-1, eps=eps)
+    cos_sim = cos_sim.clamp(-1.0, 1.0)  # numerical stability
     error = 1.0 - cos_sim  # [B, H, N]
     error_2d = error.mean(dim=-1)  # [B, H]
 
@@ -389,6 +390,7 @@ def patch_mean_cosine_error(
     pred_mean = pred.mean(dim=2)  # [B, H, D]
     target_mean = target.mean(dim=2)  # [B, H, D]
     cos_sim = F.cosine_similarity(pred_mean, target_mean, dim=-1, eps=eps)
+    cos_sim = cos_sim.clamp(-1.0, 1.0)  # numerical stability
     error = 1.0 - cos_sim  # [B, H]
 
     return _apply_masked_reduction(error, mask, (B, H), reduction)

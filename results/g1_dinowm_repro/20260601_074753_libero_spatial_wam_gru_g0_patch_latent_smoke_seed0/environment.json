@@ -1,0 +1,17 @@
+{
+  "cwd": "/home/zhan_shaoji/code/SNN_WAM",
+  "env": {
+    "LIBERO_DATASET_ROOT": "",
+    "LIBERO_DATA_ROOT": "",
+    "LIBERO_REPO_ROOT": ""
+  },
+  "packages": {
+    "cuda_available": true,
+    "h5py": "3.16.0",
+    "numpy": "1.26.4",
+    "torch": "2.12.0+cu130"
+  },
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python_executable": "/home/zhan_shaoji/miniconda3/envs/snnwam-libero/bin/python",
+  "python_version": "3.10.20"
+}

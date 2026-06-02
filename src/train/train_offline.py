@@ -657,7 +657,15 @@ def make_mock_action_dataset(
     if include_current_latent or include_future_latents:
         if visual_encoder is None:
             raise ValueError("latent fields require a visual_encoder")
-        visual_latents = encode_sequence(visual_encoder, frame_refs)
+        # Check if encoder expects tensor inputs (real DINOv2) or string inputs (smoke)
+        from src.models.encoders import DINOv2VisualEncoder
+        if isinstance(visual_encoder, DINOv2VisualEncoder):
+            # Generate mock tensor images for real DINOv2 encoder
+            image_size = getattr(visual_encoder, 'image_size', 224)
+            mock_images = torch.randn(length, 3, image_size, image_size)
+            visual_latents = encode_sequence(visual_encoder, mock_images)
+        else:
+            visual_latents = encode_sequence(visual_encoder, frame_refs)
     trajectory = RawTrajectory(
         images=frame_refs,
         actions=actions,

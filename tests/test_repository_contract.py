@@ -353,6 +353,7 @@ def test_only_phase1_offline_model_training_code_is_present_for_model_gate() -> 
         "src/.gitkeep",
         "src/__init__.py",
         "src/data/__init__.py",
+        "src/data/patch_latent_dataset.py",
         "src/data/split_normalization.py",
         "src/data/trajectory_window.py",
         "src/models/encoders.py",

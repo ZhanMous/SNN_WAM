@@ -1,0 +1,91 @@
+{
+  "data": {
+    "action_horizon": 4,
+    "dataset_root": "env:LIBERO_DATASET_ROOT",
+    "future_horizon": 4,
+    "history_len": 4,
+    "split": {
+      "method": "mock_dry_run_separate_synthetic_trajectories",
+      "mock": true,
+      "reportable_scientific_result": false,
+      "seed": 0,
+      "split_unit": "trajectory",
+      "suite": "libero_spatial",
+      "test": [],
+      "train": [
+        "mock_train_0"
+      ],
+      "val": [
+        "mock_val_0"
+      ]
+    },
+    "suite": "libero_spatial",
+    "train_windows": 13,
+    "val_windows": 13
+  },
+  "metrics": {
+    "action_mse_units": "raw_action_units",
+    "best_epoch": 0,
+    "best_metric": 47.92822265625,
+    "best_metric_name": "val/action_mse",
+    "best_val_action_mse": 47.92822265625,
+    "first_train_total_loss": 157.2239075,
+    "last_train_action_mse": 156.198713,
+    "last_train_future_latent_cosine_error": 1.025195718,
+    "last_train_total_loss": 157.2239075,
+    "last_val_action_mse": 47.92822266,
+    "last_val_future_latent_cosine_error": 0.9589317441,
+    "lower_is_better": true,
+    "train_total_loss_decreased": false
+  },
+  "model": {
+    "action_dim": 7,
+    "hidden_dim": 256,
+    "latent_dim": 384,
+    "name": "action_only_wam_gru",
+    "parameter_count": 769564,
+    "temporal_adapter": "wam_gru",
+    "text_encoder": "stub",
+    "trainable_parameter_count": 769564,
+    "visual_encoder": "dinov2_vits14"
+  },
+  "non_claims": [
+    "not_reportable_wam_result",
+    "not_vla",
+    "not_snn",
+    "not_closed_loop",
+    "not_generalization_benchmark"
+  ],
+  "normalization": {
+    "actions": {
+      "mode": "none",
+      "note": "No action normalization is applied.",
+      "source_split": "train",
+      "units": "raw_action_units"
+    },
+    "images": {
+      "mode": "stub_encoder_no_image_stats"
+    },
+    "language": {
+      "mode": "stub_encoder_no_tokenizer_stats"
+    },
+    "visual_latents": {
+      "current_latent_input": true,
+      "encoder": {
+        "encoder_id": "dinov2_dinov2-small",
+        "extraction_mode": "offline",
+        "frozen": true,
+        "latent_dim": 384,
+        "model_id": "facebook/dinov2-small",
+        "output_token": "cls",
+        "preprocessing_id": "AutoImageProcessor.from_pretrained",
+        "revision": "ed25f3a31f01632728cabb09d1542f84ab7b0056",
+        "trainable_parameters": 0
+      },
+      "mode": "frozen_encoder_no_fitted_stats",
+      "source_split": "none",
+      "target_only_future": true
+    }
+  },
+  "status": "engineering_smoke_test_not_scientific_result"
+}

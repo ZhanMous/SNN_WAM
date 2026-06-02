@@ -34,19 +34,19 @@ Key design choices:
 
 | Phase | Name | Status | Gates |
 |---|---|---|---|
-| A | Reproduce Minimal DINO-WM | **Not started** | DWM-G1 through DWM-G4 |
+| A | Reproduce Minimal DINO-WM | **In progress** | DWM-G1 ✅, DWM-G2 ✅, DWM-G3 ✅, DWM-G4 pending |
 | B | SNN World Model Interface | Not started | DWM-G5 |
 | C | Direct ES/EGGROLL Training | Not started | DWM-G6, DWM-G7 |
 | D | Planning | Not started | DWM-G8 |
 
 ## Evidence Gates
 
-| Gate | Required Evidence |
-|---|---|
-| DWM-G1 patch features | DINOv2 patch tensor shape tests, frame/patch indexing tests |
-| DWM-G2 transition dataset | no-future-leakage tests for z_t, actions, z_t+h |
-| DWM-G3 ANN baseline | one-step and multi-step patch latent metrics |
-| DWM-G4 planning sanity | action optimization improves predicted target latent distance |
+| Gate | Required Evidence | Status |
+|---|---|---|
+| DWM-G1 patch features | DINOv2 patch tensor shape tests, frame/patch indexing tests | **PASS** (18 tests, all pass) |
+| DWM-G2 transition dataset | no-future-leakage tests for z_t, actions, z_t+h | **PASS** (11 tests, all pass) |
+| DWM-G3 ANN baseline | one-step and multi-step patch latent metrics | **PASS** (13 tests, all pass) |
+| DWM-G4 planning sanity | action optimization improves predicted target latent distance | Pending |
 | DWM-G5 SNN forward | SNN patch-latent forward shape, reset behavior, spike stats |
 | DWM-G6 direct ES sanity | toy objective and offline latent objective improve under fixed seed |
 | DWM-G7 SNN world model | direct-trained SNN beats copy-last and random SNN on latent prediction |
