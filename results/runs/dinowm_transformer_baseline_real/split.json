@@ -1,0 +1,18 @@
+{
+  "method": "random_split_by_window",
+  "split_unit": "window",
+  "train_count": 49843,
+  "val_count": 5539,
+  "total_windows": 55382,
+  "train_ratio": 0.9,
+  "seed": 0,
+  "num_tasks": 50,
+  "num_episodes": 450,
+  "patch_latent_shape": [
+    256,
+    384
+  ],
+  "action_shape": [
+    7
+  ]
+}

@@ -23,7 +23,6 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from src.data.patch_latent_dataset import (  # noqa: E402
     PatchLatentTransitionDataset,
-    load_patch_latent_cache,
 )
 
 
@@ -107,8 +106,16 @@ def main() -> int:
         "feature_dim": metadata.get("feature_dim"),
     }
 
-    # 2. Load raw trajectories to count demos/tasks
-    trajectories = load_patch_latent_cache(cache_dir)
+    # 2. Build dataset once and reuse its trajectories for shape/split checks.
+    # The patch cache can be >10GB, so loading trajectories twice can exceed
+    # typical WSL memory limits.
+    full_dataset = PatchLatentTransitionDataset(
+        cache_dir,
+        context_len=context_len,
+        future_horizon=future_horizon,
+        split="train",
+    )
+    trajectories = full_dataset.trajectories
     report["num_trajectories"] = len(trajectories)
 
     # Extract task names and episode IDs
@@ -127,8 +134,8 @@ def main() -> int:
     if trajectories:
         import torch
         first_traj = trajectories[0]
-        patch_latents = torch.tensor(first_traj.patch_latents)
-        actions = torch.tensor(first_traj.actions)
+        patch_latents = torch.as_tensor(first_traj.patch_latents)
+        actions = torch.as_tensor(first_traj.actions)
         report["patch_latent_shape"] = list(patch_latents.shape)
         report["action_shape"] = list(actions.shape)
         report["num_frames_first_demo"] = int(patch_latents.shape[0])
@@ -142,19 +149,13 @@ def main() -> int:
         import random
         rng = random.Random(seed)
         idx = rng.randint(0, len(trajectories) - 1)
-        sample_patch = torch.tensor(trajectories[idx].patch_latents)
-        sample_actions = torch.tensor(trajectories[idx].actions)
+        sample_patch = torch.as_tensor(trajectories[idx].patch_latents)
+        sample_actions = torch.as_tensor(trajectories[idx].actions)
         errors = check_nan_inf(sample_patch, f"random_sample[{idx}].patch_latents")
         errors.extend(check_nan_inf(sample_actions, f"random_sample[{idx}].actions"))
         report["errors"].extend(errors)
 
     # 4. Build full dataset and check splits
-    full_dataset = PatchLatentTransitionDataset(
-        cache_dir,
-        context_len=context_len,
-        future_horizon=future_horizon,
-        split="train",
-    )
     report["num_windows_total"] = len(full_dataset)
 
     # Split using same logic as trainer (90/10 by window index)

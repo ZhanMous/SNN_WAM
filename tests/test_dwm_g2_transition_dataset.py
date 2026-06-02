@@ -10,6 +10,7 @@ Verifies:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -315,6 +316,52 @@ class TestDWMG2SyntheticAntiLeakage:
 
 class TestDWMG2CachedDataset:
     """Verify cached patch latent dataset loads correctly."""
+
+    def test_loader_keeps_cached_latents_as_tensors(self, tmp_path: Path) -> None:
+        """Loader avoids Python-list expansion and returns float32 windows."""
+        metadata = {
+            "encoder_type": "dinov2_patch",
+            "encoder_name": "toy",
+            "image_size": 224,
+            "patch_size": 14,
+            "num_patches": 4,
+            "feature_dim": 3,
+        }
+        (tmp_path / "metadata.json").write_text(json.dumps(metadata) + "\n")
+
+        T, P, D, A = 8, 4, 3, 7
+        patch_latents = torch.arange(T * P * D, dtype=torch.float16).reshape(T, P, D)
+        actions = torch.arange(T * A, dtype=torch.float32).reshape(T, A)
+        torch.save(
+            {
+                "data/demo_0": {
+                    "patch_latents": patch_latents,
+                    "actions": actions,
+                    "timesteps": torch.arange(T),
+                }
+            },
+            tmp_path / "toy.pt",
+        )
+
+        trajectories = load_patch_latent_cache(tmp_path)
+        assert len(trajectories) == 1
+        assert isinstance(trajectories[0].patch_latents, torch.Tensor)
+        assert trajectories[0].patch_latents.dtype == torch.float16
+        assert isinstance(trajectories[0].actions, torch.Tensor)
+
+        ds = PatchLatentTransitionDataset(
+            tmp_path,
+            context_len=3,
+            future_horizon=2,
+        )
+        sample = ds[0]
+        assert sample["z_context"].shape == (3, P, D)
+        assert sample["z_target"].shape == (2, P, D)
+        assert sample["actions"].shape == (3, A)
+        assert sample["z_context"].dtype == torch.float32
+        assert sample["z_target"].dtype == torch.float32
+        assert torch.allclose(sample["z_context"], patch_latents[:3].float())
+        assert torch.allclose(sample["z_target"], patch_latents[3:5].float())
 
     def test_cache_loads(self) -> None:
         """Cached patch latents load without error."""

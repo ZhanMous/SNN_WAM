@@ -1,0 +1,45 @@
+{
+  "baseline": "persistence",
+  "description": "Repeat last context patch latent as prediction for all H future steps",
+  "model_required": false,
+  "horizons": [
+    1,
+    2,
+    4
+  ],
+  "results": [
+    {
+      "horizon": 1,
+      "n_samples": 5449,
+      "patch_cosine_error": 0.027193439431839918,
+      "patch_cosine_error_std": 0.013966776430606842,
+      "patch_mse": 0.26257835329125884,
+      "patch_mse_std": 0.13558581471443176,
+      "patch_mean_cosine_error": 0.01350777340407852,
+      "patch_mean_cosine_error_std": 0.007317910436540842,
+      "split": "val"
+    },
+    {
+      "horizon": 2,
+      "n_samples": 5449,
+      "patch_cosine_error": 0.03483550688639833,
+      "patch_cosine_error_std": 0.01812875084578991,
+      "patch_mse": 0.33669722556061515,
+      "patch_mse_std": 0.1763736456632614,
+      "patch_mean_cosine_error": 0.016013072639195103,
+      "patch_mean_cosine_error_std": 0.007919836789369583,
+      "split": "val"
+    },
+    {
+      "horizon": 4,
+      "n_samples": 5449,
+      "patch_cosine_error": 0.04767781741680244,
+      "patch_cosine_error_std": 0.02489444799721241,
+      "patch_mse": 0.4617044581860922,
+      "patch_mse_std": 0.2432243674993515,
+      "patch_mean_cosine_error": 0.019971654882866827,
+      "patch_mean_cosine_error_std": 0.00949620921164751,
+      "split": "val"
+    }
+  ]
+}

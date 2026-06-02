@@ -92,9 +92,9 @@ def eval_persistence(
         p_mse = patch_mse(pred, target_h, reduction="none")
         p_mean_cos = patch_mean_cosine_error(pred, target_h, reduction="none")
 
-        patch_cosine_errs.extend(p_cos.mean(dim=-1).cpu().tolist())
-        patch_mse_vals.extend(p_mse.cpu().tolist())
-        patch_mean_cos_errs.extend(p_mean_cos.cpu().tolist())
+        patch_cosine_errs.extend(p_cos.mean(dim=1).cpu().tolist())
+        patch_mse_vals.extend(p_mse.mean(dim=1).cpu().tolist())
+        patch_mean_cos_errs.extend(p_mean_cos.mean(dim=1).cpu().tolist())
         steps += 1
 
     if not patch_cosine_errs:

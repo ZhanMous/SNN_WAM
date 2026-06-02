@@ -233,6 +233,7 @@ def run_one_split(
     action_mse_by_horizon_sum: torch.Tensor | None = None
     steps = 0
     samples = 0
+    metric_count = 0
 
     context = torch.enable_grad() if is_train else torch.no_grad()
     with context:
@@ -275,6 +276,7 @@ def run_one_split(
             p_cos = patch_cosine_error(pred.detach(), z_target, reduction="none")
             p_mean_cos = patch_mean_cosine_error(pred.detach(), z_target, reduction="none")
 
+            metric_count += int(p_mse.numel())
             patch_mse_sum += float(p_mse.sum().item())
             patch_cosine_err_sum += float(p_cos.sum().item())
             patch_mean_cosine_err_sum += float(p_mean_cos.sum().item())
@@ -306,9 +308,9 @@ def run_one_split(
         "total_loss": total_loss_sum / samples,
         "patch_cosine_loss": patch_cosine_sum / samples,
         "action_loss": action_loss_sum / samples,
-        "patch_mse": patch_mse_sum / samples,
-        "patch_cosine_error": patch_cosine_err_sum / samples,
-        "patch_mean_cosine_error": patch_mean_cosine_err_sum / samples,
+        "patch_mse": patch_mse_sum / metric_count,
+        "patch_cosine_error": patch_cosine_err_sum / metric_count,
+        "patch_mean_cosine_error": patch_mean_cosine_err_sum / metric_count,
         "patch_cosine_error_by_horizon": patch_cosine_by_horizon,
         "patch_mse_by_horizon": patch_mse_by_horizon,
         "action_mse": action_mse_sum / samples if action_mse_sum > 0 else 0.0,

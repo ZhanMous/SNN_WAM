@@ -15,6 +15,8 @@ import pytest
 pytest.importorskip("torch")
 import torch
 
+from scripts.eval_persistence_baseline import eval_persistence
+from scripts.train_dinowm_baseline import run_one_split
 from src.models.dinowm_transformer import DINOwMTransformer, build_dinowm_model
 from src.train.metrics import patch_mse, patch_cosine_error
 
@@ -256,6 +258,51 @@ class TestDWMG3Metrics:
         assert mse.item() >= 0, "MSE should be non-negative"
         assert cosine.item() >= 0, "Cosine error should be non-negative"
         assert cosine.item() <= 2.0, "Cosine error should be <= 2.0 (range: 0=perfect, 2=opposite)"
+
+    def test_run_one_split_overall_metrics_average_horizon(self) -> None:
+        """Overall [B, H] patch metrics are averaged over batch and horizon."""
+
+        class ZeroWorldModel(torch.nn.Module):
+            def forward(self, z_context: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+                B = z_context.shape[0]
+                return torch.zeros(B, 2, 1, 2, device=z_context.device)
+
+        batch = {
+            "z_context": torch.zeros(3, 3, 1, 2),
+            "actions": torch.zeros(3, 3, 7),
+            "z_target": torch.ones(3, 2, 1, 2),
+        }
+        metrics = run_one_split(
+            ZeroWorldModel(),
+            [batch],
+            device=torch.device("cpu"),
+            optimizer=None,
+            lambda_patch_cosine=1.0,
+            lambda_action=0.0,
+            grad_clip_norm=None,
+            max_steps=None,
+        )
+
+        assert metrics["samples"] == 3
+        assert metrics["patch_mse"] == pytest.approx(1.0)
+        assert metrics["patch_cosine_error"] == pytest.approx(1.0)
+        assert metrics["patch_mean_cosine_error"] == pytest.approx(1.0)
+        assert metrics["patch_mse_by_horizon"] == pytest.approx([1.0, 1.0])
+        assert metrics["patch_cosine_error_by_horizon"] == pytest.approx([1.0, 1.0])
+
+    def test_persistence_metrics_average_horizon(self) -> None:
+        """Persistence overall metrics reduce [B, H] to one value per sample."""
+        batch = {
+            "z_context": torch.zeros(3, 3, 1, 2),
+            "actions": torch.zeros(3, 3, 7),
+            "z_target": torch.ones(3, 2, 1, 2),
+        }
+        metrics = eval_persistence([batch], eval_horizon=2)
+
+        assert metrics["n_samples"] == 3
+        assert metrics["patch_mse"] == pytest.approx(1.0)
+        assert metrics["patch_cosine_error"] == pytest.approx(1.0)
+        assert metrics["patch_mean_cosine_error"] == pytest.approx(1.0)
 
 
 # ---------------------------------------------------------------------------

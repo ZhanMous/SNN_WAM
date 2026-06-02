@@ -78,8 +78,18 @@ def load_patch_latent_cache(
                 actions = actions[:T] if actions is not None else None
                 timesteps = timesteps[:T]
 
-            # Convert to float32 for training
-            patch_latents = patch_latents.float()
+            # Keep cached patch latents as tensors. The cache is usually float16
+            # and can be many GB; converting to Python lists multiplies memory use.
+            patch_latents = torch.as_tensor(patch_latents).detach().cpu().contiguous()
+            if actions is None:
+                actions = torch.zeros(T, 7, dtype=torch.float32)
+            else:
+                actions = (
+                    torch.as_tensor(actions, dtype=torch.float32)
+                    .detach()
+                    .cpu()
+                    .contiguous()
+                )
 
             # Create a dummy image list (we don't need real images for latent-only training)
             images = list(range(T))
@@ -89,9 +99,9 @@ def load_patch_latent_cache(
 
             trajectory = RawTrajectory(
                 images=images,
-                actions=actions.tolist() if actions is not None else [[0.0] * 7] * T,
+                actions=actions,
                 language=task_name,
-                patch_latents=patch_latents.tolist(),
+                patch_latents=patch_latents,
                 trajectory_id=f"{pt_file.stem}:{demo_path}",
                 split="train",
                 task_name=task_name,
@@ -154,6 +164,8 @@ class PatchLatentTransitionDataset:
         # Build index: (trajectory_index, time_index)
         self._index: list[tuple[int, int]] = []
         for traj_idx, traj in enumerate(self.trajectories):
+            if traj.patch_latents is None:
+                raise ValueError("patch_latents are required")
             T = len(traj.patch_latents)
             # Valid times: need context_len past + future_horizon future
             # At time t, context is [t-context_len+1:t+1], target is [t+1:t+1+future_horizon]
@@ -175,19 +187,26 @@ class PatchLatentTransitionDataset:
         traj_idx, t = self._index[index]
         traj = self.trajectories[traj_idx]
 
-        patch_latents = torch.tensor(traj.patch_latents, dtype=torch.float32)
-        actions = torch.tensor(traj.actions, dtype=torch.float32)
+        if traj.patch_latents is None:
+            raise RuntimeError("patch_latents unexpectedly missing")
+
+        patch_latents = torch.as_tensor(traj.patch_latents)
+        actions = torch.as_tensor(traj.actions, dtype=torch.float32)
 
         # Context: [t-context_len+1:t+1]
         ctx_start = t - self.context_len + 1
         ctx_end = t + 1
-        z_context = patch_latents[ctx_start:ctx_end]  # [context_len, P, D]
+        z_context = patch_latents[ctx_start:ctx_end].to(
+            dtype=torch.float32
+        )  # [context_len, P, D]
         action_history = actions[ctx_start:ctx_end]  # [context_len, A]
 
         # Target: [t+1:t+1+future_horizon]
         tgt_start = t + 1
         tgt_end = t + 1 + self.future_horizon
-        z_target = patch_latents[tgt_start:tgt_end]  # [future_horizon, P, D]
+        z_target = patch_latents[tgt_start:tgt_end].to(
+            dtype=torch.float32
+        )  # [future_horizon, P, D]
 
         return {
             "z_context": z_context,
@@ -207,7 +226,9 @@ class PatchLatentTransitionDataset:
         """Return (num_patches, feature_dim) from first trajectory."""
         if not self.trajectories:
             raise ValueError("No trajectories loaded")
-        sample = torch.tensor(self.trajectories[0].patch_latents[0])
+        if self.trajectories[0].patch_latents is None:
+            raise ValueError("No patch latents loaded")
+        sample = torch.as_tensor(self.trajectories[0].patch_latents[0])
         return sample.shape[0], sample.shape[1]
 
     @property
@@ -215,7 +236,7 @@ class PatchLatentTransitionDataset:
         """Return action dimension from first trajectory."""
         if not self.trajectories:
             raise ValueError("No trajectories loaded")
-        sample = torch.tensor(self.trajectories[0].actions[0])
+        sample = torch.as_tensor(self.trajectories[0].actions[0])
         return sample.shape[0]
 
 
