@@ -115,6 +115,30 @@ Any later dataset implementation must preserve and test these shapes:
   targets are enabled.
 - Optional masks: `[history_len]`, `[action_horizon]`, `[future_horizon]`.
 
+## DINO-WM Patch-Latent Transition Dataset
+
+Implemented module: `src/data/patch_latent_dataset.py`.
+
+This dataset is for action-conditioned latent world-model training and planning
+over cached DINOv2 patch features. It is separate from direct policy behavior
+cloning. One unbatched sample has:
+
+| Field | Shape | Input or target | Time rule |
+| --- | --- | --- | --- |
+| `z_context` | `[T_ctx, P, D]` | input | patch latents `z[t-T_ctx+1:t+1]` |
+| `actions` | `[T_ctx, action_dim]` | input/context | action history strictly before candidate action `t`; left-padded with zeros for the first valid windows |
+| `future_actions` | `[H, action_dim]` | input/candidate | candidate actions `actions[t:t+H]`; action `t` is the control for target `z[t+1]` |
+| `z_target` | `[H, P, D]` | target only | future patch latents `z[t+1:t+1+H]` |
+| `metadata.context_range` | `[T_ctx]` | audit | latent indices in `z_context` |
+| `metadata.action_history_range` | `[T_ctx]` | audit | action-history indices before `t`; negative values indicate zero padding |
+| `metadata.future_action_range` | `[H]` | audit | candidate future action indices |
+| `metadata.target_range` | `[H]` | audit | future latent target indices |
+
+`future_actions` are allowed model inputs because the world model predicts the
+effect of a candidate action sequence. Future patch latents, future images,
+states, rewards, success labels, and dones remain target/evaluation-only and
+must not enter model inputs.
+
 ## Time Indexing Convention
 
 Observed raw arrays use time as axis `0`. Default causal convention for the future trajectory-window dataset:

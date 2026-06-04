@@ -4,14 +4,17 @@ Loads cached DINOv2 patch latents from `.pt` files and creates
 transition windows with shapes:
 
 - z_context: `[B, T, P, D]` (current patch latents)
-- actions: `[B, T, A]` (action sequences)
+- actions: `[B, T, A]` (context action history)
+- future_actions: `[B, H, A]` (candidate/action-conditioned future actions)
 - z_target: `[B, H, P, D]` (future patch latents)
 
 The dataset enforces causal alignment:
-- Inputs at time t: patch_latents[t], actions[0:t]
-- Targets: actions[t:t+H], patch_latents[t+1:t+1+H]
+- Context at time t: patch_latents[t-T+1:t+1], actions before t
+- Candidate future actions: actions[t:t+H]
+- Targets: patch_latents[t+1:t+1+H]
 
-No future information leaks into inputs.
+No future patch latent target leaks into inputs. `future_actions` are explicit
+world-model conditioning inputs for planning, not prediction targets.
 """
 
 from __future__ import annotations
@@ -119,12 +122,14 @@ class PatchLatentTransitionDataset:
     Creates windows with:
     - z_context: `[T_ctx, P, D]` patch latents as context
     - actions: `[T_ctx, A]` action history
+    - future_actions: `[H, A]` candidate future actions
     - z_target: `[H, P, D]` future patch latents as target
 
     The dataset enforces causal alignment:
     - Context at time t: patch_latents[t-T_ctx+1:t+1]
+    - Future actions: actions[t:t+H]
     - Target: patch_latents[t+1:t+1+H]
-    - No future information leaks into context.
+    - No future patch latent target leaks into context.
     """
 
     def __init__(
@@ -181,6 +186,7 @@ class PatchLatentTransitionDataset:
         Returns dict with:
         - z_context: [context_len, P, D] patch latents
         - actions: [context_len, A] action history
+        - future_actions: [future_horizon, A] candidate future actions
         - z_target: [future_horizon, P, D] future patch latents
         - metadata: dict with trajectory_id, time_index, etc.
         """
@@ -199,7 +205,27 @@ class PatchLatentTransitionDataset:
         z_context = patch_latents[ctx_start:ctx_end].to(
             dtype=torch.float32
         )  # [context_len, P, D]
-        action_history = actions[ctx_start:ctx_end]  # [context_len, A]
+        # Action history is strictly before the candidate action at t. For the
+        # first valid windows this needs left padding because there are fewer
+        # than context_len previous actions.
+        history_indices = list(range(t - self.context_len, t))
+        action_history = torch.zeros(
+            self.context_len,
+            actions.shape[-1],
+            dtype=actions.dtype,
+            device=actions.device,
+        )  # [context_len, A]
+        valid_history_indices = [idx for idx in history_indices if idx >= 0]
+        if valid_history_indices:
+            valid_actions = actions[
+                valid_history_indices[0] : valid_history_indices[-1] + 1
+            ]
+            action_history[-len(valid_history_indices) :] = valid_actions
+
+        # Candidate future actions: action[t] should move z[t] -> z[t+1].
+        future_action_start = t
+        future_action_end = t + self.future_horizon
+        future_actions = actions[future_action_start:future_action_end]  # [future_horizon, A]
 
         # Target: [t+1:t+1+future_horizon]
         tgt_start = t + 1
@@ -211,11 +237,14 @@ class PatchLatentTransitionDataset:
         return {
             "z_context": z_context,
             "actions": action_history,
+            "future_actions": future_actions,
             "z_target": z_target,
             "metadata": {
                 "trajectory_id": traj.trajectory_id,
                 "time_index": t,
                 "context_range": list(range(ctx_start, ctx_end)),
+                "action_history_range": history_indices,
+                "future_action_range": list(range(future_action_start, future_action_end)),
                 "target_range": list(range(tgt_start, tgt_end)),
                 "split": self.split,
             },

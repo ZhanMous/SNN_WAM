@@ -63,6 +63,7 @@ class TestRolloutModeDifference:
         torch.manual_seed(7)
         z_context = torch.randn(B, T_ctx, P, D)
         actions = torch.randn(B, T_ctx, 3)
+        future_actions = torch.randn(B, 4, 3)
         # Make GT targets deliberately different from what the model predicts
         z_target = torch.randn(B, 4, P, D) * 5.0
 
@@ -71,9 +72,12 @@ class TestRolloutModeDifference:
             _teacher_forced_predict,
         )
 
-        pred_ar = _autoregressive_predict(model, z_context, actions, 4, torch.device("cpu"))
+        pred_ar = _autoregressive_predict(
+            model, z_context, actions, future_actions, 4, torch.device("cpu")
+        )
         pred_tf, fallback = _teacher_forced_predict(
-            model, z_context, actions, 4, torch.device("cpu"), z_target_full=z_target,
+            model, z_context, actions, future_actions, 4, torch.device("cpu"),
+            z_target_full=z_target,
         )
 
         assert fallback == 0, "No fallback expected when GT is provided"
@@ -95,13 +99,15 @@ class TestRolloutModeDifference:
         torch.manual_seed(7)
         z_context = torch.randn(B, T_ctx, P, D)
         actions = torch.randn(B, T_ctx, 3)
+        future_actions = torch.randn(B, 4, 3)
 
         from src.eval.dinowm_eval_offline import (
             _teacher_forced_predict,
         )
 
         pred_tf, fallback = _teacher_forced_predict(
-            model, z_context, actions, 4, torch.device("cpu"), z_target_full=None,
+            model, z_context, actions, future_actions, 4, torch.device("cpu"),
+            z_target_full=None,
         )
 
         assert fallback == B, f"Expected fallback={B} when no GT, got {fallback}"
@@ -119,16 +125,19 @@ class TestRolloutModeDifference:
         torch.manual_seed(7)
         z_context = torch.randn(B, T_ctx, P, D)
         actions = torch.randn(B, T_ctx, 3)
+        future_actions = torch.randn(B, 4, 3)
         z_target = torch.randn(B, 4, P, D)
 
         from src.eval.dinowm_eval_offline import _teacher_forced_predict
 
         # Predict H=2 and H=4 — the first 2 steps should be identical
         pred_h2, _ = _teacher_forced_predict(
-            model, z_context, actions, 2, torch.device("cpu"), z_target_full=z_target,
+            model, z_context, actions, future_actions[:, :2], 2,
+            torch.device("cpu"), z_target_full=z_target,
         )
         pred_h4, _ = _teacher_forced_predict(
-            model, z_context, actions, 4, torch.device("cpu"), z_target_full=z_target,
+            model, z_context, actions, future_actions, 4,
+            torch.device("cpu"), z_target_full=z_target,
         )
 
         # First 2 steps must match exactly (no compounding)
@@ -160,6 +169,7 @@ class TestSampleIdConsistency:
         torch.manual_seed(42)
         z_context = torch.randn(B, T_ctx, P, D)
         actions = torch.randn(B, T_ctx, A)
+        future_actions = torch.randn(B, 2, A)
         z_target = torch.randn(B, 2, P, D)
         metadata = [
             {"trajectory_id": f"task{i}:demo0", "time_index": i * 10}
@@ -168,7 +178,13 @@ class TestSampleIdConsistency:
 
         # Create a minimal dataset-like loader
         samples = [
-            {"z_context": z_context[i], "actions": actions[i], "z_target": z_target[i], "metadata": metadata[i]}
+            {
+                "z_context": z_context[i],
+                "actions": actions[i],
+                "future_actions": future_actions[i],
+                "z_target": z_target[i],
+                "metadata": metadata[i],
+            }
             for i in range(B)
         ]
 
@@ -177,6 +193,7 @@ class TestSampleIdConsistency:
             return {
                 "z_context": torch.stack([s["z_context"] for s in batch]),
                 "actions": torch.stack([s["actions"] for s in batch]),
+                "future_actions": torch.stack([s["future_actions"] for s in batch]),
                 "z_target": torch.stack([s["z_target"] for s in batch]),
                 "metadata": [s["metadata"] for s in batch],
             }
@@ -303,10 +320,13 @@ class TestNoModelMutation:
         B, T_ctx, P, D = 2, 3, 4, 8
         z_context = torch.randn(B, T_ctx, P, D)
         actions = torch.randn(B, T_ctx, 3)
+        future_actions = torch.randn(B, 4, 3)
 
         from src.eval.dinowm_eval_offline import _autoregressive_predict
 
-        _ = _autoregressive_predict(model, z_context, actions, 4, torch.device("cpu"))
+        _ = _autoregressive_predict(
+            model, z_context, actions, future_actions, 4, torch.device("cpu")
+        )
 
         assert model.future_horizon == original_h, (
             f"model.future_horizon mutated from {original_h} to {model.future_horizon} "
@@ -324,12 +344,14 @@ class TestNoModelMutation:
         B, T_ctx, P, D = 2, 3, 4, 8
         z_context = torch.randn(B, T_ctx, P, D)
         actions = torch.randn(B, T_ctx, 3)
+        future_actions = torch.randn(B, 4, 3)
         z_target = torch.randn(B, 4, P, D)
 
         from src.eval.dinowm_eval_offline import _teacher_forced_predict
 
         _ = _teacher_forced_predict(
-            model, z_context, actions, 4, torch.device("cpu"), z_target_full=z_target,
+            model, z_context, actions, future_actions, 4, torch.device("cpu"),
+            z_target_full=z_target,
         )
 
         assert model.future_horizon == original_h, (

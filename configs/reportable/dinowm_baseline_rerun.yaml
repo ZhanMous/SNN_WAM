@@ -1,0 +1,55 @@
+experiment:
+  name: dinowm_transformer_baseline_rerun
+  seed: 0
+  tags:
+    - dinowm_transformer
+    - patch_latent
+    - real_data
+    - baseline
+    - rerun
+    - explicit_future_actions
+  artifact_id: R-DWM-G3-DINOWM-BASELINE-RERUN-001
+
+reproducibility:
+  require_clean_git: true
+
+data:
+  suite: libero_spatial
+  cache_dir: latents/libero_spatial/dinov2_vits14_patch
+  context_len: 3
+  future_horizon: 2
+  action_dim: 7
+  patch_dim: 256
+  feature_dim: 384
+  train_ratio: 0.9
+  max_demos: null
+  max_frames: null
+
+model:
+  temporal_adapter: dinowm_transformer
+  patch_dim: 256
+  feature_dim: 384
+  action_dim: 7
+  hidden_dim: 256
+  num_heads: 4
+  num_layers: 2
+  future_horizon: 2
+  dropout: 0.1
+
+training:
+  batch_size: 32
+  epochs: 100
+  optimizer: adamw
+  lr: 0.0003
+  lambda_patch_cosine: 1.0
+  lambda_action: 0.0
+  grad_clip_norm: 1.0
+  warmup_steps: 100
+
+output:
+  output_dir: results/runs/dinowm_transformer_baseline_rerun
+  save_best_by: val/patch_cosine_error
+
+eval:
+  horizons: [1, 2, 4]
+  max_eval_steps: null

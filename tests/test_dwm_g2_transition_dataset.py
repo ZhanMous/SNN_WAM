@@ -68,6 +68,17 @@ class TestDWMG2TransitionShapes:
         assert actions.ndim == 2, f"actions should be 2D, got {actions.ndim}D"
         assert actions.shape[0] == 3, f"Expected context_len=3, got {actions.shape[0]}"
 
+        # future_actions should be [future_horizon, A]
+        assert "future_actions" in sample
+        future_actions = sample["future_actions"]
+        assert future_actions.ndim == 2, (
+            f"future_actions should be 2D, got {future_actions.ndim}D"
+        )
+        assert future_actions.shape[0] == 2, (
+            f"Expected future_horizon=2, got {future_actions.shape[0]}"
+        )
+        assert future_actions.shape[1] == actions.shape[1], "Action dim mismatch"
+
         # z_target should be [future_horizon, P, D]
         assert "z_target" in sample
         z_tgt = sample["z_target"]
@@ -215,6 +226,30 @@ class TestDWMG2NoFutureLeakage:
             f"Target starts at {tgt_range[0]}, expected {ctx_range[-1] + 1}"
         )
 
+    def test_future_actions_start_at_current_time(self) -> None:
+        """Future candidate actions start at t and targets start at t+1."""
+        ds = create_dinowm_transition_dataset(
+            cache_dir=PATCH_LATENT_DIR,
+            context_len=3,
+            future_horizon=2,
+            max_demos=1,
+            max_frames=20,
+        )
+
+        if len(ds) == 0:
+            pytest.skip("No data loaded")
+
+        sample = ds[0]
+        metadata = sample["metadata"]
+        t = metadata["time_index"]
+        future_action_range = metadata["future_action_range"]
+        target_range = metadata["target_range"]
+        action_history_range = metadata["action_history_range"]
+
+        assert future_action_range == [t, t + 1]
+        assert target_range == [t + 1, t + 2]
+        assert max(action_history_range) < t
+
 
 # ---------------------------------------------------------------------------
 # DWM-G2 Gate 2: Synthetic anti-leakage test
@@ -358,10 +393,15 @@ class TestDWMG2CachedDataset:
         assert sample["z_context"].shape == (3, P, D)
         assert sample["z_target"].shape == (2, P, D)
         assert sample["actions"].shape == (3, A)
+        assert sample["future_actions"].shape == (2, A)
         assert sample["z_context"].dtype == torch.float32
         assert sample["z_target"].dtype == torch.float32
         assert torch.allclose(sample["z_context"], patch_latents[:3].float())
         assert torch.allclose(sample["z_target"], patch_latents[3:5].float())
+        expected_history = torch.zeros(3, A)
+        expected_history[1:] = actions[:2]
+        assert torch.allclose(sample["actions"], expected_history)
+        assert torch.allclose(sample["future_actions"], actions[2:4])
 
     def test_cache_loads(self) -> None:
         """Cached patch latents load without error."""

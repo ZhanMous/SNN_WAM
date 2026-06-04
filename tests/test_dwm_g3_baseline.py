@@ -45,8 +45,9 @@ class TestDWMG3ModelShapes:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
 
-        output = model(patch_latents, actions)
+        output = model(patch_latents, actions, future_actions=future_actions)
 
         assert output.shape == (B, H, P, D), (
             f"Expected shape ({B}, {H}, {P}, {D}), got {output.shape}"
@@ -68,8 +69,9 @@ class TestDWMG3ModelShapes:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, 1, A)
 
-        output = model.predict_one_step(patch_latents, actions)
+        output = model.predict_one_step(patch_latents, actions, future_actions=future_actions)
 
         assert output.shape == (B, 1, P, D), (
             f"Expected shape ({B}, 1, {P}, {D}), got {output.shape}"
@@ -91,8 +93,9 @@ class TestDWMG3ModelShapes:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
 
-        output = model(patch_latents, actions)
+        output = model(patch_latents, actions, future_actions=future_actions)
 
         assert output.shape == (B, H, P, D)
 
@@ -112,10 +115,59 @@ class TestDWMG3ModelShapes:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
 
-        output = model(patch_latents, actions)
+        output = model(patch_latents, actions, future_actions=future_actions)
 
         assert torch.isfinite(output).all(), "Model output contains NaN or Inf"
+
+    def test_future_actions_shape(self) -> None:
+        """Forward pass explicitly accepts future_actions [B, H, A]."""
+        B, T, P, D, A, H = 2, 3, 32, 64, 7, 2
+        model = DINOwMTransformer(
+            patch_dim=P,
+            feature_dim=D,
+            action_dim=A,
+            hidden_dim=64,
+            num_heads=4,
+            num_layers=1,
+            future_horizon=H,
+            dropout=0.0,
+        )
+
+        z_context = torch.randn(B, T, P, D)
+        action_history = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
+
+        output = model(z_context, action_history, future_actions=future_actions)
+        assert output.shape == (B, H, P, D)
+
+    def test_future_actions_affect_prediction(self) -> None:
+        """Changing future candidate actions changes model predictions."""
+        torch.manual_seed(0)
+        B, T, P, D, A, H = 2, 3, 16, 32, 7, 2
+        model = DINOwMTransformer(
+            patch_dim=P,
+            feature_dim=D,
+            action_dim=A,
+            hidden_dim=32,
+            num_heads=2,
+            num_layers=1,
+            future_horizon=H,
+            dropout=0.0,
+        )
+        model.eval()
+
+        z_context = torch.randn(B, T, P, D)
+        action_history = torch.randn(B, T, A)
+        future_a = torch.zeros(B, H, A)
+        future_b = torch.ones(B, H, A)
+
+        with torch.no_grad():
+            pred_a = model(z_context, action_history, future_actions=future_a)
+            pred_b = model(z_context, action_history, future_actions=future_b)
+
+        assert not torch.allclose(pred_a, pred_b)
 
 
 # ---------------------------------------------------------------------------
@@ -145,12 +197,13 @@ class TestDWMG3ModelTraining:
         # Fixed target
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
         z_target = torch.randn(B, H, P, D)
 
         # Train for a few steps
         initial_loss = None
         for step in range(10):
-            z_pred = model(patch_latents, actions)
+            z_pred = model(patch_latents, actions, future_actions=future_actions)
             loss = torch.nn.functional.mse_loss(z_pred, z_target)
 
             if initial_loss is None:
@@ -183,9 +236,10 @@ class TestDWMG3ModelTraining:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
         z_target = torch.randn(B, H, P, D)
 
-        z_pred = model(patch_latents, actions)
+        z_pred = model(patch_latents, actions, future_actions=future_actions)
         loss = torch.nn.functional.mse_loss(z_pred, z_target)
         loss.backward()
 
@@ -248,9 +302,10 @@ class TestDWMG3Metrics:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
         z_target = torch.randn(B, H, P, D)
 
-        z_pred = model(patch_latents, actions)
+        z_pred = model(patch_latents, actions, future_actions=future_actions)
 
         mse = patch_mse(z_pred, z_target)
         cosine = patch_cosine_error(z_pred, z_target)
@@ -263,13 +318,19 @@ class TestDWMG3Metrics:
         """Overall [B, H] patch metrics are averaged over batch and horizon."""
 
         class ZeroWorldModel(torch.nn.Module):
-            def forward(self, z_context: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+            def forward(
+                self,
+                z_context: torch.Tensor,
+                actions: torch.Tensor,
+                future_actions: torch.Tensor,
+            ) -> torch.Tensor:
                 B = z_context.shape[0]
                 return torch.zeros(B, 2, 1, 2, device=z_context.device)
 
         batch = {
             "z_context": torch.zeros(3, 3, 1, 2),
             "actions": torch.zeros(3, 3, 7),
+            "future_actions": torch.zeros(3, 2, 7),
             "z_target": torch.ones(3, 2, 1, 2),
         }
         metrics = run_one_split(

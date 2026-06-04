@@ -112,10 +112,12 @@ def patch_collate_fn(samples: list[dict[str, Any]]) -> dict[str, Any]:
     """Collate PatchLatentTransitionDataset samples into batched tensors."""
     z_context = torch.stack([s["z_context"] for s in samples], dim=0)
     actions = torch.stack([s["actions"] for s in samples], dim=0)
+    future_actions = torch.stack([s["future_actions"] for s in samples], dim=0)
     z_target = torch.stack([s["z_target"] for s in samples], dim=0)
     return {
         "z_context": z_context,
         "actions": actions,
+        "future_actions": future_actions,
         "z_target": z_target,
     }
 
@@ -200,6 +202,7 @@ def _make_mock_dataset(
         samples.append({
             "z_context": torch.randn(context_len, patch_dim, feature_dim),
             "actions": torch.randn(context_len, action_dim),
+            "future_actions": torch.randn(future_horizon, action_dim),
             "z_target": torch.randn(future_horizon, patch_dim, feature_dim),
             "metadata": {"trajectory_id": f"mock_{i}", "time_index": i, "split": "train"},
         })
@@ -243,10 +246,12 @@ def run_one_split(
 
             z_context = batch["z_context"].to(device)  # [B, T_ctx, P, D]
             actions = batch["actions"].to(device)  # [B, T_ctx, A]
+            future_actions = batch["future_actions"].to(device)  # [B, H, A]
             z_target = batch["z_target"].to(device)  # [B, H, P, D]
 
-            # Forward: model predicts [B, H, P, D] from [B, T_ctx, P, D] + [B, T_ctx, A]
-            pred = model(z_context, actions)  # [B, H, P, D]
+            # Forward: model predicts [B, H, P, D] from context latents,
+            # context action history, and future candidate actions [B, H, A].
+            pred = model(z_context, actions, future_actions=future_actions)  # [B, H, P, D]
 
             # Losses
             patch_cosine_loss = patch_cosine_error(pred, z_target, reduction="mean")
@@ -426,13 +431,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     notes_path.write_text(
         "# DINOwM Transformer Baseline\n\n"
         "Standalone training on cached DINOv2 patch latents.\n"
-        "Model: DINOwMTransformer (patch projection + action projection + Transformer encoder).\n"
+        "Model: DINOwMTransformer with explicit future action conditioning.\n"
         "Primary loss: patch_cosine_error (1 - cosine similarity, averaged over patches).\n"
         "No action prediction head -- this is a pure world model.\n\n"
         "## Known limitations\n"
         "- No SNN adapter yet (ANN-only baseline)\n"
         "- No closed-loop evaluation\n"
-        "- Action sequences are inputs, not predicted\n"
+        "- Future action sequences are inputs, not predicted\n"
     )
 
     # CSV metrics file
@@ -527,14 +532,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             all_actions = []
             for s in train_dataset:
-                all_actions.append(s["actions"])
-            all_actions = torch.stack(all_actions, dim=0)  # [N, T_ctx, A]
+                all_actions.append(s["future_actions"])
+            all_actions = torch.stack(all_actions, dim=0)  # [N, H, A]
             action_stats = {
                 "mean": all_actions.mean(dim=[0, 1]).tolist(),
                 "std": all_actions.std(dim=[0, 1]).clamp(min=1e-6).tolist(),
                 "source_split": "train",
                 "n_samples": len(train_dataset),
-                "note": "Statistics computed from train split only to avoid validation leakage",
+                "note": "Statistics computed from train split future_actions only to avoid validation leakage",
             }
             # Write action_stats.json for planning baseline use
             write_json(run_dir / "action_stats.json", action_stats)

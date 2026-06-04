@@ -129,7 +129,7 @@ def run_planning_sanity(
                 future_horizon=int(model.future_horizon),
                 split="train",
             )
-            all_actions = torch.stack([s["actions"] for s in _temp_dataset], dim=0)  # [N, T_ctx, A]
+            all_actions = torch.stack([s["future_actions"] for s in _temp_dataset], dim=0)  # [N, H, A]
             action_stats = {
                 "mean": all_actions.mean(dim=[0, 1]).tolist(),  # [A]
                 "std": all_actions.std(dim=[0, 1]).clamp(min=1e-6).tolist(),  # [A]
@@ -168,10 +168,8 @@ def run_planning_sanity(
         sample = dataset[idx]
         z_context = sample["z_context"].unsqueeze(0).to(device)  # [1, T_ctx, P, D]
         z_target = sample["z_target"].unsqueeze(0).to(device)  # [1, H, P, D]
-        gt_actions = sample["actions"].unsqueeze(0).to(device)  # [1, T_ctx, A]
-
-        # Use last horizon actions as GT for replay baseline
-        gt_actions_h = gt_actions[:, -horizon:, :]  # [1, H, A]
+        action_history = sample["actions"].unsqueeze(0).to(device)  # [1, T_ctx, A]
+        gt_future_actions = sample["future_actions"].unsqueeze(0).to(device)  # [1, H, A]
 
         print(f"  [{i+1}/{len(indices)}] idx={idx}", end=" ... ")
 
@@ -179,6 +177,7 @@ def run_planning_sanity(
         grad_result = optimize_actions_gradient(
             model, z_context, z_target,
             horizon=horizon, action_dim=action_dim,
+            action_history=action_history,
             n_steps=opt_steps, lr=opt_lr,
             objective="cosine", device=device,
         )
@@ -194,6 +193,7 @@ def run_planning_sanity(
         cma_result = optimize_actions_cmaes(
             model, z_context, z_target,
             horizon=horizon, action_dim=action_dim,
+            action_history=action_history,
             n_generations=cma_gens, population_size=cma_pop,
             objective="cosine", seed=seed + i, device=device,
         )
@@ -209,7 +209,8 @@ def run_planning_sanity(
         comp = compare_action_sources(
             model, z_context, z_target,
             horizon=horizon, action_dim=action_dim,
-            gt_actions=gt_actions_h,
+            gt_actions=gt_future_actions[:, :horizon],
+            action_history=action_history,
             n_random=n_random, seed=seed, objective="cosine",
             random_baseline_type=random_baseline_type,
             action_stats=action_stats, device=device,
@@ -230,11 +231,12 @@ def run_planning_sanity(
         # Also run shuffled_real comparison if primary baseline is dataset
         # This gives the stricter "optimized beats temporal shuffle" test
         comp_shuffled = None
-        if random_baseline_type == "dataset" and gt_actions_h is not None:
+        if random_baseline_type == "dataset" and gt_future_actions is not None:
             comp_shuffled = compare_action_sources(
                 model, z_context, z_target,
                 horizon=horizon, action_dim=action_dim,
-                gt_actions=gt_actions_h,
+                gt_actions=gt_future_actions[:, :horizon],
+                action_history=action_history,
                 n_random=n_random, seed=seed, objective="cosine",
                 random_baseline_type="shuffled_real", device=device,
             )
