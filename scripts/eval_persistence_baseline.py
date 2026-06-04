@@ -143,17 +143,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             split=split_name,
         )
 
-        # Apply same split logic as trainer
+        # Apply same split as trainer (random permutation with seed)
+        train_ratio = 0.9
+        n_total = len(dataset)
+        n_train = int(n_total * train_ratio)
+        rng = torch.Generator().manual_seed(args.seed)
+        indices = torch.randperm(n_total, generator=rng).tolist()
         if split_name == "val":
-            n_total = len(dataset)
-            n_train = int(n_total * 0.9)
-            indices = list(range(n_train, n_total))
-            dataset = Subset(dataset, indices)
+            dataset = Subset(dataset, indices[n_train:])
         elif split_name == "train":
-            n_total = len(dataset)
-            n_train = int(n_total * 0.9)
-            indices = list(range(n_train))
-            dataset = Subset(dataset, indices)
+            dataset = Subset(dataset, indices[:n_train])
 
         print(f"  {split_name} windows: {len(dataset)}")
 

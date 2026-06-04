@@ -78,6 +78,7 @@ def main() -> int:
                 "--run_dir", run_dir,
                 "--horizons", "1", "2", "4",
                 "--action_mode", "real",
+                "--seed", str(seed),
                 "--device", args.device,
             ]
             if args.dry_run:
@@ -93,6 +94,7 @@ def main() -> int:
                 "--horizons", "1", "2", "4",
                 "--action_mode", "shuffle",
                 "--shuffle_seeds", "0", "1", "2",
+                "--seed", str(seed),
                 "--device", args.device,
             ]
             if args.dry_run:
