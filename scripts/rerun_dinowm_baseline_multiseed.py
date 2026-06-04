@@ -61,6 +61,7 @@ def main() -> int:
                 sys.executable, str(TRAIN_SCRIPT),
                 "--config", str(CONFIG),
                 "--seed", str(seed),
+                "--output_dir", run_dir,
                 "--device", args.device,
             ]
             if args.dry_run:
@@ -105,21 +106,11 @@ def main() -> int:
 
             # Persistence baseline
             cmd_persist = [
-                sys.executable, "-c",
-                f"import sys; sys.path.insert(0, '{REPO_ROOT}'); "
-                f"from scripts.eval_persistence_baseline import eval_persistence; "
-                f"import torch, json; from pathlib import Path; "
-                f"from torch.utils.data import DataLoader, Subset; "
-                f"from src.data.patch_latent_dataset import create_dinowm_transition_dataset; "
-                f"cache = Path('{REPO_ROOT}/latents/libero_spatial/dinov2_vits14_patch'); "
-                f"ds = create_dinowm_transition_dataset(cache, context_len=3, future_horizon=4, split='val'); "
-                f"n=len(ds); ntrain=int(n*0.9); "
-                f"loader = DataLoader(Subset(ds, list(range(ntrain, n))), batch_size=32, collate_fn=lambda s: {{k: torch.stack([x[k] for x in s]) if isinstance(s[0][k], torch.Tensor) else [x[k] for x in s] for k in s[0]}}); "
-                f"for h in [1,2,4]: "
-                f"  m = eval_persistence(loader, eval_horizon=h); "
-                f"  print(f'H={{h}}: cos_err={{m[\"patch_cosine_error\"]:.6f}}'); "
-                f"  Path('{REPO_ROOT}/{run_dir}/baselines').mkdir(parents=True, exist_ok=True); "
-                f"  (Path('{REPO_ROOT}/{run_dir}/baselines/persistence_h'+str(h)+'.json')).write_text(json.dumps(m, indent=2))"
+                sys.executable, str(REPO_ROOT / "scripts/eval_persistence_baseline.py"),
+                "--config", str(CONFIG),
+                "--horizons", "1", "2", "4",
+                "--seed", str(seed),
+                "--output_dir", str(REPO_ROOT / run_dir / "baselines"),
             ]
             if not args.dry_run:
                 rc = run_cmd(cmd_persist, f"Persistence baseline seed={seed}")
