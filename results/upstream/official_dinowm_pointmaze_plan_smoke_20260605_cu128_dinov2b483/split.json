@@ -1,0 +1,6 @@
+{
+  "env": "point_maze",
+  "dataset_dir": "/home/zhan_shaoji/code/SNN_WAM/data/dino_wm",
+  "official_split": "defined by upstream dataset loader/config",
+  "notes": "For smoke overrides, inspect extra_train_arg in summary.json."
+}

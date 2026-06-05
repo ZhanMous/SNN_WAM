@@ -1,0 +1,10 @@
+{
+  "env": "point_maze",
+  "dataset_dir": "/home/zhan_shaoji/code/SNN_WAM/data/dino_wm",
+  "official_split": "defined by upstream dataset loader/config",
+  "smoke_override": {
+    "env.dataset.n_rollout": 2,
+    "env.num_workers": 0
+  },
+  "notes": "Official PointMaze loader reported 2 rollouts for this smoke run."
+}

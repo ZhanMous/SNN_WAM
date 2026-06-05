@@ -44,6 +44,7 @@ results/figures/**/*.jpeg
 results/figures/**/*.pdf
 results/upstream/**/official_ckpts/
 results/upstream/**/plan_outputs/
+results/upstream/**/torch_home/
 
 # Latent files (large binary files, should not be committed)
 latents/
