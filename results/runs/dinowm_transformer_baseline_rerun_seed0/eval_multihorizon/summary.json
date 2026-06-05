@@ -1,0 +1,72 @@
+{
+  "requested_rollout_mode": "autoregressive",
+  "gt_available": true,
+  "fallback_triggered": false,
+  "num_fallback_samples": 0,
+  "total_samples": 96,
+  "fallback_ratio": 0.0,
+  "horizons": [
+    1,
+    2,
+    4
+  ],
+  "model_horizon": 2,
+  "action_mode": "real",
+  "shuffle_seeds": [],
+  "rollout_behavior": {
+    "description": "Model predictions chained as context; compounding error present",
+    "compounding_error": true,
+    "action_padding": "uses recorded future actions when available; repeats last only beyond requested horizon",
+    "note": "Evaluates action-conditioned autoregressive latent prediction with explicit future actions"
+  },
+  "results": [
+    {
+      "horizon": 1,
+      "n_samples": 32,
+      "patch_cosine_error": 1.0081422626972198,
+      "patch_cosine_error_std": 0.018708854913711548,
+      "patch_mse": 5.181832879781723,
+      "patch_mse_std": 0.10727684199810028,
+      "patch_mean_cosine_error": 1.0211574118584394,
+      "patch_mean_cosine_error_std": 0.03410809859633446,
+      "fallback_samples": 0,
+      "total_samples": 32,
+      "split": "val",
+      "action_mode": "real",
+      "shuffle_seed": 0,
+      "rollout_mode": "autoregressive"
+    },
+    {
+      "horizon": 2,
+      "n_samples": 32,
+      "patch_cosine_error": 1.006466120481491,
+      "patch_cosine_error_std": 0.019578032195568085,
+      "patch_mse": 5.193654388189316,
+      "patch_mse_std": 0.09547817707061768,
+      "patch_mean_cosine_error": 1.0165793467313051,
+      "patch_mean_cosine_error_std": 0.03506636247038841,
+      "fallback_samples": 0,
+      "total_samples": 32,
+      "split": "val",
+      "action_mode": "real",
+      "shuffle_seed": 0,
+      "rollout_mode": "autoregressive"
+    },
+    {
+      "horizon": 4,
+      "n_samples": 32,
+      "patch_cosine_error": 1.0030182842165232,
+      "patch_cosine_error_std": 0.023336686193943024,
+      "patch_mse": 5.198826372623444,
+      "patch_mse_std": 0.09791108220815659,
+      "patch_mean_cosine_error": 1.007453765720129,
+      "patch_mean_cosine_error_std": 0.03995866701006889,
+      "fallback_samples": 0,
+      "total_samples": 32,
+      "split": "val",
+      "action_mode": "real",
+      "shuffle_seed": 0,
+      "rollout_mode": "autoregressive"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "timestamp_utc": "2026-06-05T02:26:01.113913+00:00",
+  "host_python": "/usr/bin/python3",
+  "python_version": "3.12.3",
+  "platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "upstream_dir": "external/dino_wm",
+  "dataset_dir": "data/dino_wm",
+  "official_repo_url": "https://github.com/gaoyuezhou/dino_wm",
+  "official_data_url": "https://osf.io/bmw48/?view_only=a56a296ce3b24cceaf408383a175ce28"
+}

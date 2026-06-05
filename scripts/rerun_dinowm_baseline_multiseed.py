@@ -111,6 +111,7 @@ def main() -> int:
                 "--horizons", "1", "2", "4",
                 "--seed", str(seed),
                 "--output_dir", str(REPO_ROOT / run_dir / "baselines"),
+                "--split_json", str(REPO_ROOT / run_dir / "split.json"),
             ]
             if not args.dry_run:
                 rc = run_cmd(cmd_persist, f"Persistence baseline seed={seed}")
@@ -124,6 +125,7 @@ def main() -> int:
                 "--n_samples", "50",
                 "--horizon", "2",
                 "--random_baseline_type", "dataset",
+                "--action_stats_path", str(REPO_ROOT / run_dir / "action_stats.json"),
                 "--device", args.device,
             ]
             if args.dry_run:

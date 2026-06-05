@@ -30,7 +30,10 @@ from torch.utils.data import DataLoader, Subset
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.data.patch_latent_dataset import create_dinowm_transition_dataset  # noqa: E402
+from src.data.patch_latent_dataset import (  # noqa: E402
+    create_dinowm_transition_dataset,
+    indices_for_split_name,
+)
 from src.models.dinowm_transformer import DINOwMTransformer  # noqa: E402
 from src.train.metrics import (  # noqa: E402
     patch_cosine_error,
@@ -103,6 +106,14 @@ def load_model(run_dir: Path, checkpoint_path: Path | None, device: torch.device
     return model, config
 
 
+def load_split_info(run_dir: Path) -> dict[str, Any] | None:
+    """Load trainer split metadata if available."""
+    split_path = run_dir / "split.json"
+    if not split_path.exists():
+        return None
+    return json.loads(split_path.read_text())
+
+
 def _apply_action_mode(
     actions: torch.Tensor,
     *,
@@ -165,6 +176,7 @@ def eval_one_horizon(
     device: torch.device,
     action_mode: str = "real",
     shuffle_seed: int = 0,
+    rollout_mode: str = "autoregressive",
     max_steps: int | None = None,
 ) -> dict[str, Any]:
     """Evaluate metrics at a specific horizon.
@@ -210,7 +222,7 @@ def eval_one_horizon(
             pred_h = pred[:, :eval_horizon]  # [B, eval_h, P, D]
             target_h = z_target_full[:, :eval_horizon]  # [B, eval_h, P, D]
         else:
-            if args.rollout_mode == "teacher_forced":
+            if rollout_mode == "teacher_forced":
                 # Teacher-forced: use GT context at each step (no compounding error)
                 pred_h, batch_fallback = _teacher_forced_predict(
                     model, z_context, action_history, future_actions, eval_horizon, device,
@@ -439,7 +451,6 @@ def _autoregressive_predict(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    global args
     args = parse_args(argv)
     seed_everything(args.seed)
     device = torch.device(args.device)
@@ -453,6 +464,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     # Load dataset
     cache_dir = args.cache_dir or Path(config["data"]["cache_dir"])
     context_len = int(config["data"]["context_len"])
+    split_info = load_split_info(args.run_dir)
+    train_ratio = float(config["data"].get("train_ratio", 0.9))
+    split_seed = int(config.get("experiment", {}).get("seed", args.seed))
+    split_source = str(args.run_dir / "split.json") if split_info is not None else "generated_from_config"
 
     all_per_sample: list[dict[str, Any]] = []
     results_all: list[dict[str, Any]] = []
@@ -465,19 +480,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             cache_dir,
             context_len=context_len,
             future_horizon=max(max_h, model_horizon),
+            max_demos=config["data"].get("max_demos"),
+            max_frames=config["data"].get("max_frames"),
             split=split_name,
         )
 
-        # Apply same split as trainer (random permutation with seed)
-        train_ratio = 0.9
-        n_total = len(dataset)
-        n_train = int(n_total * train_ratio)
-        rng = torch.Generator().manual_seed(args.seed)
-        indices = torch.randperm(n_total, generator=rng).tolist()
-        if split_name == "val":
-            dataset = Subset(dataset, indices[n_train:])
-        elif split_name == "train":
-            dataset = Subset(dataset, indices[:n_train])
+        indices = indices_for_split_name(
+            dataset,
+            split_name,
+            split_info=split_info,
+            train_ratio=train_ratio,
+            seed=split_seed,
+        )
+        dataset = Subset(dataset, indices)
 
         print(f"  {split_name} windows: {len(dataset)}")
 
@@ -503,6 +518,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     device=device,
                     action_mode=args.action_mode,
                     shuffle_seed=shuffle_seed,
+                    rollout_mode=args.rollout_mode,
                     max_steps=args.max_steps,
                 )
                 metrics["split"] = split_name
@@ -587,6 +603,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "model_horizon": model_horizon,
         "action_mode": args.action_mode,
         "shuffle_seeds": args.shuffle_seeds if args.action_mode == "shuffle" else [],
+        "split_source": split_source,
+        "split_method": (split_info or {}).get("method", "trajectory_split_generated"),
+        "split_seed": split_seed,
+        "train_ratio": train_ratio,
         "rollout_behavior": rollout_behavior,
         "results": [{k: v for k, v in r.items() if k != "per_sample"} for r in results_all],
     }

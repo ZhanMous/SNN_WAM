@@ -1,10 +1,18 @@
 # Split Policy
 
-Status: policy defined for G2.5. Split-aware real-data loading is not implemented yet.
+Status: policy defined for G2.5. DWM patch-latent training, offline eval,
+persistence baseline, and planning sanity now use trajectory-level splits. LIBERO
+closed-loop split handling is still not implemented.
 
 ## Split Source
 
 Phase 1 uses an explicit repository-generated `split.json` saved with every run. If a LIBERO file provides official `mask/<split>` keys, those keys may be imported into `split.json`, but the resolved split file remains the source of truth for SNN-WAM runs.
+
+For DINO-WM patch-latent runs, `split.json` stores exact train/val trajectory
+ids. Evaluation scripts reuse those ids when present; if a legacy run lacks
+`split.json`, they generate a deterministic trajectory-level split from the
+recorded config seed and `train_ratio`. They must not fall back to window-level
+random splitting.
 
 Required split file fields:
 

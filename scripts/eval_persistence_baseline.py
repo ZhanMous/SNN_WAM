@@ -23,7 +23,10 @@ from torch.utils.data import DataLoader, Subset
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.data.patch_latent_dataset import create_dinowm_transition_dataset  # noqa: E402
+from src.data.patch_latent_dataset import (  # noqa: E402
+    create_dinowm_transition_dataset,
+    indices_for_split_name,
+)
 from src.train.metrics import (  # noqa: E402
     patch_cosine_error,
     patch_mean_cosine_error,
@@ -40,6 +43,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--split", choices=["val", "train", "both"], default="val")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output_dir", type=Path, default=None)
+    parser.add_argument(
+        "--split_json",
+        type=Path,
+        default=None,
+        help="Trainer split.json to reuse for trajectory-level train/val split.",
+    )
     return parser.parse_args(argv)
 
 
@@ -47,6 +56,13 @@ def load_config(path: Path) -> dict[str, Any]:
     import yaml
     with open(path) as f:
         return yaml.safe_load(f)
+
+
+def load_split_info(path: Path | None) -> dict[str, Any] | None:
+    """Load trajectory split metadata if the file exists."""
+    if path is None or not path.exists():
+        return None
+    return json.loads(path.read_text())
 
 
 def patch_collate_fn(samples: list[dict[str, Any]]) -> dict[str, Any]:
@@ -129,6 +145,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     cache_dir = Path(config["data"]["cache_dir"])
     context_len = int(config["data"]["context_len"])
     future_horizon_model = int(config["data"]["future_horizon"])
+    split_path = args.split_json
+    if split_path is None:
+        split_path = Path(config["output"]["output_dir"]) / "split.json"
+    split_info = load_split_info(split_path)
+    train_ratio = float(config["data"].get("train_ratio", 0.9))
+    split_seed = int(config.get("experiment", {}).get("seed", args.seed))
 
     results_all: list[dict[str, Any]] = []
 
@@ -140,19 +162,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             cache_dir,
             context_len=context_len,
             future_horizon=max(max_h, future_horizon_model),
+            max_demos=config["data"].get("max_demos"),
+            max_frames=config["data"].get("max_frames"),
             split=split_name,
         )
 
-        # Apply same split as trainer (random permutation with seed)
-        train_ratio = 0.9
-        n_total = len(dataset)
-        n_train = int(n_total * train_ratio)
-        rng = torch.Generator().manual_seed(args.seed)
-        indices = torch.randperm(n_total, generator=rng).tolist()
-        if split_name == "val":
-            dataset = Subset(dataset, indices[n_train:])
-        elif split_name == "train":
-            dataset = Subset(dataset, indices[:n_train])
+        indices = indices_for_split_name(
+            dataset,
+            split_name,
+            split_info=split_info,
+            train_ratio=train_ratio,
+            seed=split_seed,
+        )
+        dataset = Subset(dataset, indices)
 
         print(f"  {split_name} windows: {len(dataset)}")
 
@@ -185,6 +207,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "description": "Repeat last context patch latent as prediction for all H future steps",
         "model_required": False,
         "horizons": args.horizons,
+        "split_source": str(split_path) if split_info is not None else "generated_from_config",
+        "split_method": (split_info or {}).get("method", "trajectory_split_generated"),
+        "split_seed": split_seed,
+        "train_ratio": train_ratio,
         "results": results_all,
     }
     (out_dir / "persistence_metrics.json").write_text(

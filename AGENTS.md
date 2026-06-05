@@ -36,6 +36,7 @@ updating this list.
 
 **Scripts:**
 - `scripts/train_dinowm_baseline.py` — DINO-WM baseline training
+- `scripts/reproduce_official_dinowm_upstream.py` — official upstream DINO-WM reproduction helper
 
 **Configs:**
 - `configs/reportable/dinowm_baseline_real.yaml`
