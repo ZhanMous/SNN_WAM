@@ -1,0 +1,13 @@
+[
+  {
+    "name": "dinov2_main_cache",
+    "source": "/home/zhan_shaoji/.cache/torch/hub/facebookresearch_dinov2_b48308a394a04ccb9c4dd3a1f0a4daa1ce0579b8",
+    "destination": "/home/zhan_shaoji/code/SNN_WAM/results/upstream/official_dinowm_pointmaze_train_smoke_20260605_cu128_dinov2b483/torch_home/hub/facebookresearch_dinov2_main",
+    "github_ref": "b48308a394a04ccb9c4dd3a1f0a4daa1ce0579b8"
+  },
+  {
+    "name": "dinov2_checkpoint",
+    "source": "/home/zhan_shaoji/.cache/torch/hub/checkpoints/dinov2_vits14_pretrain.pth",
+    "destination": "/home/zhan_shaoji/code/SNN_WAM/results/upstream/official_dinowm_pointmaze_train_smoke_20260605_cu128_dinov2b483/torch_home/hub/checkpoints/dinov2_vits14_pretrain.pth"
+  }
+]

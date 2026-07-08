@@ -14,6 +14,39 @@ Can a directly trained SNN latent world model predict action-conditioned future 
 
 ES/EGGROLL-style methods are optional training-method comparisons after surrogate-gradient baselines are established.
 
+## DWM new-route files (allowed)
+
+The following source files implement the DINO-WM → SNN-WAM route and are
+explicitly allowed in the repository. Do not delete or rename without
+updating this list.
+
+**Data:**
+- `src/data/patch_latent_dataset.py` — PatchLatentTransitionDataset, future_actions [B,H,A]
+- `src/data/trajectory_window.py` — Trajectory windowing
+
+**Models:**
+- `src/models/dinowm_transformer.py` — DINOwMTransformer (action-conditioned patch latent dynamics)
+
+**Planning:**
+- `src/planning/action_optimizer.py` — Gradient/CMA-ES action optimization
+
+**Eval:**
+- `src/eval/dinowm_eval_offline.py` — Multi-horizon offline eval
+- `src/eval/dwm_g4_planning_sanity.py` — Planning sanity evaluation
+
+**Scripts:**
+- `scripts/train_dinowm_baseline.py` — DINO-WM baseline training
+- `scripts/reproduce_official_dinowm_upstream.py` — official upstream DINO-WM reproduction helper
+
+**Configs:**
+- `configs/reportable/dinowm_baseline_real.yaml`
+
+**Tests:**
+- `tests/test_dwm_g1_patch_features.py`
+- `tests/test_dwm_g2_transition_dataset.py`
+- `tests/test_dwm_g3_baseline.py`
+- `tests/test_dwm_g4_planning_sanity.py`
+
 ## Non-goals
 
 - Do not train a full VLA or foundation model.
@@ -65,6 +98,24 @@ No result may be cited in docs or paper unless it appears in docs/RESULT_ARTIFAC
 | `diagnostic_only` | Supports diagnosis only, not scientific claims |
 | `unsupported` | Evidence does not support the claim |
 | `forbidden` | Must never be claimed given current evidence |
+
+## DWM acceptance gates
+
+**DWM-G3 (baseline):** ANN Transformer baseline must:
+- Beat copy-last/persistence at H=1 on patch_cosine_error
+- Beat persistence on multi-step (H=2, H=4) metrics
+- True future actions明显优于 shuffled future actions (ablation)
+- Run on ≥3 seeds with clean git state (`dirty=False`)
+
+**DWM-G4 (planning):** Planning sanity must:
+- Optimized actions beat random/shuffled baselines on >50% of samples
+- Planning works with explicit future_actions [B, H, A] interface
+
+**DWM-G5 entry (SNN):** Only after G3/G4 pass:
+- Minimal LIF-SNN forward pass (replace GRU temporal adapter)
+- Membrane potential reset between samples
+- Spike rate / SynOps logging
+- Surrogate-gradient training baseline
 
 ## Testing expectations
 

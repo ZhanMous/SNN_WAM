@@ -1,0 +1,29 @@
+{
+  "run_dir": "results/runs/dinowm_transformer_baseline_rerun_seed0",
+  "artifact_status": "pass",
+  "reload_status": "pass",
+  "metric_status": "pass",
+  "claim_status": {
+    "trainable_on_real_cached_latents": "supported",
+    "beats_persistence": "unsupported",
+    "uses_action_information": "unsupported",
+    "model_internal_planning_sanity": "unsupported",
+    "real_libero_planning_success": "unsupported"
+  },
+  "forbidden_claims": [
+    "improves LIBERO task success rate",
+    "closed-loop planning works on real robot",
+    "general world model learned from small dataset",
+    "neuromorphic low power (not measured on neuromorphic hardware)",
+    "foundation model result from small LIBERO experiment",
+    "zero-action ablation proves action utility (OOD caveat: see uses_action_information_note)"
+  ],
+  "errors": [],
+  "warnings": [
+    "Ablation dir missing: results/runs/dinowm_transformer_baseline_rerun_seed0/eval_multihorizon_ablation/zeros",
+    "Planning file missing: summary.json",
+    "Planning file missing: per_sample_results.csv",
+    "Planning file missing: optimization_traces.csv",
+    "Persistence baseline missing"
+  ]
+}

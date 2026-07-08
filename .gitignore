@@ -42,7 +42,14 @@ results/figures/**/*.png
 results/figures/**/*.jpg
 results/figures/**/*.jpeg
 results/figures/**/*.pdf
+results/upstream/**/official_ckpts/
+results/upstream/**/plan_outputs/
+results/upstream/**/torch_home/
 
 # Latent files (large binary files, should not be committed)
 latents/
 *.hdf5_manifest.json
+
+# External upstream reproductions and large official datasets
+external/dino_wm/
+data/dino_wm/

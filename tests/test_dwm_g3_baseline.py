@@ -10,13 +10,17 @@ Verifies:
 
 from __future__ import annotations
 
+import shlex
+from pathlib import Path
+
 import pytest
 
 pytest.importorskip("torch")
 import torch
 
 from scripts.eval_persistence_baseline import eval_persistence
-from scripts.train_dinowm_baseline import run_one_split
+from scripts.train_dinowm_baseline import run_one_split, write_reproducibility_files
+from src.eval.dinowm_eval_offline import eval_one_horizon
 from src.models.dinowm_transformer import DINOwMTransformer, build_dinowm_model
 from src.train.metrics import patch_mse, patch_cosine_error
 
@@ -45,8 +49,9 @@ class TestDWMG3ModelShapes:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
 
-        output = model(patch_latents, actions)
+        output = model(patch_latents, actions, future_actions=future_actions)
 
         assert output.shape == (B, H, P, D), (
             f"Expected shape ({B}, {H}, {P}, {D}), got {output.shape}"
@@ -68,8 +73,9 @@ class TestDWMG3ModelShapes:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, 1, A)
 
-        output = model.predict_one_step(patch_latents, actions)
+        output = model.predict_one_step(patch_latents, actions, future_actions=future_actions)
 
         assert output.shape == (B, 1, P, D), (
             f"Expected shape ({B}, 1, {P}, {D}), got {output.shape}"
@@ -91,8 +97,9 @@ class TestDWMG3ModelShapes:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
 
-        output = model(patch_latents, actions)
+        output = model(patch_latents, actions, future_actions=future_actions)
 
         assert output.shape == (B, H, P, D)
 
@@ -112,10 +119,59 @@ class TestDWMG3ModelShapes:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
 
-        output = model(patch_latents, actions)
+        output = model(patch_latents, actions, future_actions=future_actions)
 
         assert torch.isfinite(output).all(), "Model output contains NaN or Inf"
+
+    def test_future_actions_shape(self) -> None:
+        """Forward pass explicitly accepts future_actions [B, H, A]."""
+        B, T, P, D, A, H = 2, 3, 32, 64, 7, 2
+        model = DINOwMTransformer(
+            patch_dim=P,
+            feature_dim=D,
+            action_dim=A,
+            hidden_dim=64,
+            num_heads=4,
+            num_layers=1,
+            future_horizon=H,
+            dropout=0.0,
+        )
+
+        z_context = torch.randn(B, T, P, D)
+        action_history = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
+
+        output = model(z_context, action_history, future_actions=future_actions)
+        assert output.shape == (B, H, P, D)
+
+    def test_future_actions_affect_prediction(self) -> None:
+        """Changing future candidate actions changes model predictions."""
+        torch.manual_seed(0)
+        B, T, P, D, A, H = 2, 3, 16, 32, 7, 2
+        model = DINOwMTransformer(
+            patch_dim=P,
+            feature_dim=D,
+            action_dim=A,
+            hidden_dim=32,
+            num_heads=2,
+            num_layers=1,
+            future_horizon=H,
+            dropout=0.0,
+        )
+        model.eval()
+
+        z_context = torch.randn(B, T, P, D)
+        action_history = torch.randn(B, T, A)
+        future_a = torch.zeros(B, H, A)
+        future_b = torch.ones(B, H, A)
+
+        with torch.no_grad():
+            pred_a = model(z_context, action_history, future_actions=future_a)
+            pred_b = model(z_context, action_history, future_actions=future_b)
+
+        assert not torch.allclose(pred_a, pred_b)
 
 
 # ---------------------------------------------------------------------------
@@ -145,12 +201,13 @@ class TestDWMG3ModelTraining:
         # Fixed target
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
         z_target = torch.randn(B, H, P, D)
 
         # Train for a few steps
         initial_loss = None
         for step in range(10):
-            z_pred = model(patch_latents, actions)
+            z_pred = model(patch_latents, actions, future_actions=future_actions)
             loss = torch.nn.functional.mse_loss(z_pred, z_target)
 
             if initial_loss is None:
@@ -183,9 +240,10 @@ class TestDWMG3ModelTraining:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
         z_target = torch.randn(B, H, P, D)
 
-        z_pred = model(patch_latents, actions)
+        z_pred = model(patch_latents, actions, future_actions=future_actions)
         loss = torch.nn.functional.mse_loss(z_pred, z_target)
         loss.backward()
 
@@ -248,9 +306,10 @@ class TestDWMG3Metrics:
 
         patch_latents = torch.randn(B, T, P, D)
         actions = torch.randn(B, T, A)
+        future_actions = torch.randn(B, H, A)
         z_target = torch.randn(B, H, P, D)
 
-        z_pred = model(patch_latents, actions)
+        z_pred = model(patch_latents, actions, future_actions=future_actions)
 
         mse = patch_mse(z_pred, z_target)
         cosine = patch_cosine_error(z_pred, z_target)
@@ -263,13 +322,19 @@ class TestDWMG3Metrics:
         """Overall [B, H] patch metrics are averaged over batch and horizon."""
 
         class ZeroWorldModel(torch.nn.Module):
-            def forward(self, z_context: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+            def forward(
+                self,
+                z_context: torch.Tensor,
+                actions: torch.Tensor,
+                future_actions: torch.Tensor,
+            ) -> torch.Tensor:
                 B = z_context.shape[0]
                 return torch.zeros(B, 2, 1, 2, device=z_context.device)
 
         batch = {
             "z_context": torch.zeros(3, 3, 1, 2),
             "actions": torch.zeros(3, 3, 7),
+            "future_actions": torch.zeros(3, 2, 7),
             "z_target": torch.ones(3, 2, 1, 2),
         }
         metrics = run_one_split(
@@ -303,6 +368,64 @@ class TestDWMG3Metrics:
         assert metrics["patch_mse"] == pytest.approx(1.0)
         assert metrics["patch_cosine_error"] == pytest.approx(1.0)
         assert metrics["patch_mean_cosine_error"] == pytest.approx(1.0)
+
+    def test_eval_one_horizon_rollout_mode_is_function_argument(self) -> None:
+        """eval_one_horizon should not depend on a global parsed args object."""
+
+        class OneStepModel(torch.nn.Module):
+            future_horizon = 1
+
+            def forward(
+                self,
+                z_context: torch.Tensor,
+                actions: torch.Tensor,
+                future_actions: torch.Tensor,
+            ) -> torch.Tensor:
+                return z_context[:, -1:].clone()
+
+        batch = {
+            "z_context": torch.zeros(2, 2, 1, 2),
+            "actions": torch.zeros(2, 2, 3),
+            "future_actions": torch.zeros(2, 3, 3),
+            "z_target": torch.ones(2, 3, 1, 2),
+            "metadata": [
+                {"trajectory_id": "demo_0", "time_index": 0},
+                {"trajectory_id": "demo_1", "time_index": 1},
+            ],
+        }
+        metrics = eval_one_horizon(
+            OneStepModel(),
+            [batch],
+            eval_horizon=3,
+            model_horizon=1,
+            device=torch.device("cpu"),
+            rollout_mode="teacher_forced",
+        )
+
+        assert metrics["n_samples"] == 2
+        assert metrics["fallback_samples"] == 0
+
+    def test_write_reproducibility_files_shell_quotes_command(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """command.sh should preserve real CLI args, including paths with spaces."""
+        config = {"experiment": {"seed": 7}}
+        argv = [
+            "/usr/bin/python",
+            "scripts/train_dinowm_baseline.py",
+            "--dry_run",
+            "--output_dir",
+            "path with space",
+        ]
+
+        write_reproducibility_files(tmp_path, config, argv)
+
+        command = (tmp_path / "command.sh").read_text().strip()
+        assert "--dry_run" in command
+        assert shlex.split(command) == argv
+        assert (tmp_path / "environment.txt").exists()
+        assert (tmp_path / "seeds.txt").exists()
 
 
 # ---------------------------------------------------------------------------

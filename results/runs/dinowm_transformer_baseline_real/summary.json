@@ -1,0 +1,53 @@
+{
+  "best_epoch": 99,
+  "best_val_patch_cosine_error": 0.030230260114309095,
+  "total_epochs": 100,
+  "train_windows": 49843,
+  "val_windows": 5539,
+  "parameter_count": 1860992,
+  "trainable_parameter_count": 1860992,
+  "num_tasks": 50,
+  "num_episodes": 450,
+  "patch_latent_shape": [
+    256,
+    384
+  ],
+  "action_shape": [
+    7
+  ],
+  "context_len": 3,
+  "future_horizon": 2,
+  "dataset_cache_dir": "latents/libero_spatial/dinov2_vits14_patch",
+  "config_path": "configs/reportable/dinowm_baseline_real.yaml",
+  "git_commit": "540b3b5f92dddeee42ea9795ced8746ff85c0859",
+  "git_dirty": true,
+  "seed": 0,
+  "device": "cuda",
+  "train_patch_cosine_error_at_best_epoch": 0.041245598578064174,
+  "train_val_gap_at_best_epoch": 0.011015338463755079,
+  "final_train_patch_cosine_error": 0.04124169038462964,
+  "final_val_patch_cosine_error": 0.030319582385090547,
+  "action_stats": {
+    "mean": [
+      0.14883628487586975,
+      0.13909149169921875,
+      -0.1662621796131134,
+      -0.006210995838046074,
+      -0.012015148997306824,
+      -0.01833052933216095,
+      0.13909676671028137
+    ],
+    "std": [
+      0.4120430052280426,
+      0.35951414704322815,
+      0.501363217830658,
+      0.037191879004240036,
+      0.0712374895811081,
+      0.05762111768126488,
+      0.9902821183204651
+    ],
+    "source_split": "train",
+    "n_samples": 49843,
+    "note": "Statistics computed from train split only to avoid validation leakage"
+  }
+}

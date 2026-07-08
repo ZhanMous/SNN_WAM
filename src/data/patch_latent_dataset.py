@@ -4,14 +4,17 @@ Loads cached DINOv2 patch latents from `.pt` files and creates
 transition windows with shapes:
 
 - z_context: `[B, T, P, D]` (current patch latents)
-- actions: `[B, T, A]` (action sequences)
+- actions: `[B, T, A]` (context action history)
+- future_actions: `[B, H, A]` (candidate/action-conditioned future actions)
 - z_target: `[B, H, P, D]` (future patch latents)
 
 The dataset enforces causal alignment:
-- Inputs at time t: patch_latents[t], actions[0:t]
-- Targets: actions[t:t+H], patch_latents[t+1:t+1+H]
+- Context at time t: patch_latents[t-T+1:t+1], actions before t
+- Candidate future actions: actions[t:t+H]
+- Targets: patch_latents[t+1:t+1+H]
 
-No future information leaks into inputs.
+No future patch latent target leaks into inputs. `future_actions` are explicit
+world-model conditioning inputs for planning, not prediction targets.
 """
 
 from __future__ import annotations
@@ -119,12 +122,14 @@ class PatchLatentTransitionDataset:
     Creates windows with:
     - z_context: `[T_ctx, P, D]` patch latents as context
     - actions: `[T_ctx, A]` action history
+    - future_actions: `[H, A]` candidate future actions
     - z_target: `[H, P, D]` future patch latents as target
 
     The dataset enforces causal alignment:
     - Context at time t: patch_latents[t-T_ctx+1:t+1]
+    - Future actions: actions[t:t+H]
     - Target: patch_latents[t+1:t+1+H]
-    - No future information leaks into context.
+    - No future patch latent target leaks into context.
     """
 
     def __init__(
@@ -181,6 +186,7 @@ class PatchLatentTransitionDataset:
         Returns dict with:
         - z_context: [context_len, P, D] patch latents
         - actions: [context_len, A] action history
+        - future_actions: [future_horizon, A] candidate future actions
         - z_target: [future_horizon, P, D] future patch latents
         - metadata: dict with trajectory_id, time_index, etc.
         """
@@ -199,7 +205,27 @@ class PatchLatentTransitionDataset:
         z_context = patch_latents[ctx_start:ctx_end].to(
             dtype=torch.float32
         )  # [context_len, P, D]
-        action_history = actions[ctx_start:ctx_end]  # [context_len, A]
+        # Action history is strictly before the candidate action at t. For the
+        # first valid windows this needs left padding because there are fewer
+        # than context_len previous actions.
+        history_indices = list(range(t - self.context_len, t))
+        action_history = torch.zeros(
+            self.context_len,
+            actions.shape[-1],
+            dtype=actions.dtype,
+            device=actions.device,
+        )  # [context_len, A]
+        valid_history_indices = [idx for idx in history_indices if idx >= 0]
+        if valid_history_indices:
+            valid_actions = actions[
+                valid_history_indices[0] : valid_history_indices[-1] + 1
+            ]
+            action_history[-len(valid_history_indices) :] = valid_actions
+
+        # Candidate future actions: action[t] should move z[t] -> z[t+1].
+        future_action_start = t
+        future_action_end = t + self.future_horizon
+        future_actions = actions[future_action_start:future_action_end]  # [future_horizon, A]
 
         # Target: [t+1:t+1+future_horizon]
         tgt_start = t + 1
@@ -211,11 +237,14 @@ class PatchLatentTransitionDataset:
         return {
             "z_context": z_context,
             "actions": action_history,
+            "future_actions": future_actions,
             "z_target": z_target,
             "metadata": {
                 "trajectory_id": traj.trajectory_id,
                 "time_index": t,
                 "context_range": list(range(ctx_start, ctx_end)),
+                "action_history_range": history_indices,
+                "future_action_range": list(range(future_action_start, future_action_end)),
                 "target_range": list(range(tgt_start, tgt_end)),
                 "split": self.split,
             },
@@ -272,8 +301,114 @@ def create_dinowm_transition_dataset(
     )
 
 
+def build_trajectory_split_indices(
+    dataset: PatchLatentTransitionDataset,
+    *,
+    train_ratio: float,
+    seed: int,
+) -> tuple[list[int], list[int], dict[str, Any]]:
+    """Split windows by trajectory id, never by individual windows.
+
+    Returns train/val window indices plus a serializable split record. The same
+    split record can be reused with datasets built at different horizons because
+    it stores trajectory ids, not window ids.
+    """
+    if not 0.0 < train_ratio < 1.0:
+        raise ValueError("train_ratio must be in (0, 1)")
+    n_trajectories = len(dataset.trajectories)
+    if n_trajectories == 0:
+        raise ValueError("cannot split an empty trajectory dataset")
+
+    if n_trajectories == 1:
+        n_train = 1
+    else:
+        n_train = int(n_trajectories * train_ratio)
+        n_train = max(1, min(n_trajectories - 1, n_train))
+
+    rng = torch.Generator().manual_seed(seed)
+    perm = torch.randperm(n_trajectories, generator=rng).tolist()
+    train_traj_indices = sorted(perm[:n_train])
+    val_traj_indices = sorted(perm[n_train:])
+
+    train_traj_ids = [dataset.trajectories[i].trajectory_id for i in train_traj_indices]
+    val_traj_ids = [dataset.trajectories[i].trajectory_id for i in val_traj_indices]
+
+    train_indices = indices_for_trajectory_ids(dataset, train_traj_ids)
+    val_indices = indices_for_trajectory_ids(dataset, val_traj_ids)
+
+    train_set = set(train_traj_ids)
+    val_set = set(val_traj_ids)
+    split_info = {
+        "method": "trajectory_split",
+        "split_unit": "trajectory",
+        "train_ratio": train_ratio,
+        "seed": seed,
+        "num_trajectories": n_trajectories,
+        "num_episodes": n_trajectories,
+        "num_tasks": len(set(t.task_name for t in dataset.trajectories)),
+        "total_windows": len(dataset),
+        "train_count": len(train_indices),
+        "val_count": len(val_indices),
+        "train_trajectory_count": len(train_traj_ids),
+        "val_trajectory_count": len(val_traj_ids),
+        "train_trajectory_ids": train_traj_ids,
+        "val_trajectory_ids": val_traj_ids,
+        "overlap_trajectory_count": len(train_set & val_set),
+        "patch_latent_shape": list(dataset.patch_dim),
+        "action_shape": [dataset.action_dim],
+    }
+    return train_indices, val_indices, split_info
+
+
+def indices_for_trajectory_ids(
+    dataset: PatchLatentTransitionDataset,
+    trajectory_ids: list[str] | set[str],
+) -> list[int]:
+    """Return window indices whose trajectory id is in ``trajectory_ids``."""
+    allowed = set(trajectory_ids)
+    return [
+        window_idx
+        for window_idx, (traj_idx, _time_idx) in enumerate(dataset._index)
+        if dataset.trajectories[traj_idx].trajectory_id in allowed
+    ]
+
+
+def indices_for_split_name(
+    dataset: PatchLatentTransitionDataset,
+    split_name: str,
+    *,
+    split_info: dict[str, Any] | None,
+    train_ratio: float,
+    seed: int,
+) -> list[int]:
+    """Return dataset window indices for ``train`` or ``val``.
+
+    Prefer a stored trajectory split from ``split.json``. If no trajectory split
+    is available, generate one deterministically from ``train_ratio`` and
+    ``seed``. This fail-safe intentionally avoids window-level splitting.
+    """
+    if split_name not in {"train", "val"}:
+        raise ValueError("split_name must be 'train' or 'val'")
+
+    if split_info and split_info.get("method") == "trajectory_split":
+        key = f"{split_name}_trajectory_ids"
+        if key not in split_info:
+            raise KeyError(f"split_info missing {key}")
+        return indices_for_trajectory_ids(dataset, split_info[key])
+
+    train_indices, val_indices, _generated = build_trajectory_split_indices(
+        dataset,
+        train_ratio=train_ratio,
+        seed=seed,
+    )
+    return train_indices if split_name == "train" else val_indices
+
+
 __all__ = [
     "PatchLatentTransitionDataset",
+    "build_trajectory_split_indices",
     "create_dinowm_transition_dataset",
+    "indices_for_split_name",
+    "indices_for_trajectory_ids",
     "load_patch_latent_cache",
 ]

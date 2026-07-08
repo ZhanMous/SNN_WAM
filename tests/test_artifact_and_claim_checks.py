@@ -6,6 +6,7 @@ import pytest
 
 from scripts.check_artifacts import check_artifacts
 from scripts.check_claims import check_claims
+from scripts.check_result_artifacts import check_metric_csv, check_registry
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +81,49 @@ class TestCheckArtifacts:
         )
         errors = check_artifacts(f)
         assert errors == []
+
+
+class TestCheckResultArtifacts:
+    def test_skips_template_and_gate_validation_rows(self, tmp_path: Path) -> None:
+        f = tmp_path / "registry.md"
+        f.write_text(
+            "# Registry\n\n"
+            "| artifact_id | run_id | path | stage | config | git_commit | git_dirty "
+            "| environment | seeds | evaluation_split | command | reportable | notes |\n"
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+            "| R-DWM-000 | template | template | template | N/A | N/A | N/A | N/A | N/A | N/A | N/A | False | template |\n"
+            "| R-DWM-G1-001 | `dwm_g1_patch_features` | gate_validation | gate_validation | N/A | N/A | N/A | N/A | N/A | test-only | N/A | N/A | gate |\n",
+            encoding="utf-8",
+        )
+
+        assert check_registry(f) == []
+
+    def test_accepts_dwm_patch_metric_schema(self, tmp_path: Path) -> None:
+        metrics = tmp_path / "metrics.csv"
+        metrics.write_text(
+            "epoch,split,total_loss,patch_cosine_error,patch_mse,action_mse\n"
+            "1,val,0.1,0.2,0.3,0.0\n",
+            encoding="utf-8",
+        )
+
+        assert check_metric_csv("R-DWM-TEST", metrics) == []
+
+    def test_accepts_upstream_plan_metric_schema(self, tmp_path: Path) -> None:
+        metrics = tmp_path / "metrics.csv"
+        metrics.write_text(
+            "stage,success_rate,state_dist,plan_loss\n"
+            "plan,0.0,1.6,2.7\n",
+            encoding="utf-8",
+        )
+
+        assert check_metric_csv("R-DWM-UPSTREAM", metrics) == []
+
+    def test_rejects_unknown_metric_schema(self, tmp_path: Path) -> None:
+        metrics = tmp_path / "metrics.csv"
+        metrics.write_text("foo,bar\n1,2\n", encoding="utf-8")
+
+        errors = check_metric_csv("R-BAD", metrics)
+        assert any("does not match known schemas" in error for error in errors)
 
 
 # ---------------------------------------------------------------------------

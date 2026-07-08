@@ -25,11 +25,15 @@ from pathlib import Path
 from typing import Any, Sequence
 
 import torch
+from torch.utils.data import Subset
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.data.patch_latent_dataset import create_dinowm_transition_dataset  # noqa: E402
+from src.data.patch_latent_dataset import (  # noqa: E402
+    create_dinowm_transition_dataset,
+    indices_for_split_name,
+)
 from src.models.dinowm_transformer import DINOwMTransformer  # noqa: E402
 from src.planning.action_optimizer import (  # noqa: E402
     compare_action_sources,
@@ -85,6 +89,14 @@ def load_model(run_dir: Path, checkpoint_path: Path | None, device: torch.device
     return model
 
 
+def load_split_info(run_dir: Path) -> dict[str, Any] | None:
+    """Load trainer trajectory split metadata if available."""
+    split_path = run_dir / "split.json"
+    if not split_path.exists():
+        return None
+    return json.loads(split_path.read_text())
+
+
 def run_planning_sanity(
     run_dir: Path,
     *,
@@ -113,28 +125,44 @@ def run_planning_sanity(
     # Load model
     model = load_model(run_dir, checkpoint_path, device)
     config = torch.load(run_dir / "best.pt", map_location="cpu", weights_only=False)["config"]
+    split_info = load_split_info(run_dir)
+    train_ratio = float(config["data"].get("train_ratio", 0.9))
+    split_seed = int(config.get("experiment", {}).get("seed", seed))
+    split_source = str(run_dir / "split.json") if split_info is not None else "generated_from_config"
 
     # Load action stats for dataset random baseline
     action_stats = None
     if random_baseline_type == "dataset":
-        if action_stats_path is not None and action_stats_path.exists():
-            action_stats = json.loads(action_stats_path.read_text())
-            print(f"  Loaded action stats from {action_stats_path}")
+        stats_path = action_stats_path or (run_dir / "action_stats.json")
+        if stats_path.exists():
+            action_stats = json.loads(stats_path.read_text())
+            print(f"  Loaded action stats from {stats_path}")
         else:
-            # Compute from dataset
-            print("  Computing action stats from dataset...")
+            # Compute from the train trajectory split only.
+            print("  Computing action stats from train split...")
             _temp_dataset = create_dinowm_transition_dataset(
                 cache_dir or Path(config["data"]["cache_dir"]),
                 context_len=int(config["data"]["context_len"]),
                 future_horizon=int(model.future_horizon),
+                max_demos=config["data"].get("max_demos"),
+                max_frames=config["data"].get("max_frames"),
                 split="train",
             )
-            all_actions = torch.stack([s["actions"] for s in _temp_dataset], dim=0)  # [N, T_ctx, A]
+            train_indices = indices_for_split_name(
+                _temp_dataset,
+                "train",
+                split_info=split_info,
+                train_ratio=train_ratio,
+                seed=split_seed,
+            )
+            train_dataset = Subset(_temp_dataset, train_indices)
+            all_actions = torch.stack([s["future_actions"] for s in train_dataset], dim=0)  # [N, H, A]
             action_stats = {
                 "mean": all_actions.mean(dim=[0, 1]).tolist(),  # [A]
                 "std": all_actions.std(dim=[0, 1]).clamp(min=1e-6).tolist(),  # [A]
                 "source_split": "train",
-                "n_samples": len(_temp_dataset),
+                "n_samples": len(train_dataset),
+                "split_method": (split_info or {}).get("method", "trajectory_split_generated"),
             }
             print(f"  Dataset action stats: mean={action_stats['mean'][:3]}..., std={action_stats['std'][:3]}...")
 
@@ -149,8 +177,18 @@ def run_planning_sanity(
         cache_dir,
         context_len=context_len,
         future_horizon=max(horizon, future_horizon_model),
+        max_demos=config["data"].get("max_demos"),
+        max_frames=config["data"].get("max_frames"),
         split="val",
     )
+    val_indices = indices_for_split_name(
+        dataset,
+        "val",
+        split_info=split_info,
+        train_ratio=train_ratio,
+        seed=split_seed,
+    )
+    dataset = Subset(dataset, val_indices)
 
     if len(dataset) == 0:
         raise ValueError(f"No samples in dataset from {cache_dir}")
@@ -168,10 +206,8 @@ def run_planning_sanity(
         sample = dataset[idx]
         z_context = sample["z_context"].unsqueeze(0).to(device)  # [1, T_ctx, P, D]
         z_target = sample["z_target"].unsqueeze(0).to(device)  # [1, H, P, D]
-        gt_actions = sample["actions"].unsqueeze(0).to(device)  # [1, T_ctx, A]
-
-        # Use last horizon actions as GT for replay baseline
-        gt_actions_h = gt_actions[:, -horizon:, :]  # [1, H, A]
+        action_history = sample["actions"].unsqueeze(0).to(device)  # [1, T_ctx, A]
+        gt_future_actions = sample["future_actions"].unsqueeze(0).to(device)  # [1, H, A]
 
         print(f"  [{i+1}/{len(indices)}] idx={idx}", end=" ... ")
 
@@ -179,6 +215,7 @@ def run_planning_sanity(
         grad_result = optimize_actions_gradient(
             model, z_context, z_target,
             horizon=horizon, action_dim=action_dim,
+            action_history=action_history,
             n_steps=opt_steps, lr=opt_lr,
             objective="cosine", device=device,
         )
@@ -194,6 +231,7 @@ def run_planning_sanity(
         cma_result = optimize_actions_cmaes(
             model, z_context, z_target,
             horizon=horizon, action_dim=action_dim,
+            action_history=action_history,
             n_generations=cma_gens, population_size=cma_pop,
             objective="cosine", seed=seed + i, device=device,
         )
@@ -209,7 +247,8 @@ def run_planning_sanity(
         comp = compare_action_sources(
             model, z_context, z_target,
             horizon=horizon, action_dim=action_dim,
-            gt_actions=gt_actions_h,
+            gt_actions=gt_future_actions[:, :horizon],
+            action_history=action_history,
             n_random=n_random, seed=seed, objective="cosine",
             random_baseline_type=random_baseline_type,
             action_stats=action_stats, device=device,
@@ -230,11 +269,12 @@ def run_planning_sanity(
         # Also run shuffled_real comparison if primary baseline is dataset
         # This gives the stricter "optimized beats temporal shuffle" test
         comp_shuffled = None
-        if random_baseline_type == "dataset" and gt_actions_h is not None:
+        if random_baseline_type == "dataset" and gt_future_actions is not None:
             comp_shuffled = compare_action_sources(
                 model, z_context, z_target,
                 horizon=horizon, action_dim=action_dim,
-                gt_actions=gt_actions_h,
+                gt_actions=gt_future_actions[:, :horizon],
+                action_history=action_history,
                 n_random=n_random, seed=seed, objective="cosine",
                 random_baseline_type="shuffled_real", device=device,
             )
@@ -274,6 +314,15 @@ def run_planning_sanity(
         "horizon": horizon,
         "seed": seed,
         "random_baseline_type": random_baseline_type,
+        "split_source": split_source,
+        "split_method": (split_info or {}).get("method", "trajectory_split_generated"),
+        "split_seed": split_seed,
+        "train_ratio": train_ratio,
+        "val_windows": len(dataset),
+        "action_stats": {
+            "source_split": action_stats.get("source_split") if action_stats else None,
+            "n_samples": action_stats.get("n_samples") if action_stats else None,
+        },
         "gradient": {
             "mean_initial_distance": sum(r["initial_distance"] for r in gradient_results) / len(gradient_results),
             "mean_optimized_distance": sum(r["optimized_distance"] for r in gradient_results) / len(gradient_results),

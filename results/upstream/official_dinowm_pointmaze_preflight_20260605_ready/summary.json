@@ -1,0 +1,77 @@
+{
+  "status": "prepared",
+  "stage": "preflight",
+  "execute": false,
+  "env": "point_maze",
+  "frameskip": 5,
+  "num_hist": 3,
+  "num_pred": 1,
+  "seed": 0,
+  "model_name": "point_maze_official_frameskip5_hist3_seed0",
+  "upstream_commit": "0a9492fa12044b852ae9e001cc74604b79c8bb0c",
+  "checks": [
+    {
+      "name": "upstream_dir_exists",
+      "ok": true,
+      "detail": "external/dino_wm"
+    },
+    {
+      "name": "upstream_has_train.py",
+      "ok": true,
+      "detail": "external/dino_wm/train.py"
+    },
+    {
+      "name": "upstream_has_plan.py",
+      "ok": true,
+      "detail": "external/dino_wm/plan.py"
+    },
+    {
+      "name": "upstream_has_conf/train.yaml",
+      "ok": true,
+      "detail": "external/dino_wm/conf/train.yaml"
+    },
+    {
+      "name": "upstream_has_conf/plan.yaml",
+      "ok": true,
+      "detail": "external/dino_wm/conf/plan.yaml"
+    },
+    {
+      "name": "dataset_dir_exists",
+      "ok": true,
+      "detail": "data/dino_wm"
+    },
+    {
+      "name": "dataset_has_point_maze",
+      "ok": true,
+      "detail": "data/dino_wm/point_maze"
+    }
+  ],
+  "commands": {
+    "train": [
+      "/usr/bin/python3",
+      "train.py",
+      "--config-name",
+      "train.yaml",
+      "env=point_maze",
+      "frameskip=5",
+      "num_hist=3",
+      "num_pred=1",
+      "training.seed=0",
+      "ckpt_base_path=results/upstream/official_dinowm_pointmaze_preflight_20260605_ready/official_ckpts",
+      "hydra.run.dir=results/upstream/official_dinowm_pointmaze_preflight_20260605_ready/official_ckpts/outputs/point_maze_official_frameskip5_hist3_seed0",
+      "hydra.sweep.dir=results/upstream/official_dinowm_pointmaze_preflight_20260605_ready/official_ckpts/outputs/point_maze_official_frameskip5_hist3_seed0"
+    ],
+    "plan": [
+      "/usr/bin/python3",
+      "plan.py",
+      "model_name=point_maze_official_frameskip5_hist3_seed0",
+      "n_evals=5",
+      "planner=cem",
+      "goal_H=5",
+      "goal_source=random_state",
+      "planner.opt_steps=30",
+      "ckpt_base_path=results/upstream/official_dinowm_pointmaze_preflight_20260605_ready/official_ckpts",
+      "seed=0"
+    ]
+  }
+}

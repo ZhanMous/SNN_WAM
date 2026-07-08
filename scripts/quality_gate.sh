@@ -29,10 +29,17 @@ fi
 echo ""
 
 # ------------------------------------------------------------------
-# 2. artifact checker (if scripts/check_artifacts.py exists)
+# 2. artifact checker (if scripts/check_result_artifacts.py exists)
 # ------------------------------------------------------------------
 echo "[2/4] artifact checker"
-if [ -f scripts/check_artifacts.py ]; then
+if [ -f scripts/check_result_artifacts.py ]; then
+  if "$python_bin" scripts/check_result_artifacts.py 2>&1; then
+    echo "  PASS"
+  else
+    echo "  FAIL (see above)"
+    rc=1
+  fi
+elif [ -f scripts/check_artifacts.py ]; then
   if "$python_bin" scripts/check_artifacts.py 2>&1; then
     echo "  PASS"
   else

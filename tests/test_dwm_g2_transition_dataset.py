@@ -20,7 +20,9 @@ import torch
 
 from src.data.patch_latent_dataset import (
     PatchLatentTransitionDataset,
+    build_trajectory_split_indices,
     create_dinowm_transition_dataset,
+    indices_for_split_name,
     load_patch_latent_cache,
 )
 from src.data.trajectory_window import (
@@ -67,6 +69,17 @@ class TestDWMG2TransitionShapes:
         actions = sample["actions"]
         assert actions.ndim == 2, f"actions should be 2D, got {actions.ndim}D"
         assert actions.shape[0] == 3, f"Expected context_len=3, got {actions.shape[0]}"
+
+        # future_actions should be [future_horizon, A]
+        assert "future_actions" in sample
+        future_actions = sample["future_actions"]
+        assert future_actions.ndim == 2, (
+            f"future_actions should be 2D, got {future_actions.ndim}D"
+        )
+        assert future_actions.shape[0] == 2, (
+            f"Expected future_horizon=2, got {future_actions.shape[0]}"
+        )
+        assert future_actions.shape[1] == actions.shape[1], "Action dim mismatch"
 
         # z_target should be [future_horizon, P, D]
         assert "z_target" in sample
@@ -215,6 +228,30 @@ class TestDWMG2NoFutureLeakage:
             f"Target starts at {tgt_range[0]}, expected {ctx_range[-1] + 1}"
         )
 
+    def test_future_actions_start_at_current_time(self) -> None:
+        """Future candidate actions start at t and targets start at t+1."""
+        ds = create_dinowm_transition_dataset(
+            cache_dir=PATCH_LATENT_DIR,
+            context_len=3,
+            future_horizon=2,
+            max_demos=1,
+            max_frames=20,
+        )
+
+        if len(ds) == 0:
+            pytest.skip("No data loaded")
+
+        sample = ds[0]
+        metadata = sample["metadata"]
+        t = metadata["time_index"]
+        future_action_range = metadata["future_action_range"]
+        target_range = metadata["target_range"]
+        action_history_range = metadata["action_history_range"]
+
+        assert future_action_range == [t, t + 1]
+        assert target_range == [t + 1, t + 2]
+        assert max(action_history_range) < t
+
 
 # ---------------------------------------------------------------------------
 # DWM-G2 Gate 2: Synthetic anti-leakage test
@@ -317,6 +354,44 @@ class TestDWMG2SyntheticAntiLeakage:
 class TestDWMG2CachedDataset:
     """Verify cached patch latent dataset loads correctly."""
 
+    def _write_toy_cache(self, cache_dir: Path, *, n_demos: int = 4, T: int = 10) -> None:
+        metadata = {
+            "encoder_type": "dinov2_patch",
+            "encoder_name": "toy",
+            "image_size": 224,
+            "patch_size": 14,
+            "num_patches": 2,
+            "feature_dim": 3,
+        }
+        (cache_dir / "metadata.json").write_text(json.dumps(metadata) + "\n")
+
+        demos = {}
+        P, D, A = 2, 3, 7
+        for demo_idx in range(n_demos):
+            base = demo_idx * 1000
+            demos[f"data/demo_{demo_idx}"] = {
+                "patch_latents": (
+                    torch.arange(base, base + T * P * D, dtype=torch.float16)
+                    .reshape(T, P, D)
+                ),
+                "actions": (
+                    torch.arange(base, base + T * A, dtype=torch.float32)
+                    .reshape(T, A)
+                ),
+                "timesteps": torch.arange(T),
+            }
+        torch.save(demos, cache_dir / "toy.pt")
+
+    @staticmethod
+    def _trajectory_ids_for_indices(
+        ds: PatchLatentTransitionDataset,
+        indices: list[int],
+    ) -> set[str]:
+        return {
+            ds.trajectories[ds._index[idx][0]].trajectory_id
+            for idx in indices
+        }
+
     def test_loader_keeps_cached_latents_as_tensors(self, tmp_path: Path) -> None:
         """Loader avoids Python-list expansion and returns float32 windows."""
         metadata = {
@@ -358,10 +433,73 @@ class TestDWMG2CachedDataset:
         assert sample["z_context"].shape == (3, P, D)
         assert sample["z_target"].shape == (2, P, D)
         assert sample["actions"].shape == (3, A)
+        assert sample["future_actions"].shape == (2, A)
         assert sample["z_context"].dtype == torch.float32
         assert sample["z_target"].dtype == torch.float32
         assert torch.allclose(sample["z_context"], patch_latents[:3].float())
         assert torch.allclose(sample["z_target"], patch_latents[3:5].float())
+        expected_history = torch.zeros(3, A)
+        expected_history[1:] = actions[:2]
+        assert torch.allclose(sample["actions"], expected_history)
+        assert torch.allclose(sample["future_actions"], actions[2:4])
+
+    def test_trajectory_split_has_no_train_val_overlap_across_horizons(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Trajectory-level split stores ids and can be reused across horizons."""
+        self._write_toy_cache(tmp_path, n_demos=4, T=12)
+
+        ds_h2 = PatchLatentTransitionDataset(
+            tmp_path,
+            context_len=3,
+            future_horizon=2,
+        )
+        train_idx, val_idx, split_info = build_trajectory_split_indices(
+            ds_h2,
+            train_ratio=0.5,
+            seed=123,
+        )
+
+        train_ids = self._trajectory_ids_for_indices(ds_h2, train_idx)
+        val_ids = self._trajectory_ids_for_indices(ds_h2, val_idx)
+
+        assert train_idx
+        assert val_idx
+        assert train_ids == set(split_info["train_trajectory_ids"])
+        assert val_ids == set(split_info["val_trajectory_ids"])
+        assert train_ids.isdisjoint(val_ids)
+        assert split_info["method"] == "trajectory_split"
+        assert split_info["split_unit"] == "trajectory"
+        assert split_info["overlap_trajectory_count"] == 0
+
+        ds_h4 = PatchLatentTransitionDataset(
+            tmp_path,
+            context_len=3,
+            future_horizon=4,
+        )
+        train_h4 = indices_for_split_name(
+            ds_h4,
+            "train",
+            split_info=split_info,
+            train_ratio=0.5,
+            seed=999,
+        )
+        val_h4 = indices_for_split_name(
+            ds_h4,
+            "val",
+            split_info=split_info,
+            train_ratio=0.5,
+            seed=999,
+        )
+        train_h4_ids = self._trajectory_ids_for_indices(ds_h4, train_h4)
+        val_h4_ids = self._trajectory_ids_for_indices(ds_h4, val_h4)
+
+        assert train_h4
+        assert val_h4
+        assert train_h4_ids == train_ids
+        assert val_h4_ids == val_ids
+        assert train_h4_ids.isdisjoint(val_h4_ids)
 
     def test_cache_loads(self) -> None:
         """Cached patch latents load without error."""

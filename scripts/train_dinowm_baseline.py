@@ -16,6 +16,7 @@ import csv
 import json
 import os
 import platform
+import shlex
 import subprocess
 import sys
 from copy import deepcopy
@@ -32,6 +33,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from src.data.patch_latent_dataset import (  # noqa: E402
     PatchLatentTransitionDataset,
+    build_trajectory_split_indices,
     create_dinowm_transition_dataset,
 )
 from src.models.dinowm_transformer import DINOwMTransformer, build_dinowm_model  # # noqa: E402
@@ -112,10 +114,12 @@ def patch_collate_fn(samples: list[dict[str, Any]]) -> dict[str, Any]:
     """Collate PatchLatentTransitionDataset samples into batched tensors."""
     z_context = torch.stack([s["z_context"] for s in samples], dim=0)
     actions = torch.stack([s["actions"] for s in samples], dim=0)
+    future_actions = torch.stack([s["future_actions"] for s in samples], dim=0)
     z_target = torch.stack([s["z_target"] for s in samples], dim=0)
     return {
         "z_context": z_context,
         "actions": actions,
+        "future_actions": future_actions,
         "z_target": z_target,
     }
 
@@ -157,30 +161,13 @@ def build_datasets(
         split="train",
     )
 
-    # Split by trajectory index (80/20 or from config)
     train_ratio = float(config["data"].get("train_ratio", 0.9))
-    n_total = len(full_dataset)
-    n_train = int(n_total * train_ratio)
-
-    # Deterministic shuffle by trajectory-level grouping
-    rng = torch.Generator().manual_seed(int(config["experiment"]["seed"]))
-    indices = torch.randperm(n_total, generator=rng).tolist()
-    train_indices = indices[:n_train]
-    val_indices = indices[n_train:]
-
-    split_info = {
-        "method": "random_split_by_window",
-        "split_unit": "window",
-        "train_count": len(train_indices),
-        "val_count": len(val_indices),
-        "total_windows": n_total,
-        "train_ratio": train_ratio,
-        "seed": int(config["experiment"]["seed"]),
-        "num_tasks": len(set(t.task_name for t in full_dataset.trajectories)),
-        "num_episodes": len(full_dataset.trajectories),
-        "patch_latent_shape": list(full_dataset.patch_dim) if hasattr(full_dataset, 'patch_dim') else None,
-        "action_shape": [full_dataset.action_dim] if hasattr(full_dataset, 'action_dim') else None,
-    }
+    seed = int(config["experiment"]["seed"])
+    train_indices, val_indices, split_info = build_trajectory_split_indices(
+        full_dataset,
+        train_ratio=train_ratio,
+        seed=seed,
+    )
 
     return Subset(full_dataset, train_indices), Subset(full_dataset, val_indices), split_info
 
@@ -200,6 +187,7 @@ def _make_mock_dataset(
         samples.append({
             "z_context": torch.randn(context_len, patch_dim, feature_dim),
             "actions": torch.randn(context_len, action_dim),
+            "future_actions": torch.randn(future_horizon, action_dim),
             "z_target": torch.randn(future_horizon, patch_dim, feature_dim),
             "metadata": {"trajectory_id": f"mock_{i}", "time_index": i, "split": "train"},
         })
@@ -243,10 +231,12 @@ def run_one_split(
 
             z_context = batch["z_context"].to(device)  # [B, T_ctx, P, D]
             actions = batch["actions"].to(device)  # [B, T_ctx, A]
+            future_actions = batch["future_actions"].to(device)  # [B, H, A]
             z_target = batch["z_target"].to(device)  # [B, H, P, D]
 
-            # Forward: model predicts [B, H, P, D] from [B, T_ctx, P, D] + [B, T_ctx, A]
-            pred = model(z_context, actions)  # [B, H, P, D]
+            # Forward: model predicts [B, H, P, D] from context latents,
+            # context action history, and future candidate actions [B, H, A].
+            pred = model(z_context, actions, future_actions=future_actions)  # [B, H, P, D]
 
             # Losses
             patch_cosine_loss = patch_cosine_error(pred, z_target, reduction="mean")
@@ -344,19 +334,31 @@ def format_metric_row(epoch: int, split: str, metrics: dict[str, Any]) -> dict[s
 def write_reproducibility_files(run_dir: Path, config: dict[str, Any], argv: list[str]) -> None:
     """Write standard reproducibility artifacts."""
     write_json(run_dir / "config.yaml", config)
-    (run_dir / "command.sh").write_text(" ".join(argv) + "\n")
+    command = " ".join(shlex.quote(str(item)) for item in argv)
+    (run_dir / "command.sh").write_text(command + "\n")
     git_info = capture_git_info()
     (run_dir / "git_commit.txt").write_text(
         f"commit: {git_info['commit']}\ndirty: {git_info['dirty']}\n"
     )
-    write_json(run_dir / "environment.json", capture_environment())
-    write_json(run_dir / "seeds.json", {
+    environment = capture_environment()
+    seeds = {
         "seed": config["experiment"]["seed"],
         "torch_manual_seed": config["experiment"]["seed"],
-    })
+    }
+    write_json(run_dir / "environment.json", environment)
+    write_json(run_dir / "seeds.json", seeds)
+    (run_dir / "environment.txt").write_text(
+        json.dumps(environment, indent=2, default=str) + "\n"
+    )
+    (run_dir / "seeds.txt").write_text(json.dumps(seeds, indent=2) + "\n")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    command_argv = [sys.executable, *sys.argv] if argv is None else [
+        sys.executable,
+        "scripts/train_dinowm_baseline.py",
+        *argv,
+    ]
     args = parse_args(argv)
     config = load_config(args.config)
 
@@ -418,7 +420,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     # Setup output dir
     run_dir = Path(config["output"]["output_dir"])
     run_dir.mkdir(parents=True, exist_ok=True)
-    write_reproducibility_files(run_dir, config, [sys.executable, "scripts/train_dinowm_baseline.py", *(argv or [])])
+    write_reproducibility_files(run_dir, config, command_argv)
     write_json(run_dir / "split.json", split_info)
 
     # Write notes
@@ -426,13 +428,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     notes_path.write_text(
         "# DINOwM Transformer Baseline\n\n"
         "Standalone training on cached DINOv2 patch latents.\n"
-        "Model: DINOwMTransformer (patch projection + action projection + Transformer encoder).\n"
+        "Model: DINOwMTransformer with explicit future action conditioning.\n"
         "Primary loss: patch_cosine_error (1 - cosine similarity, averaged over patches).\n"
         "No action prediction head -- this is a pure world model.\n\n"
         "## Known limitations\n"
         "- No SNN adapter yet (ANN-only baseline)\n"
         "- No closed-loop evaluation\n"
-        "- Action sequences are inputs, not predicted\n"
+        "- Future action sequences are inputs, not predicted\n"
     )
 
     # CSV metrics file
@@ -527,14 +529,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         try:
             all_actions = []
             for s in train_dataset:
-                all_actions.append(s["actions"])
-            all_actions = torch.stack(all_actions, dim=0)  # [N, T_ctx, A]
+                all_actions.append(s["future_actions"])
+            all_actions = torch.stack(all_actions, dim=0)  # [N, H, A]
             action_stats = {
                 "mean": all_actions.mean(dim=[0, 1]).tolist(),
                 "std": all_actions.std(dim=[0, 1]).clamp(min=1e-6).tolist(),
                 "source_split": "train",
                 "n_samples": len(train_dataset),
-                "note": "Statistics computed from train split only to avoid validation leakage",
+                "note": "Statistics computed from train split future_actions only to avoid validation leakage",
             }
             # Write action_stats.json for planning baseline use
             write_json(run_dir / "action_stats.json", action_stats)

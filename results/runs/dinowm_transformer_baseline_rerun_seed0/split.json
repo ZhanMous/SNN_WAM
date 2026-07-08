@@ -1,0 +1,6 @@
+{
+  "method": "mock_dry_run",
+  "train_count": 24,
+  "val_count": 8,
+  "mock": true
+}

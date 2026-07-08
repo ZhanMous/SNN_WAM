@@ -1,0 +1,4 @@
+upstream_repo=/home/zhan_shaoji/code/SNN_WAM/external/dino_wm
+upstream_commit=0a9492fa12044b852ae9e001cc74604b79c8bb0c
+wrapper_repo=/home/zhan_shaoji/code/SNN_WAM
+wrapper_commit=c1c81e34182761dab97f8b04b8f9c28894920769

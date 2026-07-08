@@ -1,0 +1,2 @@
+epoch,train_loss,val_loss,source_log
+1,2.5175,2.2880,results/upstream/official_dinowm_pointmaze_train_smoke_20260605_cu128_dinov2b483/official_ckpts/outputs/point_maze_official_frameskip5_hist3_seed0/train.log

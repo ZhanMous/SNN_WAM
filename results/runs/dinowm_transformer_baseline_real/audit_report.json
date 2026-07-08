@@ -1,0 +1,24 @@
+{
+  "run_dir": "results/runs/dinowm_transformer_baseline_real",
+  "artifact_status": "pass",
+  "reload_status": "pass",
+  "metric_status": "pass",
+  "claim_status": {
+    "trainable_on_real_cached_latents": "supported",
+    "beats_persistence": "unsupported",
+    "uses_action_information": "supported",
+    "uses_action_information_note": "real < zeros by >5%, but zeros is OOD ablation not true no-action baseline. Shuffle comparison is the cleaner action-sensitivity test.",
+    "model_internal_planning_sanity": "supported",
+    "real_libero_planning_success": "unsupported"
+  },
+  "forbidden_claims": [
+    "improves LIBERO task success rate",
+    "closed-loop planning works on real robot",
+    "general world model learned from small dataset",
+    "neuromorphic low power (not measured on neuromorphic hardware)",
+    "foundation model result from small LIBERO experiment",
+    "zero-action ablation proves action utility (OOD caveat: see uses_action_information_note)"
+  ],
+  "errors": [],
+  "warnings": []
+}

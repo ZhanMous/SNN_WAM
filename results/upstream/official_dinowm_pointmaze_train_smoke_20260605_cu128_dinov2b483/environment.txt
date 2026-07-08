@@ -1,0 +1,14 @@
+{
+  "timestamp_utc": "2026-06-05T07:02:23.705817+00:00",
+  "host_python": "/usr/bin/python3",
+  "python_version": "3.12.3",
+  "platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "target_python_exe": "/home/zhan_shaoji/miniconda3/envs/dino_wm_cu128/bin/python",
+  "target_torch_home": "/home/zhan_shaoji/code/SNN_WAM/results/upstream/official_dinowm_pointmaze_train_smoke_20260605_cu128_dinov2b483/torch_home",
+  "dinov2_github_ref": "b48308a394a04ccb9c4dd3a1f0a4daa1ce0579b8",
+  "upstream_dir": "/home/zhan_shaoji/code/SNN_WAM/external/dino_wm",
+  "dataset_dir": "/home/zhan_shaoji/code/SNN_WAM/data/dino_wm",
+  "upstream_commit": "0a9492fa12044b852ae9e001cc74604b79c8bb0c",
+  "official_repo_url": "https://github.com/gaoyuezhou/dino_wm",
+  "official_data_url": "https://osf.io/bmw48/?view_only=a56a296ce3b24cceaf408383a175ce28"
+}

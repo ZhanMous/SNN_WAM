@@ -1,0 +1,39 @@
+{
+  "gate": "DWM-G4",
+  "description": "planning sanity: action optimization improves predicted target latent distance",
+  "n_samples": 50,
+  "horizon": 2,
+  "seed": 0,
+  "random_baseline_type": "dataset",
+  "gradient": {
+    "mean_initial_distance": 0.03556474585086107,
+    "mean_optimized_distance": 0.029267186112701894,
+    "mean_reduction": 0.00629755973815918,
+    "positive_reduction_rate": 1.0
+  },
+  "cma_es": {
+    "mean_initial_distance": 0.03556474585086107,
+    "mean_optimized_distance": 0.02969351563602686,
+    "mean_reduction": 0.005871230214834214,
+    "positive_reduction_rate": 1.0
+  },
+  "comparison": {
+    "pass_rate": 1.0,
+    "mean_reduction_vs_random": 0.007678994841873646,
+    "mean_improvement_ratio": 0.1958573275230533,
+    "median_improvement_ratio": 0.18007296323776245,
+    "num_failed_optimizations": 0,
+    "all_pass": true
+  },
+  "pass_criterion": "optimized actions reduce predicted distance more than random actions",
+  "result": "PASS",
+  "comparison_vs_shuffled": {
+    "pass_rate": 1.0,
+    "mean_reduction_vs_shuffled": 0.001095505520701408,
+    "mean_improvement_ratio_vs_shuffled": 0.03716736727791813,
+    "median_improvement_ratio_vs_shuffled": 0.0370197519659996,
+    "all_pass_vs_shuffled": true,
+    "note": "Stricter test: optimized beats temporal-shuffle of GT actions, not just Gaussian"
+  },
+  "result_strong": true
+}

@@ -106,7 +106,7 @@ class TestGradientOptimizer:
         )
 
         assert isinstance(result, PlanningResult)
-        assert result.optimized_actions.shape == (1, T_ctx, A)
+        assert result.optimized_actions.shape == (1, H, A)
         assert result.method == "gradient"
         assert len(result.optimization_trace) == 5
 
@@ -135,13 +135,14 @@ class TestGradientOptimizer:
         z_context = torch.randn(1, T_ctx, P, D)
         z_target = torch.randn(1, 2, P, D)
 
-        actions = torch.randn(1, T_ctx, A, requires_grad=True)
-        pred = model(z_context, actions)
+        action_history = torch.randn(1, T_ctx, A)
+        future_actions = torch.randn(1, 2, A, requires_grad=True)
+        pred = model(z_context, action_history, future_actions=future_actions)
         loss = planning_objective_cosine(pred, z_target)
         loss.backward()
 
-        assert actions.grad is not None
-        assert actions.grad.abs().sum() > 0
+        assert future_actions.grad is not None
+        assert future_actions.grad.abs().sum() > 0
 
     def test_optimization_reduces_loss(self) -> None:
         """Optimization reduces the objective over steps."""
@@ -151,12 +152,17 @@ class TestGradientOptimizer:
         z_context = torch.randn(1, T_ctx, P, D)
         # Set target close to zero-action prediction for easier optimization
         with torch.no_grad():
-            zero_actions = torch.zeros(1, T_ctx, A)
-            z_target = model(z_context, zero_actions) + torch.randn(1, H, P, D) * 0.01
+            action_history = torch.randn(1, T_ctx, A)
+            zero_future_actions = torch.zeros(1, H, A)
+            z_target = (
+                model(z_context, action_history, future_actions=zero_future_actions)
+                + torch.randn(1, H, P, D) * 0.01
+            )
 
         result = optimize_actions_gradient(
             model, z_context, z_target,
-            horizon=H, action_dim=A, n_steps=100, lr=0.1, device="cpu",
+            horizon=H, action_dim=A, action_history=action_history,
+            n_steps=100, lr=0.1, device="cpu",
         )
 
         # Should at least not get worse
@@ -206,7 +212,7 @@ class TestCMAESOptimizer:
         )
 
         assert isinstance(result, PlanningResult)
-        assert result.optimized_actions.shape == (1, T_ctx, A)
+        assert result.optimized_actions.shape == (1, H, A)
         assert result.method == "cma_es"
         assert len(result.optimization_trace) > 0
 
@@ -241,11 +247,13 @@ class TestCompareActionSources:
         T_ctx, H, P, D, A = 3, 2, 16, 32, 7
         z_context = torch.randn(1, T_ctx, P, D)
         z_target = torch.randn(1, H, P, D)
-        gt_actions = torch.randn(1, T_ctx, A)
+        gt_actions = torch.randn(1, H, A)
+        action_history = torch.randn(1, T_ctx, A)
 
         result = compare_action_sources(
             model, z_context, z_target,
             horizon=H, action_dim=A, gt_actions=gt_actions,
+            action_history=action_history,
             n_random=3, device="cpu",
         )
 
@@ -255,6 +263,51 @@ class TestCompareActionSources:
         assert "optimized" in result["sources"]
         assert "pass" in result
         assert isinstance(result["pass"], bool)
+
+    def test_replay_actions_must_match_future_horizon(self) -> None:
+        """Replay/shuffle actions must use [B, H, A], not [B, T_ctx, A]."""
+        model = _make_tiny_model()
+        T_ctx, H, P, D, A = 3, 2, 16, 32, 7
+        z_context = torch.randn(1, T_ctx, P, D)
+        z_target = torch.randn(1, H, P, D)
+        gt_actions_history = torch.randn(1, T_ctx, A)
+
+        with pytest.raises(ValueError, match="gt_actions must have shape"):
+            compare_action_sources(
+                model, z_context, z_target,
+                horizon=H, action_dim=A, gt_actions=gt_actions_history,
+                n_random=1, device="cpu",
+            )
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
+    def test_dataset_random_baseline_runs_on_cuda(self) -> None:
+        """Dataset random actions use a generator on the CUDA device."""
+        model = _make_tiny_model(
+            patch_dim=2,
+            feature_dim=4,
+            action_dim=7,
+            hidden_dim=8,
+            future_horizon=1,
+        ).to("cuda")
+        T_ctx, H, P, D, A = 2, 1, 2, 4, 7
+        z_context = torch.randn(1, T_ctx, P, D, device="cuda")
+        z_target = torch.randn(1, H, P, D, device="cuda")
+        gt_actions = torch.randn(1, H, A, device="cuda")
+        action_history = torch.randn(1, T_ctx, A, device="cuda")
+        action_stats = {
+            "mean": [0.0] * A,
+            "std": [1.0] * A,
+        }
+
+        result = compare_action_sources(
+            model, z_context, z_target,
+            horizon=H, action_dim=A, gt_actions=gt_actions,
+            action_history=action_history,
+            n_random=1, random_baseline_type="dataset",
+            action_stats=action_stats, device="cuda",
+        )
+
+        assert torch.isfinite(torch.tensor(result["sources"]["random"]["distance"]))
 
     def test_optimized_beats_zero_on_easy_problem(self) -> None:
         """On a simple problem, optimized should beat zero actions."""
@@ -300,8 +353,9 @@ class TestPlanningIntegration:
         for _ in range(5):
             z_ctx = torch.randn(4, T_ctx, P, D)
             acts = torch.randn(4, T_ctx, A)
+            future_acts = torch.randn(4, H, A)
             z_tgt = torch.randn(4, H, P, D)
-            pred = model(z_ctx, acts)
+            pred = model(z_ctx, acts, future_actions=future_acts)
             loss = planning_objective_cosine(pred, z_tgt)
             optimizer.zero_grad()
             loss.backward()
@@ -318,7 +372,7 @@ class TestPlanningIntegration:
             horizon=H, action_dim=A, n_steps=10, device="cpu",
         )
 
-        assert result.optimized_actions.shape == (1, T_ctx, A)
+        assert result.optimized_actions.shape == (1, H, A)
         assert torch.isfinite(torch.tensor(result.optimized_distance))
 
 

@@ -19,7 +19,7 @@ o_t (observation)
   → frozen DINOv2 encoder
   → spatial patch features z_t: [B, P, D]
 
-z_t, action sequence a_t:t+k
+z_context, future action sequence a_t:t+h
   → world model (SNN)
   → predicted future patch features z_hat_t+1:t+h: [B, H, P, D]
 ```
@@ -28,7 +28,7 @@ Key design choices:
 - DINOv2 ViT-S/14 frozen encoder produces spatial patch features, not only CLS token
 - World model operates on patch latent space `[P, D]`, not raw pixels
 - SNN is the world model itself, not a policy head or post-hoc adapter
-- Planning optimizes action sequences through the learned world model
+- Planning optimizes explicit future action sequences `[B, H, A]` through the learned world model
 
 ## Phase Status
 
@@ -44,8 +44,8 @@ Key design choices:
 | Gate | Required Evidence | Status |
 |---|---|---|
 | DWM-G1 patch features | DINOv2 patch tensor shape tests, frame/patch indexing tests | **PASS** (18 tests, all pass) |
-| DWM-G2 transition dataset | no-future-leakage tests for z_t, actions, z_t+h | **PASS** (11 tests, all pass) |
-| DWM-G3 ANN baseline | one-step and multi-step patch latent metrics | **PASS** (13 tests, all pass) |
+| DWM-G2 transition dataset | no-future-leakage tests for z_context, future_actions, z_target | **PASS** (12 tests, all pass) |
+| DWM-G3 ANN baseline | forward/metric tests with explicit future_actions `[B,H,A]` | **PASS** (15 tests, all pass; real-data acceptance still pending) |
 | DWM-G4 planning sanity | action optimization improves predicted target latent distance | Pending |
 | DWM-G5 SNN forward | SNN patch-latent forward shape, reset behavior, spike stats |
 | DWM-G6 direct ES sanity | toy objective and offline latent objective improve under fixed seed |

@@ -19,7 +19,14 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = REPO_ROOT / "docs" / "RESULT_ARTIFACTS.md"
-METRIC_COLUMNS = {"action_mse", "total_loss", "action_loss", "future_loss"}
+METRIC_SCHEMA_OPTIONS = [
+    {"action_mse", "total_loss", "action_loss"},
+    {"action_mse", "total_loss", "action_loss", "future_loss"},
+    {"total_loss", "patch_cosine_error", "patch_mse"},
+    {"horizon", "patch_cosine_error", "patch_mse"},
+    {"epoch", "train_loss", "val_loss"},
+    {"stage", "success_rate"},
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,6 +62,11 @@ def check_registry(path: Path) -> list[str]:
     for row in rows:
         cells = [cell.strip() for cell in row.strip("|").split("|")]
         artifact_id = cells[0] if cells else "<unknown>"
+        run_id = cells[1] if len(cells) > 1 else ""
+        path_cell = cells[2] if len(cells) > 2 else ""
+        stage = cells[3] if len(cells) > 3 else ""
+        if is_template_or_gate_validation(artifact_id, run_id, path_cell, stage):
+            continue
         notes = cells[-1] if cells else ""
         result_paths = re.findall(r"`(results/[^`]+)`", row)
         if not result_paths:
@@ -75,6 +87,19 @@ def check_registry(path: Path) -> list[str]:
         if is_reportable:
             errors.extend(check_clean_git(artifact_id, result_paths))
     return errors
+
+
+def is_template_or_gate_validation(
+    artifact_id: str,
+    run_id: str,
+    path_cell: str,
+    stage: str,
+) -> bool:
+    if artifact_id in {"R-000", "R-DWM-000"}:
+        return True
+    if run_id.strip("`") == "template":
+        return True
+    return "gate_validation" in {path_cell.strip("`"), stage.strip("`")}
 
 
 def check_clean_git(artifact_id: str, result_paths: list[str]) -> list[str]:
@@ -113,9 +138,12 @@ def check_metric_csv(artifact_id: str, path: Path) -> list[str]:
     errors: list[str] = []
     if not rows:
         errors.append(f"{artifact_id} has empty metric CSV: {path}")
-    missing = sorted(METRIC_COLUMNS - columns)
-    if missing:
-        errors.append(f"{artifact_id} metric CSV {path} missing columns: {missing}")
+    if not any(schema <= columns for schema in METRIC_SCHEMA_OPTIONS):
+        schema_text = [sorted(schema) for schema in METRIC_SCHEMA_OPTIONS]
+        errors.append(
+            f"{artifact_id} metric CSV {path} does not match known schemas: {schema_text}; "
+            f"columns={sorted(columns)}"
+        )
     return errors
 
 

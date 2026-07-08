@@ -30,7 +30,10 @@ from torch.utils.data import DataLoader, Subset
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.data.patch_latent_dataset import create_dinowm_transition_dataset  # noqa: E402
+from src.data.patch_latent_dataset import (  # noqa: E402
+    create_dinowm_transition_dataset,
+    indices_for_split_name,
+)
 from src.models.dinowm_transformer import DINOwMTransformer  # noqa: E402
 from src.train.metrics import (  # noqa: E402
     patch_cosine_error,
@@ -54,9 +57,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--split", choices=["val", "train", "both"], default="val")
     parser.add_argument(
         "--action_mode", choices=["real", "zeros", "shuffle"], default="real",
-        help="Action input mode: real (GT actions), zeros (OOD ablation: zero all actions, "
-             "not a true no-action baseline since model was trained on real actions), "
-             "shuffle (temporal permutation of GT actions, paired eval)."
+        help="Future action mode: real (GT future candidate actions), zeros "
+             "(OOD ablation: zero future actions, not a true no-action baseline), "
+             "shuffle (batch/time permutation of future actions, paired eval)."
     )
     parser.add_argument(
         "--shuffle_seeds", type=int, nargs="+", default=[0],
@@ -75,6 +78,7 @@ def patch_collate_fn(samples: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "z_context": torch.stack([s["z_context"] for s in samples], dim=0),
         "actions": torch.stack([s["actions"] for s in samples], dim=0),
+        "future_actions": torch.stack([s["future_actions"] for s in samples], dim=0),
         "z_target": torch.stack([s["z_target"] for s in samples], dim=0),
         "metadata": [s.get("metadata", {}) for s in samples],
     }
@@ -102,6 +106,14 @@ def load_model(run_dir: Path, checkpoint_path: Path | None, device: torch.device
     return model, config
 
 
+def load_split_info(run_dir: Path) -> dict[str, Any] | None:
+    """Load trainer split metadata if available."""
+    split_path = run_dir / "split.json"
+    if not split_path.exists():
+        return None
+    return json.loads(split_path.read_text())
+
+
 def _apply_action_mode(
     actions: torch.Tensor,
     *,
@@ -114,15 +126,44 @@ def _apply_action_mode(
     elif action_mode == "zeros":
         return torch.zeros_like(actions)
     elif action_mode == "shuffle":
-        # Per-sample temporal shuffle along T dimension
-        B, T, A = actions.shape
-        shuffled = actions.clone()
+        # Paired action-ablation: break sample/action alignment while keeping
+        # the future-action distribution. Batch permutation matters for H=1;
+        # temporal permutation additionally breaks within-chunk ordering.
+        B, H, A = actions.shape
+        batch_perm = torch.randperm(B, generator=shuffle_rng, device=actions.device)
+        shuffled = actions[batch_perm].clone()
         for b in range(B):
-            perm = torch.randperm(T, generator=shuffle_rng)
-            shuffled[b] = actions[b, perm]
+            time_perm = torch.randperm(H, generator=shuffle_rng, device=actions.device)
+            shuffled[b] = shuffled[b, time_perm]
         return shuffled
     else:
         raise ValueError(f"Unknown action_mode: {action_mode!r}")
+
+
+def _make_generator(seed: int, device: torch.device) -> torch.Generator:
+    """Return a deterministic generator on the tensor device."""
+    if device.type == "cpu":
+        return torch.Generator().manual_seed(seed)
+    return torch.Generator(device=device).manual_seed(seed)
+
+
+def _future_action_chunk(
+    future_actions: torch.Tensor,
+    *,
+    start: int,
+    length: int,
+) -> torch.Tensor:
+    """Return [B, length, A] future actions, padding with the last action."""
+    B, H, A = future_actions.shape
+    end = start + length
+    if start < H:
+        chunk = future_actions[:, start:min(end, H)]
+    else:
+        chunk = future_actions[:, -1:]
+    if chunk.shape[1] < length:
+        pad = chunk[:, -1:].expand(B, length - chunk.shape[1], A)
+        chunk = torch.cat([chunk, pad], dim=1)
+    return chunk
 
 
 @torch.no_grad()
@@ -135,6 +176,7 @@ def eval_one_horizon(
     device: torch.device,
     action_mode: str = "real",
     shuffle_seed: int = 0,
+    rollout_mode: str = "autoregressive",
     max_steps: int | None = None,
 ) -> dict[str, Any]:
     """Evaluate metrics at a specific horizon.
@@ -155,32 +197,42 @@ def eval_one_horizon(
             break
 
         z_context = batch["z_context"].to(device)  # [B, T_ctx, P, D]
-        actions_raw = batch["actions"].to(device)  # [B, T_ctx, A]
+        action_history = batch["actions"].to(device)  # [B, T_ctx, A]
+        future_actions_raw = batch["future_actions"].to(device)  # [B, H_eval, A]
         z_target_full = batch["z_target"].to(device)  # [B, H_model, P, D]
         metadata_list = batch.get("metadata", [{}] * z_context.shape[0])
 
         B = z_context.shape[0]
 
-        # Apply action mode
-        shuffle_rng = torch.Generator().manual_seed(shuffle_seed + steps)
-        actions = _apply_action_mode(actions_raw, action_mode=action_mode, shuffle_rng=shuffle_rng)
+        # Apply action mode only to explicit future candidate actions. Context
+        # action history remains part of the observation/context.
+        shuffle_rng = _make_generator(shuffle_seed + steps, device)
+        future_actions = _apply_action_mode(
+            future_actions_raw,
+            action_mode=action_mode,
+            shuffle_rng=shuffle_rng,
+        )
 
         if eval_horizon <= model_horizon:
-            pred = model(z_context, actions)  # [B, H_model, P, D]
+            pred = model(
+                z_context,
+                action_history,
+                future_actions=future_actions[:, :model_horizon],
+            )  # [B, H_model, P, D]
             pred_h = pred[:, :eval_horizon]  # [B, eval_h, P, D]
             target_h = z_target_full[:, :eval_horizon]  # [B, eval_h, P, D]
         else:
-            if args.rollout_mode == "teacher_forced":
+            if rollout_mode == "teacher_forced":
                 # Teacher-forced: use GT context at each step (no compounding error)
                 pred_h, batch_fallback = _teacher_forced_predict(
-                    model, z_context, actions, eval_horizon, device,
+                    model, z_context, action_history, future_actions, eval_horizon, device,
                     z_target_full=z_target_full,
                 )
                 total_fallback_samples += batch_fallback
             else:
                 # Autoregressive: chain predictions (compounding error)
                 pred_h = _autoregressive_predict(
-                    model, z_context, actions, eval_horizon, device
+                    model, z_context, action_history, future_actions, eval_horizon, device
                 )
             target_h = z_target_full[:, :eval_horizon] if z_target_full.shape[1] >= eval_horizon else None
             if target_h is None:
@@ -260,7 +312,8 @@ def eval_one_horizon(
 def _teacher_forced_predict(
     model: DINOwMTransformer,
     z_context: torch.Tensor,
-    actions: torch.Tensor,
+    action_history: torch.Tensor,
+    future_actions: torch.Tensor,
     target_horizon: int,
     device: torch.device,
     z_target_full: torch.Tensor | None = None,
@@ -298,7 +351,16 @@ def _teacher_forced_predict(
 
     for step in range(target_horizon):
         # Predict model_horizon steps from current context
-        pred = model(z_context, actions)  # [B, H_model, P, D]
+        future_chunk = _future_action_chunk(
+            future_actions,
+            start=step,
+            length=model.future_horizon,
+        )
+        pred = model(
+            z_context,
+            action_history,
+            future_actions=future_chunk,
+        )  # [B, H_model, P, D]
         all_preds.append(pred[:, :1])  # [B, 1, P, D]
 
         if use_gt:
@@ -309,11 +371,10 @@ def _teacher_forced_predict(
             # Fallback: use model prediction (autoregressive, not teacher-forced)
             z_context = torch.cat([z_context[:, 1:], pred[:, :1]], dim=1)
 
-        # Shift actions: drop oldest, pad with zeros for the new position
-        # (GT actions for future steps are not available in the dataset format)
-        actions = torch.cat([
-            actions[:, 1:],
-            torch.zeros(B, 1, actions.shape[-1], device=device),
+        # Shift action history by appending the executed future action.
+        action_history = torch.cat([
+            action_history[:, 1:],
+            future_chunk[:, :1],
         ], dim=1)
 
     return torch.cat(all_preds, dim=1)[:, :target_horizon], fallback_count
@@ -323,7 +384,8 @@ def _teacher_forced_predict(
 def _autoregressive_predict(
     model: DINOwMTransformer,
     z_context: torch.Tensor,
-    actions: torch.Tensor,
+    action_history: torch.Tensor,
+    future_actions: torch.Tensor,
     target_horizon: int,
     device: torch.device,
 ) -> torch.Tensor:
@@ -340,7 +402,8 @@ def _autoregressive_predict(
     Args:
         model: Trained DINOwMTransformer.
         z_context: [B, T_ctx, P, D] context patch latents.
-        actions: [B, T_ctx, A] context actions.
+        action_history: [B, T_ctx, A] context actions.
+        future_actions: [B, H_eval, A] candidate future actions.
         target_horizon: Number of future steps to predict.
         device: Torch device.
 
@@ -352,31 +415,42 @@ def _autoregressive_predict(
 
     all_preds = []
     current_context = z_context.clone()
-    current_actions = actions.clone()
+    current_action_history = action_history.clone()
     remaining = target_horizon
+    consumed = 0
 
     while remaining > 0:
         predict_steps = min(model_h, remaining)
+        future_chunk = _future_action_chunk(
+            future_actions,
+            start=consumed,
+            length=model_h,
+        )
 
-        pred = model(current_context, current_actions)  # [B, model_h, P, D]
+        pred = model(
+            current_context,
+            current_action_history,
+            future_actions=future_chunk,
+        )  # [B, model_h, P, D]
         pred_chunk = pred[:, :predict_steps]  # [B, predict_steps, P, D]
         all_preds.append(pred_chunk)
         remaining -= predict_steps
+        consumed += predict_steps
 
         # Shift context: drop oldest predict_steps, append predictions
         current_context = torch.cat([current_context[:, predict_steps:], pred_chunk], dim=1)
 
-        # Shift actions: drop oldest, pad with last known action (not zeros)
-        # to reduce OOD severity. Last column of current_actions is repeated.
-        last_action = current_actions[:, -1:]  # [B, 1, A]
-        padding = last_action.expand(B, predict_steps, -1)  # [B, predict_steps, A]
-        current_actions = torch.cat([current_actions[:, predict_steps:], padding], dim=1)
+        # Shift action history by appending the executed future action chunk.
+        executed_actions = future_chunk[:, :predict_steps]
+        current_action_history = torch.cat(
+            [current_action_history[:, predict_steps:], executed_actions],
+            dim=1,
+        )
 
     return torch.cat(all_preds, dim=1)[:, :target_horizon]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    global args
     args = parse_args(argv)
     seed_everything(args.seed)
     device = torch.device(args.device)
@@ -390,6 +464,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     # Load dataset
     cache_dir = args.cache_dir or Path(config["data"]["cache_dir"])
     context_len = int(config["data"]["context_len"])
+    split_info = load_split_info(args.run_dir)
+    train_ratio = float(config["data"].get("train_ratio", 0.9))
+    split_seed = int(config.get("experiment", {}).get("seed", args.seed))
+    split_source = str(args.run_dir / "split.json") if split_info is not None else "generated_from_config"
 
     all_per_sample: list[dict[str, Any]] = []
     results_all: list[dict[str, Any]] = []
@@ -402,20 +480,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             cache_dir,
             context_len=context_len,
             future_horizon=max(max_h, model_horizon),
+            max_demos=config["data"].get("max_demos"),
+            max_frames=config["data"].get("max_frames"),
             split=split_name,
         )
 
-        # Apply same split as trainer
-        if split_name == "val":
-            n_total = len(dataset)
-            n_train = int(n_total * 0.9)
-            indices = list(range(n_train, n_total))
-            dataset = Subset(dataset, indices)
-        elif split_name == "train":
-            n_total = len(dataset)
-            n_train = int(n_total * 0.9)
-            indices = list(range(n_train))
-            dataset = Subset(dataset, indices)
+        indices = indices_for_split_name(
+            dataset,
+            split_name,
+            split_info=split_info,
+            train_ratio=train_ratio,
+            seed=split_seed,
+        )
+        dataset = Subset(dataset, indices)
 
         print(f"  {split_name} windows: {len(dataset)}")
 
@@ -441,6 +518,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     device=device,
                     action_mode=args.action_mode,
                     shuffle_seed=shuffle_seed,
+                    rollout_mode=args.rollout_mode,
                     max_steps=args.max_steps,
                 )
                 metrics["split"] = split_name
@@ -498,15 +576,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         rollout_behavior = {
             "description": "GT patch latents used as context at each step; no compounding error",
             "compounding_error": False,
-            "action_padding": "zeros for unavailable future actions",
+            "action_padding": "last available future action repeated only beyond requested horizon",
             "note": "Measures per-step prediction accuracy, not open-loop rollout fidelity",
         }
     else:
         rollout_behavior = {
             "description": "Model predictions chained as context; compounding error present",
             "compounding_error": True,
-            "action_padding": "last known action repeated (not zeros) to reduce OOD severity",
-            "note": "H > model_horizon requires action padding; this is OOD relative to training",
+            "action_padding": "uses recorded future actions when available; repeats last only beyond requested horizon",
+            "note": "Evaluates action-conditioned autoregressive latent prediction with explicit future actions",
         }
 
     # Compute aggregate fallback stats across all horizons
@@ -525,6 +603,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "model_horizon": model_horizon,
         "action_mode": args.action_mode,
         "shuffle_seeds": args.shuffle_seeds if args.action_mode == "shuffle" else [],
+        "split_source": split_source,
+        "split_method": (split_info or {}).get("method", "trajectory_split_generated"),
+        "split_seed": split_seed,
+        "train_ratio": train_ratio,
         "rollout_behavior": rollout_behavior,
         "results": [{k: v for k, v in r.items() if k != "per_sample"} for r in results_all],
     }
